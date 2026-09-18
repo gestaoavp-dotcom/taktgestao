@@ -1,3 +1,7 @@
+# taktgestao
+
+Sistema de gestão de tarefas, finanças e clientes para assessoria de marketplaces.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
