@@ -26,13 +26,16 @@ export function NavLinks() {
           <Link
             key={link.href}
             href={link.href}
-            className={`flex items-center gap-3 rounded px-3 py-2 text-sm font-medium transition-colors ${
+            className={`relative flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
               isActive
                 ? "bg-blue text-white"
-                : "text-white/60 hover:bg-white/10 hover:text-white"
+                : "text-[#5B647E] hover:bg-brand-gray/60"
             }`}
           >
-            <Icon className="h-4 w-4" />
+            {isActive && (
+              <span className="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r bg-blue" />
+            )}
+            <Icon className="h-[18px] w-[18px]" />
             {link.label}
           </Link>
         );

@@ -15,6 +15,14 @@ function formatDateShort(date: string) {
   return `${d}/${m}`;
 }
 
+function niceMax(value: number) {
+  if (value <= 0) return 100;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
+  const normalized = value / magnitude;
+  const step = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  return step * magnitude;
+}
+
 const WIDTH = 1000;
 const HEIGHT = 280;
 const PAD_LEFT = 64;
@@ -25,7 +33,7 @@ const PAD_BOTTOM = 32;
 export function AreaChart({ data }: { data: { date: string; value: number }[] }) {
   const [hover, setHover] = useState<number | null>(null);
 
-  const max = Math.max(1, ...data.map((d) => d.value));
+  const max = niceMax(Math.max(...data.map((d) => d.value)));
   const plotW = WIDTH - PAD_LEFT - PAD_RIGHT;
   const plotH = HEIGHT - PAD_TOP - PAD_BOTTOM;
 

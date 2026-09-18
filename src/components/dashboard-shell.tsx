@@ -1,0 +1,38 @@
+"use client";
+
+import { useState } from "react";
+import { Logo } from "@/components/logo";
+import { NavLinks } from "@/components/nav-links";
+import { Header } from "@/components/header";
+
+export function DashboardShell({
+  email,
+  children,
+}: {
+  email?: string;
+  children: React.ReactNode;
+}) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  return (
+    <div className="flex min-h-screen bg-brand-gray/50">
+      <aside
+        className={`flex-shrink-0 overflow-hidden border-r border-navy/[.08] bg-white transition-[width] duration-200 ${
+          collapsed ? "w-0" : "w-60"
+        }`}
+      >
+        <div className="w-60 px-4 py-5">
+          <div className="mb-8 px-2">
+            <Logo />
+          </div>
+          <NavLinks />
+        </div>
+      </aside>
+
+      <div className="flex min-h-screen flex-1 flex-col">
+        <Header email={email} onToggleSidebar={() => setCollapsed((c) => !c)} />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
+    </div>
+  );
+}
