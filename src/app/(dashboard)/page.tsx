@@ -20,11 +20,6 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function formatDateShort(date: string) {
-  const [, m, d] = date.split("-");
-  return `${d}/${m}`;
-}
-
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
@@ -124,7 +119,7 @@ export default async function DashboardPage({
         <h2 className="mb-4 font-display text-sm font-semibold text-navy">
           Faturamento por dia
         </h2>
-        <BarChart data={chartData} formatValue={formatCurrency} formatDate={formatDateShort} />
+        <BarChart data={chartData} />
       </div>
     </div>
   );
