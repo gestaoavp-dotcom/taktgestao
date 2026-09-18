@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/logout/actions";
 import { NavLinks } from "@/components/nav-links";
 import { Logo } from "@/components/logo";
+import { Header } from "@/components/header";
 
 export default async function DashboardLayout({
   children,
@@ -15,7 +16,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-brand-gray">
-      <aside className="flex w-56 flex-col justify-between bg-navy p-4">
+      <aside className="flex w-56 flex-shrink-0 flex-col justify-between bg-navy p-4">
         <div>
           <div className="mb-8 px-2 pt-2">
             <Logo variant="light" />
@@ -36,7 +37,10 @@ export default async function DashboardLayout({
         </form>
       </aside>
 
-      <main className="flex-1 p-8">{children}</main>
+      <div className="flex min-h-screen flex-1 flex-col">
+        <Header email={user?.email} />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
     </div>
   );
 }

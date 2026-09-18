@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { BarChart } from "@/components/bar-chart";
+import { AreaChart } from "@/components/area-chart";
+import { KpiCard } from "@/components/kpi-card";
 
 const PLATFORMS = [
   { value: "mercado_livre", label: "Mercado Livre" },
@@ -24,6 +25,11 @@ function toISODate(d: Date) {
   return d.toISOString().slice(0, 10);
 }
 
+function trendOf(current: number, previous: number) {
+  if (previous <= 0) return current > 0 ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -33,18 +39,24 @@ export default async function DashboardPage({
   const supabase = await createClient();
 
   const today = new Date();
-  const start = new Date(today);
-  start.setDate(start.getDate() - (DAYS - 1));
-  const startISO = toISODate(start);
+  const periodStart = new Date(today);
+  periodStart.setDate(periodStart.getDate() - (DAYS - 1));
+  const prevPeriodEnd = new Date(periodStart);
+  prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 1);
+  const prevPeriodStart = new Date(prevPeriodEnd);
+  prevPeriodStart.setDate(prevPeriodStart.getDate() - (DAYS - 1));
+
+  const periodStartISO = toISODate(periodStart);
+  const prevPeriodStartISO = toISODate(prevPeriodStart);
   const todayISO = toISODate(today);
 
-  const [{ count: clientCount }, salesQuery] = await Promise.all([
-    supabase.from("clients").select("*", { count: "exact", head: true }),
+  const [{ data: clients }, salesQuery] = await Promise.all([
+    supabase.from("clients").select("id, created_at"),
     (() => {
       let query = supabase
         .from("sales_daily")
-        .select("date, revenue, orders_count, platform")
-        .gte("date", startISO)
+        .select("date, revenue, orders_count")
+        .gte("date", prevPeriodStartISO)
         .lte("date", todayISO);
       if (platform) query = query.eq("platform", platform);
       return query;
@@ -52,18 +64,31 @@ export default async function DashboardPage({
   ]);
 
   const sales = salesQuery.data ?? [];
+  const current = sales.filter((s) => s.date >= periodStartISO);
+  const previous = sales.filter((s) => s.date < periodStartISO);
 
-  const totalRevenue = sales.reduce((sum, s) => sum + Number(s.revenue), 0);
-  const totalOrders = sales.reduce((sum, s) => sum + s.orders_count, 0);
+  const currentRevenue = current.reduce((sum, s) => sum + Number(s.revenue), 0);
+  const previousRevenue = previous.reduce((sum, s) => sum + Number(s.revenue), 0);
+  const currentOrders = current.reduce((sum, s) => sum + s.orders_count, 0);
+  const previousOrders = previous.reduce((sum, s) => sum + s.orders_count, 0);
+  const currentTicket = currentOrders > 0 ? currentRevenue / currentOrders : 0;
+  const previousTicket = previousOrders > 0 ? previousRevenue / previousOrders : 0;
+
+  const totalClients = clients?.length ?? 0;
+  const newClientsCurrent =
+    clients?.filter((c) => c.created_at.slice(0, 10) >= periodStartISO).length ?? 0;
+  const newClientsPrevious =
+    clients?.filter(
+      (c) => c.created_at.slice(0, 10) >= prevPeriodStartISO && c.created_at.slice(0, 10) < periodStartISO,
+    ).length ?? 0;
 
   const byDate = new Map<string, number>();
-  for (const s of sales) {
+  for (const s of current) {
     byDate.set(s.date, (byDate.get(s.date) ?? 0) + Number(s.revenue));
   }
-
   const chartData: { date: string; value: number }[] = [];
   for (let i = 0; i < DAYS; i++) {
-    const d = new Date(start);
+    const d = new Date(periodStart);
     d.setDate(d.getDate() + i);
     const iso = toISODate(d);
     chartData.push({ date: iso, value: byDate.get(iso) ?? 0 });
@@ -98,28 +123,43 @@ export default async function DashboardPage({
         </nav>
       </div>
 
-      <div className="mb-8 grid grid-cols-3 gap-4">
-        <div className="rounded-lg bg-white p-4 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Clientes</p>
-          <p className="font-display text-2xl font-bold text-navy">{clientCount ?? 0}</p>
-        </div>
-        <div className="rounded-lg bg-white p-4 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Faturamento sob gestão (30 dias)</p>
-          <p className="font-display text-2xl font-bold text-navy">
-            {formatCurrency(totalRevenue)}
-          </p>
-        </div>
-        <div className="rounded-lg bg-white p-4 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Pedidos gerados (30 dias)</p>
-          <p className="font-display text-2xl font-bold text-navy">{totalOrders}</p>
-        </div>
+      <div className="mb-6 grid grid-cols-4 gap-4">
+        <KpiCard
+          label="Clientes"
+          value={String(totalClients)}
+          trend={trendOf(newClientsCurrent, newClientsPrevious)}
+          icon="users"
+        />
+        <KpiCard
+          label="Faturamento sob gestão"
+          value={formatCurrency(currentRevenue)}
+          trend={trendOf(currentRevenue, previousRevenue)}
+          icon="wallet"
+        />
+        <KpiCard
+          label="Pedidos gerados"
+          value={String(currentOrders)}
+          trend={trendOf(currentOrders, previousOrders)}
+          icon="package"
+        />
+        <KpiCard
+          label="Ticket médio"
+          value={formatCurrency(currentTicket)}
+          trend={trendOf(currentTicket, previousTicket)}
+          icon="receipt"
+        />
       </div>
 
-      <div className="rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-4 font-display text-sm font-semibold text-navy">
-          Faturamento por dia
-        </h2>
-        <BarChart data={chartData} />
+      <div className="rounded-lg bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-display text-base font-semibold text-navy">
+            Faturamento por dia
+          </h2>
+          <span className="rounded-lg border border-navy/10 px-3 py-1.5 text-xs font-medium text-[#5B647E]">
+            Últimos 30 dias
+          </span>
+        </div>
+        <AreaChart data={chartData} />
       </div>
     </div>
   );
