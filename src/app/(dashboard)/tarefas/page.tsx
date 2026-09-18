@@ -15,6 +15,12 @@ const PRIORITY_LABEL: Record<Task["priority"], string> = {
   high: "Alta",
 };
 
+const PRIORITY_BADGE: Record<Task["priority"], string> = {
+  low: "bg-brand-gray text-[#5B647E]",
+  medium: "bg-blue/10 text-blue",
+  high: "bg-yellow text-navy",
+};
+
 export default async function TarefasPage() {
   const supabase = await createClient();
 
@@ -29,24 +35,22 @@ export default async function TarefasPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
-        Tarefas
-      </h1>
+      <h1 className="mb-6 font-display text-2xl font-bold text-navy">Tarefas</h1>
 
       <form
         action={createTask}
-        className="mb-8 grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+        className="mb-8 grid max-w-2xl grid-cols-2 gap-3 rounded-lg bg-white p-4 shadow-sm"
       >
         <input
           name="title"
           placeholder="Título da tarefa"
           required
-          className="col-span-2 rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="col-span-2 rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         />
         <select
           name="client_id"
           defaultValue=""
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         >
           <option value="">Sem cliente</option>
           {clients?.map((client) => (
@@ -58,7 +62,7 @@ export default async function TarefasPage() {
         <select
           name="priority"
           defaultValue="medium"
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         >
           <option value="low">Prioridade baixa</option>
           <option value="medium">Prioridade média</option>
@@ -67,41 +71,41 @@ export default async function TarefasPage() {
         <input
           name="due_date"
           type="date"
-          className="col-span-2 rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="col-span-2 rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         />
         <button
           type="submit"
-          className="col-span-2 mt-1 h-10 rounded bg-foreground text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+          className="col-span-2 mt-1 h-10 rounded bg-navy text-sm font-medium text-white transition-colors hover:bg-[#0d1a38]"
         >
           Adicionar tarefa
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-lg border border-black/[.08] dark:border-white/[.145]">
+      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="bg-black/[.03] dark:bg-white/[.06]">
+          <thead className="bg-brand-gray">
             <tr>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Tarefa</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Cliente</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Prioridade</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Prazo</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Status</th>
+              <th className="px-4 py-2 font-medium text-navy">Tarefa</th>
+              <th className="px-4 py-2 font-medium text-navy">Cliente</th>
+              <th className="px-4 py-2 font-medium text-navy">Prioridade</th>
+              <th className="px-4 py-2 font-medium text-navy">Prazo</th>
+              <th className="px-4 py-2 font-medium text-navy">Status</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
             {tasks?.map((task) => (
-              <tr key={task.id} className="border-t border-black/[.08] dark:border-white/[.145]">
-                <td className="px-4 py-2 text-black dark:text-zinc-50">{task.title}</td>
-                <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
-                  {task.clients?.name ?? "—"}
+              <tr key={task.id} className="border-t border-navy/[.08]">
+                <td className="px-4 py-2 text-navy">{task.title}</td>
+                <td className="px-4 py-2 text-[#5B647E]">{task.clients?.name ?? "—"}</td>
+                <td className="px-4 py-2">
+                  <span
+                    className={`rounded px-2 py-0.5 text-xs font-medium ${PRIORITY_BADGE[task.priority]}`}
+                  >
+                    {PRIORITY_LABEL[task.priority]}
+                  </span>
                 </td>
-                <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
-                  {PRIORITY_LABEL[task.priority]}
-                </td>
-                <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
-                  {task.due_date ?? "—"}
-                </td>
+                <td className="px-4 py-2 text-[#5B647E]">{task.due_date ?? "—"}</td>
                 <td className="px-4 py-2">
                   <form action={updateTaskStatus} className="flex items-center gap-1">
                     <input type="hidden" name="id" value={task.id} />
@@ -112,7 +116,7 @@ export default async function TarefasPage() {
                         value,
                         label,
                       }))}
-                      className="rounded border border-black/[.08] bg-transparent px-2 py-1 text-xs text-black outline-none dark:border-white/[.145] dark:text-zinc-50"
+                      className="rounded border border-navy/10 bg-transparent px-2 py-1 text-xs text-navy outline-none"
                     />
                   </form>
                 </td>
@@ -121,7 +125,7 @@ export default async function TarefasPage() {
                     <input type="hidden" name="id" value={task.id} />
                     <button
                       type="submit"
-                      className="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+                      className="text-xs font-medium text-red-600 hover:underline"
                     >
                       Excluir
                     </button>
@@ -131,7 +135,7 @@ export default async function TarefasPage() {
             ))}
             {!tasks?.length && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-zinc-500 dark:text-zinc-400">
+                <td colSpan={6} className="px-4 py-6 text-center text-[#94A0BD]">
                   Nenhuma tarefa cadastrada ainda.
                 </td>
               </tr>

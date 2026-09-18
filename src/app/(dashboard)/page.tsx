@@ -37,58 +37,47 @@ export default async function DashboardPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
-        Dashboard
-      </h1>
+      <h1 className="mb-6 font-display text-2xl font-bold text-navy">Dashboard</h1>
 
       <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-4">
         <Link
           href="/clientes"
-          className="rounded-lg border border-black/[.08] p-4 transition-colors hover:bg-black/[.02] dark:border-white/[.145] dark:hover:bg-white/[.04]"
+          className="rounded-lg bg-white p-4 shadow-sm transition-colors hover:bg-navy/[.02]"
         >
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Clientes ativos</p>
-          <p className="text-2xl font-semibold text-black dark:text-zinc-50">
-            {activeClients}
-          </p>
+          <p className="text-sm text-[#5B647E]">Clientes ativos</p>
+          <p className="font-display text-2xl font-bold text-navy">{activeClients}</p>
         </Link>
         <Link
           href="/tarefas"
-          className="rounded-lg border border-black/[.08] p-4 transition-colors hover:bg-black/[.02] dark:border-white/[.145] dark:hover:bg-white/[.04]"
+          className="rounded-lg bg-white p-4 shadow-sm transition-colors hover:bg-navy/[.02]"
         >
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">Tarefas abertas</p>
-          <p className="text-2xl font-semibold text-black dark:text-zinc-50">
-            {openTasks.length}
-          </p>
+          <p className="text-sm text-[#5B647E]">Tarefas abertas</p>
+          <p className="font-display text-2xl font-bold text-navy">{openTasks.length}</p>
         </Link>
         <Link
           href="/financas"
-          className="rounded-lg border border-black/[.08] p-4 transition-colors hover:bg-black/[.02] dark:border-white/[.145] dark:hover:bg-white/[.04]"
+          className="rounded-lg bg-white p-4 shadow-sm transition-colors hover:bg-navy/[.02]"
         >
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">A receber</p>
-          <p className="text-2xl font-semibold text-green-700 dark:text-green-400">
+          <p className="text-sm text-[#5B647E]">A receber</p>
+          <p className="font-display text-2xl font-bold text-green-700">
             {formatCurrency(pendingIncome)}
           </p>
         </Link>
         <Link
           href="/financas"
-          className="rounded-lg border border-black/[.08] p-4 transition-colors hover:bg-black/[.02] dark:border-white/[.145] dark:hover:bg-white/[.04]"
+          className="rounded-lg bg-white p-4 shadow-sm transition-colors hover:bg-navy/[.02]"
         >
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">A pagar</p>
-          <p className="text-2xl font-semibold text-red-700 dark:text-red-400">
+          <p className="text-sm text-[#5B647E]">A pagar</p>
+          <p className="font-display text-2xl font-bold text-red-700">
             {formatCurrency(pendingExpense)}
           </p>
         </Link>
       </div>
 
-      <div className="rounded-lg border border-black/[.08] dark:border-white/[.145]">
-        <div className="flex items-center justify-between border-b border-black/[.08] px-4 py-3 dark:border-white/[.145]">
-          <h2 className="text-sm font-semibold text-black dark:text-zinc-50">
-            Próximas tarefas
-          </h2>
-          <Link
-            href="/tarefas"
-            className="text-xs font-medium text-zinc-600 hover:underline dark:text-zinc-400"
-          >
+      <div className="rounded-lg bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-navy/[.08] px-4 py-3">
+          <h2 className="font-display text-sm font-semibold text-navy">Próximas tarefas</h2>
+          <Link href="/tarefas" className="text-xs font-medium text-blue hover:underline">
             Ver todas
           </Link>
         </div>
@@ -96,21 +85,17 @@ export default async function DashboardPage() {
           {nextTasks.map((task) => (
             <div
               key={task.id}
-              className="flex items-center justify-between border-b border-black/[.08] px-4 py-3 last:border-b-0 dark:border-white/[.145]"
+              className="flex items-center justify-between border-b border-navy/[.08] px-4 py-3 last:border-b-0"
             >
               <div>
-                <p className="text-sm text-black dark:text-zinc-50">{task.title}</p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                  {task.clients?.name ?? "Sem cliente"}
-                </p>
+                <p className="text-sm text-navy">{task.title}</p>
+                <p className="text-xs text-[#94A0BD]">{task.clients?.name ?? "Sem cliente"}</p>
               </div>
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {task.due_date ?? "Sem prazo"}
-              </span>
+              <span className="text-xs text-[#94A0BD]">{task.due_date ?? "Sem prazo"}</span>
             </div>
           ))}
           {!nextTasks.length && (
-            <p className="px-4 py-6 text-center text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="px-4 py-6 text-center text-sm text-[#94A0BD]">
               Nenhuma tarefa aberta.
             </p>
           )}

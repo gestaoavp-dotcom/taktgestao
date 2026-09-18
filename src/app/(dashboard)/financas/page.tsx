@@ -36,20 +36,18 @@ export default async function FinancasPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
-        Finanças
-      </h1>
+      <h1 className="mb-6 font-display text-2xl font-bold text-navy">Finanças</h1>
 
       <div className="mb-8 grid max-w-2xl grid-cols-2 gap-4">
-        <div className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">A receber</p>
-          <p className="text-xl font-semibold text-green-700 dark:text-green-400">
+        <div className="rounded-lg bg-white p-4 shadow-sm">
+          <p className="text-sm text-[#5B647E]">A receber</p>
+          <p className="font-display text-xl font-bold text-green-700">
             {formatCurrency(pendingIncome)}
           </p>
         </div>
-        <div className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
-          <p className="text-sm text-zinc-600 dark:text-zinc-400">A pagar</p>
-          <p className="text-xl font-semibold text-red-700 dark:text-red-400">
+        <div className="rounded-lg bg-white p-4 shadow-sm">
+          <p className="text-sm text-[#5B647E]">A pagar</p>
+          <p className="font-display text-xl font-bold text-red-700">
             {formatCurrency(pendingExpense)}
           </p>
         </div>
@@ -57,18 +55,18 @@ export default async function FinancasPage() {
 
       <form
         action={createFinanceEntry}
-        className="mb-8 grid max-w-2xl grid-cols-2 gap-3 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+        className="mb-8 grid max-w-2xl grid-cols-2 gap-3 rounded-lg bg-white p-4 shadow-sm"
       >
         <input
           name="description"
           placeholder="Descrição"
           required
-          className="col-span-2 rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="col-span-2 rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         />
         <select
           name="type"
           defaultValue="income"
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         >
           <option value="income">Receita</option>
           <option value="expense">Despesa</option>
@@ -80,12 +78,12 @@ export default async function FinancasPage() {
           min="0"
           placeholder="Valor (R$)"
           required
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         />
         <select
           name="client_id"
           defaultValue=""
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         >
           <option value="">Sem cliente</option>
           {clients?.map((client) => (
@@ -97,53 +95,41 @@ export default async function FinancasPage() {
         <input
           name="due_date"
           type="date"
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-black dark:border-white/[.145] dark:text-zinc-50 dark:focus:border-white"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
         />
         <button
           type="submit"
-          className="col-span-2 mt-1 h-10 rounded bg-foreground text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+          className="col-span-2 mt-1 h-10 rounded bg-navy text-sm font-medium text-white transition-colors hover:bg-[#0d1a38]"
         >
           Adicionar lançamento
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-lg border border-black/[.08] dark:border-white/[.145]">
+      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="bg-black/[.03] dark:bg-white/[.06]">
+          <thead className="bg-brand-gray">
             <tr>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Descrição</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Cliente</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Tipo</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Valor</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Prazo</th>
-              <th className="px-4 py-2 font-medium text-black dark:text-zinc-50">Status</th>
+              <th className="px-4 py-2 font-medium text-navy">Descrição</th>
+              <th className="px-4 py-2 font-medium text-navy">Cliente</th>
+              <th className="px-4 py-2 font-medium text-navy">Tipo</th>
+              <th className="px-4 py-2 font-medium text-navy">Valor</th>
+              <th className="px-4 py-2 font-medium text-navy">Prazo</th>
+              <th className="px-4 py-2 font-medium text-navy">Status</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
             {entries?.map((entry) => (
-              <tr key={entry.id} className="border-t border-black/[.08] dark:border-white/[.145]">
-                <td className="px-4 py-2 text-black dark:text-zinc-50">{entry.description}</td>
-                <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
-                  {entry.clients?.name ?? "—"}
-                </td>
+              <tr key={entry.id} className="border-t border-navy/[.08]">
+                <td className="px-4 py-2 text-navy">{entry.description}</td>
+                <td className="px-4 py-2 text-[#5B647E]">{entry.clients?.name ?? "—"}</td>
                 <td className="px-4 py-2">
-                  <span
-                    className={
-                      entry.type === "income"
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-red-700 dark:text-red-400"
-                    }
-                  >
+                  <span className={entry.type === "income" ? "text-green-700" : "text-red-700"}>
                     {entry.type === "income" ? "Receita" : "Despesa"}
                   </span>
                 </td>
-                <td className="px-4 py-2 text-black dark:text-zinc-50">
-                  {formatCurrency(Number(entry.amount))}
-                </td>
-                <td className="px-4 py-2 text-zinc-600 dark:text-zinc-400">
-                  {entry.due_date ?? "—"}
-                </td>
+                <td className="px-4 py-2 text-navy">{formatCurrency(Number(entry.amount))}</td>
+                <td className="px-4 py-2 text-[#5B647E]">{entry.due_date ?? "—"}</td>
                 <td className="px-4 py-2">
                   <form action={toggleFinanceEntryStatus}>
                     <input type="hidden" name="id" value={entry.id} />
@@ -156,8 +142,8 @@ export default async function FinancasPage() {
                       type="submit"
                       className={`rounded px-2 py-0.5 text-xs font-medium ${
                         entry.status === "paid"
-                          ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
-                          : "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-yellow text-navy"
                       }`}
                     >
                       {entry.status === "paid" ? "Pago" : "Pendente"}
@@ -169,7 +155,7 @@ export default async function FinancasPage() {
                     <input type="hidden" name="id" value={entry.id} />
                     <button
                       type="submit"
-                      className="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+                      className="text-xs font-medium text-red-600 hover:underline"
                     >
                       Excluir
                     </button>
@@ -179,7 +165,7 @@ export default async function FinancasPage() {
             ))}
             {!entries?.length && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-zinc-500 dark:text-zinc-400">
+                <td colSpan={7} className="px-4 py-6 text-center text-[#94A0BD]">
                   Nenhum lançamento cadastrado ainda.
                 </td>
               </tr>
