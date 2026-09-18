@@ -1,15 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Client } from "@/lib/types";
 import { SalesImportForm } from "@/components/sales-import-form";
+import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { deleteSalesDay } from "./actions";
-
-const PLATFORM_LABEL: Record<string, string> = {
-  mercado_livre: "Mercado Livre",
-  shopee: "Shopee",
-  amazon: "Amazon",
-  shein: "Shein",
-  tiktok: "TikTok",
-};
 
 type SalesRow = {
   id: string;
@@ -68,7 +61,7 @@ export default async function VendasPage() {
                 <td className="px-4 py-2 text-navy">{row.date}</td>
                 <td className="px-4 py-2 text-[#5B647E]">{row.clients?.name ?? "—"}</td>
                 <td className="px-4 py-2 text-[#5B647E]">
-                  {PLATFORM_LABEL[row.platform] ?? row.platform}
+                  {MARKETPLACE_LABEL[row.platform] ?? row.platform}
                 </td>
                 <td className="px-4 py-2 text-navy">
                   {Number(row.revenue).toLocaleString("pt-BR", {

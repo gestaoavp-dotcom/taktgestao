@@ -2,14 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
-
-const PLATFORMS = [
-  { value: "mercado_livre", label: "Mercado Livre" },
-  { value: "shopee", label: "Shopee" },
-  { value: "amazon", label: "Amazon" },
-  { value: "shein", label: "Shein" },
-  { value: "tiktok", label: "TikTok" },
-];
+import { MARKETPLACES } from "@/lib/marketplaces";
 
 const DAYS = 30;
 
@@ -107,7 +100,7 @@ export default async function DashboardPage({
           >
             Todos
           </Link>
-          {PLATFORMS.map((p) => (
+          {MARKETPLACES.map((p) => (
             <Link
               key={p.value}
               href={`/?platform=${p.value}`}

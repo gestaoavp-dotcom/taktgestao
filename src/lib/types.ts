@@ -1,7 +1,8 @@
 export type Client = {
   id: string;
   name: string;
-  marketplace: string | null;
+  store_name: string | null;
+  marketplaces: string[];
   contact_email: string | null;
   contact_phone: string | null;
   status: "active" | "inactive";

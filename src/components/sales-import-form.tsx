@@ -2,15 +2,8 @@
 
 import { useState, type ChangeEvent } from "react";
 import type { Client } from "@/lib/types";
+import { MARKETPLACES } from "@/lib/marketplaces";
 import { importSalesDaily } from "@/app/(dashboard)/vendas/actions";
-
-const PLATFORMS = [
-  { value: "mercado_livre", label: "Mercado Livre" },
-  { value: "shopee", label: "Shopee" },
-  { value: "amazon", label: "Amazon" },
-  { value: "shein", label: "Shein" },
-  { value: "tiktok", label: "TikTok" },
-];
 
 const DATE_KEYWORDS = ["data", "date"];
 const REVENUE_KEYWORDS = ["valor", "total", "receita", "revenue", "price", "faturamento"];
@@ -65,7 +58,7 @@ function parseDate(value: unknown): string | null {
 
 export function SalesImportForm({ clients }: { clients: Client[] }) {
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
-  const [platform, setPlatform] = useState(PLATFORMS[0].value);
+  const [platform, setPlatform] = useState<string>(MARKETPLACES[0].value);
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<Record<string, unknown>[]>([]);
   const [dateCol, setDateCol] = useState("");
@@ -170,7 +163,7 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
             onChange={(e) => setPlatform(e.target.value)}
             className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
           >
-            {PLATFORMS.map((p) => (
+            {MARKETPLACES.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}
               </option>

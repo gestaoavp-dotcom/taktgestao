@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Folder, Mail, Phone, Plus, Search, Trash2, X } from "lucide-react";
+import { Folder, Phone, Plus, Search, Store, Trash2, X } from "lucide-react";
 import type { Client } from "@/lib/types";
+import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { createClientRecord, deleteClientRecord } from "@/app/(dashboard)/clientes/actions";
 
 const INPUT_CLASS =
@@ -24,7 +25,11 @@ export function ClientsView({ clients }: { clients: Client[] }) {
   const term = query.trim().toLowerCase();
   const visible = term
     ? clients.filter((client) =>
-        [client.name, client.marketplace, client.contact_email]
+        [
+          client.name,
+          client.store_name,
+          ...client.marketplaces.map((m) => MARKETPLACE_LABEL[m] ?? m),
+        ]
           .filter(Boolean)
           .some((field) => field!.toLowerCase().includes(term)),
       )
@@ -84,25 +89,34 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 <h2 className="truncate font-bold text-navy" title={client.name}>
                   {client.name}
                 </h2>
-                <p className="mt-0.5 text-sm text-[#5B647E]">
-                  {client.marketplace ?? "Sem marketplace"}
-                </p>
+                {client.store_name && (
+                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-[#5B647E]">
+                    <Store className="h-3.5 w-3.5 flex-shrink-0 text-[#94A0BD]" />
+                    {client.store_name}
+                  </p>
+                )}
 
-                <div className="mt-4 space-y-1.5 border-t border-navy/[.06] pt-3 text-xs text-[#5B647E]">
-                  {client.contact_email && (
-                    <p className="flex items-center gap-1.5 truncate">
-                      <Mail className="h-3.5 w-3.5 flex-shrink-0 text-[#94A0BD]" />
-                      {client.contact_email}
-                    </p>
-                  )}
-                  {client.contact_phone && (
+                {client.marketplaces.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {client.marketplaces.map((m) => (
+                      <span
+                        key={m}
+                        className="rounded-full bg-blue/10 px-2 py-0.5 text-[11px] font-semibold text-blue"
+                      >
+                        {MARKETPLACE_LABEL[m] ?? m}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-4 border-t border-navy/[.06] pt-3 text-xs text-[#5B647E]">
+                  {client.contact_phone ? (
                     <p className="flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5 flex-shrink-0 text-[#94A0BD]" />
                       {client.contact_phone}
                     </p>
-                  )}
-                  {!client.contact_email && !client.contact_phone && (
-                    <p className="text-[#94A0BD]">Sem contato cadastrado</p>
+                  ) : (
+                    <p className="text-[#94A0BD]">Sem telefone cadastrado</p>
                   )}
                 </div>
               </div>
@@ -160,34 +174,46 @@ export function ClientsView({ clients }: { clients: Client[] }) {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <label htmlFor="marketplace" className="text-sm font-semibold text-navy">
-                  Marketplace
+                <label htmlFor="store_name" className="text-sm font-semibold text-navy">
+                  Loja
                 </label>
                 <input
-                  id="marketplace"
-                  name="marketplace"
-                  placeholder="Mercado Livre, Shopee..."
+                  id="store_name"
+                  name="store_name"
+                  placeholder="Nome da loja nos marketplaces"
                   className={INPUT_CLASS}
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="contact_email" className="text-sm font-semibold text-navy">
-                  Email de contato
-                </label>
-                <input
-                  id="contact_email"
-                  name="contact_email"
-                  type="email"
-                  className={INPUT_CLASS}
-                />
-              </div>
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm font-semibold text-navy">Marketplaces</legend>
+                <div className="flex flex-wrap gap-2">
+                  {MARKETPLACES.map((m) => (
+                    <label key={m.value} className="cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="marketplaces"
+                        value={m.value}
+                        className="peer sr-only"
+                      />
+                      <span className="block rounded-full border border-navy/10 px-3 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray peer-checked:border-blue peer-checked:bg-blue peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40">
+                        {m.label}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="contact_phone" className="text-sm font-semibold text-navy">
                   Telefone
                 </label>
-                <input id="contact_phone" name="contact_phone" className={INPUT_CLASS} />
+                <input
+                  id="contact_phone"
+                  name="contact_phone"
+                  placeholder="(11) 90000-0000"
+                  className={INPUT_CLASS}
+                />
               </div>
 
               <div className="mt-2 flex justify-end gap-2">
