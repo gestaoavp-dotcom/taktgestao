@@ -23,7 +23,7 @@ export function DashboardShell({
       >
         <div className="w-60 px-4 py-5">
           <div className="mb-8 px-2">
-            <Logo />
+            <Logo height={34} />
           </div>
           <NavLinks />
         </div>

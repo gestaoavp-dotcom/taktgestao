@@ -12,7 +12,7 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-brand-gray px-4">
       <div className="w-full max-w-sm rounded-xl border border-navy/10 bg-white p-8 shadow-sm">
         <div className="mb-6">
-          <Logo />
+          <Logo height={40} />
         </div>
         <p className="mb-6 text-sm text-[color:var(--brand-text-secondary)]">
           Entre com seu email e senha
