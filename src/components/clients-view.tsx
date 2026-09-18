@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Folder, Phone, Plus, Search, Store, Trash2, X } from "lucide-react";
 import type { Client } from "@/lib/types";
 import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
@@ -12,6 +12,11 @@ const INPUT_CLASS =
 export function ClientsView({ clients }: { clients: Client[] }) {
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
+  const [state, formAction, pending] = useActionState(createClientRecord, null);
+
+  useEffect(() => {
+    if (state && "ok" in state) setModalOpen(false);
+  }, [state]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -161,11 +166,7 @@ export function ClientsView({ clients }: { clients: Client[] }) {
               </button>
             </div>
 
-            <form
-              action={createClientRecord}
-              onSubmit={() => setModalOpen(false)}
-              className="flex flex-col gap-4"
-            >
+            <form action={formAction} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="name" className="text-sm font-semibold text-navy">
                   Nome
@@ -196,7 +197,7 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                         value={m.value}
                         className="peer sr-only"
                       />
-                      <span className="block rounded-full border border-navy/10 px-3 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray peer-checked:border-blue peer-checked:bg-blue peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40">
+                      <span className="block rounded-full border border-navy/10 px-3 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray peer-checked:border-blue peer-checked:bg-blue peer-checked:text-white peer-checked:hover:bg-[#1e4ed8] peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40">
                         {m.label}
                       </span>
                     </label>
@@ -216,6 +217,12 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 />
               </div>
 
+              {state && "error" in state && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                  Não consegui salvar: {state.error}
+                </p>
+              )}
+
               <div className="mt-2 flex justify-end gap-2">
                 <button
                   type="button"
@@ -226,9 +233,10 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
+                  disabled={pending}
+                  className="rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8] disabled:opacity-60"
                 >
-                  Salvar cliente
+                  {pending ? "Salvando..." : "Salvar cliente"}
                 </button>
               </div>
             </form>

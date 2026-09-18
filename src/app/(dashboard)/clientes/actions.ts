@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function createClientRecord(formData: FormData) {
+export type CreateClientState = { ok: true } | { error: string } | null;
+
+export async function createClientRecord(
+  _prevState: CreateClientState,
+  formData: FormData,
+): Promise<CreateClientState> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
 
@@ -12,7 +17,7 @@ export async function createClientRecord(formData: FormData) {
   const marketplaces = formData.getAll("marketplaces") as string[];
   const contact_phone = (formData.get("contact_phone") as string) || null;
 
-  await supabase.from("clients").insert({
+  const { error } = await supabase.from("clients").insert({
     name,
     store_name,
     marketplaces,
@@ -20,7 +25,12 @@ export async function createClientRecord(formData: FormData) {
     created_by: auth.user?.id,
   });
 
+  if (error) {
+    return { error: error.message };
+  }
+
   revalidatePath("/clientes");
+  return { ok: true };
 }
 
 export async function deleteClientRecord(formData: FormData) {
