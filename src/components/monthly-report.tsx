@@ -1,5 +1,5 @@
 import { AlertTriangle, TrendingUp } from "lucide-react";
-import type { MonthlyReport } from "@/lib/report";
+import type { DayDetail, MonthlyReport } from "@/lib/report";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
 import { CHANGE_CATEGORY_LABEL, CHANGE_STATUS_LABEL } from "@/lib/client-changes";
@@ -45,6 +45,54 @@ function Metric({
   );
 }
 
+function fmtDay(iso: string) {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+/** A standout day with the actions that could explain it. */
+function DayCard({ day, tone }: { day: DayDetail; tone: "alta" | "baixa" }) {
+  return (
+    <div
+      className={`break-inside-avoid rounded-lg border p-4 ${
+        tone === "alta" ? "border-green-200 bg-green-50/50" : "border-orange-200 bg-orange-50/40"
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-display text-lg font-bold text-navy">{fmtDay(day.date)}</span>
+        <span className="text-sm font-semibold text-navy">{formatCurrency(day.revenue)}</span>
+      </div>
+      <p className="text-[11px] text-[#94A0BD]">
+        {day.orders} {day.orders === 1 ? "pedido" : "pedidos"} ·{" "}
+        {day.vsAverage >= 0 ? "+" : ""}
+        {day.vsAverage.toFixed(0)}% vs média
+      </p>
+
+      <div className="mt-3 border-t border-navy/[.06] pt-2">
+        {day.actions.length ? (
+          <ul className="flex flex-col gap-1.5">
+            {day.actions.map((a, i) => (
+              <li key={i} className="text-xs text-[#5B647E]">
+                <span
+                  className={`mr-1.5 rounded px-1 py-0.5 text-[10px] font-semibold ${
+                    a.sameDay ? "bg-navy text-white" : "bg-brand-gray text-[#5B647E]"
+                  }`}
+                >
+                  {a.sameDay ? "no dia" : fmtDay(a.date)}
+                </span>
+                {a.description}
+                {a.owner ? ` — ${a.owner}` : ""}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-[#94A0BD]">Nenhuma ação registrada nesse dia ou na véspera.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="break-inside-avoid rounded-lg bg-white p-6 shadow-sm">
@@ -61,7 +109,7 @@ export function MonthlyReportView({
   report: MonthlyReport;
   clientName: string;
 }) {
-  const { sales, products, ads, traffic, changes, notes } = report;
+  const { sales, products, ads, traffic, daily, changes, notes } = report;
   const revenueDelta = delta(sales.revenue, sales.prevRevenue);
   const ordersDelta = delta(sales.orders, sales.prevOrders);
   const ticketDelta = delta(sales.ticket, sales.prevTicket);
@@ -140,6 +188,68 @@ export function MonthlyReportView({
           </table>
         )}
       </Section>
+
+      {daily.days.some((d) => d.revenue > 0) && (
+        <Section title="Dia a dia">
+          <p className="mb-3 text-sm text-[#5B647E]">
+            Média de {formatCurrency(daily.average)} nos dias com venda.
+            {daily.zeroDays.length > 0 &&
+              ` ${daily.zeroDays.length} ${daily.zeroDays.length === 1 ? "dia ficou" : "dias ficaram"} sem nenhuma venda.`}
+          </p>
+
+          <div className="mb-6 flex h-24 items-end gap-[3px]">
+            {daily.days.map((d) => {
+              const max = Math.max(...daily.days.map((x) => x.revenue), 1);
+              const height = (d.revenue / max) * 100;
+              const isBest = daily.best.some((b) => b.date === d.date);
+              const isWorst = daily.worst.some((w) => w.date === d.date);
+              return (
+                <div
+                  key={d.date}
+                  title={`${fmtDay(d.date)} — ${formatCurrency(d.revenue)}`}
+                  className="flex-1"
+                  style={{ height: "100%", display: "flex", alignItems: "flex-end" }}
+                >
+                  <div
+                    className={`w-full rounded-t ${
+                      isBest ? "bg-green-600" : isWorst ? "bg-orange-400" : "bg-blue/30"
+                    }`}
+                    style={{ height: `${Math.max(height, d.revenue > 0 ? 3 : 1)}%` }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-green-700">
+                Melhores dias
+              </p>
+              <div className="flex flex-col gap-3">
+                {daily.best.map((d) => (
+                  <DayCard key={d.date} day={d} tone="alta" />
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#c2410c]">
+                Dias mais fracos
+              </p>
+              <div className="flex flex-col gap-3">
+                {daily.worst.map((d) => (
+                  <DayCard key={d.date} day={d} tone="baixa" />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <p className="mt-4 text-xs text-[#94A0BD]">
+            As ações listadas em cada dia vêm do Controle — registradas no próprio dia ou nos dois
+            anteriores. Elas mostram o que foi feito por perto, não provam causa.
+          </p>
+        </Section>
+      )}
 
       {products.length > 0 && (
         <Section title="Produtos">

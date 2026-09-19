@@ -17,6 +17,25 @@ export const REPORT_SECTIONS: { value: ReportSection; label: string }[] = [
 
 export type ReportNote = { kind: "destaque" | "alerta"; text: string };
 
+export type DayAction = {
+  date: string;
+  description: string;
+  category: string | null;
+  status: string;
+  owner: string | null;
+  /** Registered on the day itself, or in the two days leading up to it. */
+  sameDay: boolean;
+};
+
+export type DayDetail = {
+  date: string;
+  revenue: number;
+  orders: number;
+  /** How far from the month's daily average, in percent. */
+  vsAverage: number;
+  actions: DayAction[];
+};
+
 export type MonthlyReport = {
   month: string;
   monthLabel: string;
@@ -65,6 +84,13 @@ export type MonthlyReport = {
     prevConversion: number;
     leaking: { name: string; visitors: number; conversion: number } | null;
   } | null;
+  daily: {
+    days: { date: string; revenue: number; orders: number }[];
+    average: number;
+    best: DayDetail[];
+    worst: DayDetail[];
+    zeroDays: string[];
+  };
   changes: {
     total: number;
     byCategory: { category: string; count: number }[];
@@ -116,8 +142,20 @@ function fmtPct(value: number) {
   return `${sign}${value.toFixed(1).replace(".", ",")}%`;
 }
 
+function fmtDay(iso: string) {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
 function fmtBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function addDays(iso: string, days: number) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d + days);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 type OrderRow = {
@@ -344,6 +382,31 @@ export async function buildMonthlyReport(
   }
 
   // --- Change log ----------------------------------------------------------
+  // Fetched from a couple of days before the month starts: an action taken on
+  // the 30th shows its effect in the first days of the next month, and the
+  // day-by-day reading looks back two days from each highlighted day.
+  const lookback = addDays(start, -2);
+  let changeQuery = supabase
+    .from("client_changes")
+    .select("changed_on, description, category, status, owner, marketplace")
+    .eq("client_id", clientId)
+    .gte("changed_on", lookback)
+    .lte("changed_on", end);
+  if (marketplace) changeQuery = changeQuery.eq("marketplace", marketplace);
+
+  const { data: changeRows } = await changeQuery.returns<
+    {
+      changed_on: string;
+      description: string;
+      category: string | null;
+      status: string;
+      owner: string | null;
+      marketplace: string | null;
+    }[]
+  >();
+
+  const daily = buildDaily(billed, start, end, changeRows ?? []);
+
   let changes: MonthlyReport["changes"] = {
     total: 0,
     byCategory: [],
@@ -351,23 +414,7 @@ export async function buildMonthlyReport(
     pending: [],
   };
   if (sections.includes("controle")) {
-    let q = supabase
-      .from("client_changes")
-      .select("description, category, status, owner, marketplace")
-      .eq("client_id", clientId)
-      .gte("changed_on", start)
-      .lte("changed_on", end);
-    if (marketplace) q = q.eq("marketplace", marketplace);
-
-    const { data: rows } = await q.returns<
-      {
-        description: string;
-        category: string | null;
-        status: string;
-        owner: string | null;
-        marketplace: string | null;
-      }[]
-    >();
+    const rows = (changeRows ?? []).filter((r) => r.changed_on >= start);
 
     const tally = (key: "category" | "status") =>
       Array.from(
@@ -405,8 +452,76 @@ export async function buildMonthlyReport(
     products,
     ads,
     traffic,
+    daily,
     changes,
-    notes: buildNotes({ revenue, prevRevenue, orders, prevOrders, products, ads, traffic, changes }),
+    notes: buildNotes({
+      revenue,
+      prevRevenue,
+      orders,
+      prevOrders,
+      products,
+      ads,
+      traffic,
+      daily,
+      changes,
+    }),
+  };
+}
+
+/**
+ * Revenue day by day, with the change-log actions that could explain each
+ * standout day: the ones registered that day, plus the two days before, since
+ * an adjustment rarely shows its effect the same afternoon.
+ */
+function buildDaily(
+  billed: OrderRow[],
+  start: string,
+  end: string,
+  changeRows: { changed_on: string; description: string; category: string | null; status: string; owner: string | null }[],
+): MonthlyReport["daily"] {
+  const byDate = new Map<string, { revenue: number; ids: Set<string> }>();
+  for (const o of billed) {
+    if (!o.created_on) continue;
+    const e = byDate.get(o.created_on) ?? { revenue: 0, ids: new Set<string>() };
+    e.revenue += Number(o.subtotal);
+    e.ids.add(o.order_id);
+    byDate.set(o.created_on, e);
+  }
+
+  const days: { date: string; revenue: number; orders: number }[] = [];
+  for (let date = start; date <= end; date = addDays(date, 1)) {
+    const e = byDate.get(date);
+    days.push({ date, revenue: e?.revenue ?? 0, orders: e?.ids.size ?? 0 });
+  }
+
+  const selling = days.filter((d) => d.revenue > 0);
+  const average = selling.length
+    ? selling.reduce((s, d) => s + d.revenue, 0) / selling.length
+    : 0;
+
+  const detail = (d: { date: string; revenue: number; orders: number }): DayDetail => ({
+    ...d,
+    vsAverage: average > 0 ? ((d.revenue - average) / average) * 100 : 0,
+    actions: changeRows
+      .filter((c) => c.changed_on <= d.date && c.changed_on >= addDays(d.date, -2))
+      .map((c) => ({
+        date: c.changed_on,
+        description: c.description,
+        category: c.category,
+        status: c.status,
+        owner: c.owner,
+        sameDay: c.changed_on === d.date,
+      })),
+  });
+
+  const ranked = [...selling].sort((a, b) => b.revenue - a.revenue);
+
+  return {
+    days,
+    average,
+    best: ranked.slice(0, 3).map(detail),
+    worst: ranked.slice(-3).reverse().map(detail),
+    zeroDays: days.filter((d) => d.revenue === 0).map((d) => d.date),
   };
 }
 
@@ -422,10 +537,11 @@ function buildNotes(input: {
   products: MonthlyReport["products"];
   ads: MonthlyReport["ads"];
   traffic: MonthlyReport["traffic"];
+  daily: MonthlyReport["daily"];
   changes: MonthlyReport["changes"];
 }): ReportNote[] {
   const notes: ReportNote[] = [];
-  const { revenue, prevRevenue, orders, prevOrders, products, ads, traffic, changes } = input;
+  const { revenue, prevRevenue, orders, prevOrders, products, ads, traffic, daily, changes } = input;
 
   if (prevRevenue > 0) {
     const delta = pctChange(revenue, prevRevenue);
@@ -490,6 +606,34 @@ function buildNotes(input: {
         text: `"${traffic.leaking.name}" recebeu ${traffic.leaking.visitors.toLocaleString("pt-BR")} visitantes e converteu ${traffic.leaking.conversion.toFixed(1).replace(".", ",")}% — o tráfego chega, a página não segura.`,
       });
     }
+  }
+
+  const best = daily.best[0];
+  if (best) {
+    const sameDay = best.actions.filter((a) => a.sameDay);
+    notes.push({
+      kind: "destaque",
+      text:
+        `Melhor dia: ${fmtDay(best.date)}, com ${fmtBRL(best.revenue)} em ${best.orders} ${best.orders === 1 ? "pedido" : "pedidos"} — ${fmtPct(best.vsAverage)} sobre a média diária.` +
+        (best.actions.length
+          ? ` ${sameDay.length ? "No mesmo dia" : "Nos dois dias anteriores"} houve ${best.actions.length} ${best.actions.length === 1 ? "ação" : "ações"} no Controle.`
+          : " Nenhuma ação registrada no Controle nesse dia ou na véspera."),
+    });
+  }
+
+  const worst = daily.worst[0];
+  if (worst && daily.best.length > 1) {
+    notes.push({
+      kind: "alerta",
+      text: `Pior dia com venda: ${fmtDay(worst.date)}, ${fmtBRL(worst.revenue)} (${fmtPct(worst.vsAverage)} da média).`,
+    });
+  }
+
+  if (daily.zeroDays.length > 0) {
+    notes.push({
+      kind: "alerta",
+      text: `${daily.zeroDays.length} ${daily.zeroDays.length === 1 ? "dia" : "dias"} sem nenhuma venda no mês.`,
+    });
   }
 
   if (changes.total > 0) {
