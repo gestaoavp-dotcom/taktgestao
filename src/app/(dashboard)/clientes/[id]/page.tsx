@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { Client, ClientAccount, ClientFile, ClientUpdate } from "@/lib/types";
+import type { Client, ClientAccount } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { getSalesSummary, trendOf, formatCurrency } from "@/lib/sales-summary";
 import { KpiCard } from "@/components/kpi-card";
-import { ClientBillingCard } from "@/components/client-billing-card";
-import { ClientAccountsCard } from "@/components/client-accounts-card";
-import { ClientFilesCard } from "@/components/client-files-card";
-import { ClientHistoryCard } from "@/components/client-history-card";
 import { ChangesActivityCard } from "@/components/changes-activity-card";
 
 const DAYS = 30;
@@ -21,34 +17,21 @@ export default async function ClienteDashboardPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: accounts }, { data: updates }, { data: files }, sales, { data: allChanges }] =
-    await Promise.all([
-      supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
-      supabase
-        .from("client_accounts")
-        .select("*")
-        .eq("client_id", id)
-        .order("created_at")
-        .returns<ClientAccount[]>(),
-      supabase
-        .from("client_updates")
-        .select("*")
-        .eq("client_id", id)
-        .order("happened_on", { ascending: false })
-        .returns<ClientUpdate[]>(),
-      supabase
-        .from("client_files")
-        .select("*")
-        .eq("client_id", id)
-        .order("created_at", { ascending: false })
-        .returns<ClientFile[]>(),
-      getSalesSummary(supabase, id, DAYS),
-      supabase
-        .from("client_changes")
-        .select("changed_on, marketplace")
-        .eq("client_id", id)
-        .returns<{ changed_on: string; marketplace: string | null }[]>(),
-    ]);
+  const [{ data: client }, { data: accounts }, sales, { data: allChanges }] = await Promise.all([
+    supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+    supabase
+      .from("client_accounts")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at")
+      .returns<ClientAccount[]>(),
+    getSalesSummary(supabase, id, DAYS),
+    supabase
+      .from("client_changes")
+      .select("changed_on, marketplace")
+      .eq("client_id", id)
+      .returns<{ changed_on: string; marketplace: string | null }[]>(),
+  ]);
 
   if (!client) return null;
 
@@ -123,18 +106,6 @@ export default async function ClienteDashboardPage({
       </div>
 
       <ChangesActivityCard changes={allChanges ?? []} clientMarketplaces={client.marketplaces} />
-
-      <div className="grid grid-cols-3 gap-5">
-        <ClientBillingCard client={client} />
-        <div className="col-span-2">
-          <ClientAccountsCard clientId={id} accounts={accounts ?? []} />
-        </div>
-
-        <ClientFilesCard clientId={id} files={files ?? []} />
-        <div className="col-span-2">
-          <ClientHistoryCard clientId={id} updates={updates ?? []} />
-        </div>
-      </div>
     </div>
   );
 }
