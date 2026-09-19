@@ -59,60 +59,70 @@ function OrderBreakdown({ order }: { order: SalesOrder }) {
     );
   }
 
-  const { lines, otherFields } = buildShopeeBreakdown(order.raw);
-  const waterfall = lines.filter((l) => l.kind !== "info");
-  const reference = lines.filter((l) => l.kind === "info");
+  const { sections, net, voided, otherFields } = buildShopeeBreakdown(order.raw);
 
-  const labelClass: Record<BreakdownLine["kind"], string> = {
-    total: "font-bold text-green-800",
-    subtotal: "font-bold text-navy",
-    positive: "font-semibold text-navy",
-    info: "text-[#94A0BD]",
-    negative: "text-[#5B647E]",
-  };
+  const renderLine = (line: BreakdownLine, i: number) => {
+    const isDeduction = line.kind === "deduction";
+    const muted = line.value === 0 || line.kind === "info";
 
-  const renderLine = (line: BreakdownLine, i: number) => (
-    <li
-      key={`${line.label}-${i}`}
-      className={`flex items-start justify-between gap-3 py-1 ${
-        line.kind === "total"
-          ? "mt-1 rounded bg-green-50 px-2 py-2"
-          : line.kind === "subtotal"
-            ? "border-y border-navy/10 bg-brand-gray/40 px-2"
-            : "border-b border-navy/[.04]"
-      }`}
-    >
-      <span className="flex flex-col">
-        <span className={labelClass[line.kind]}>{line.label}</span>
-        {line.note && <span className="text-[11px] text-[#94A0BD]">{line.note}</span>}
-      </span>
-      <span
-        className={`whitespace-nowrap ${
-          line.kind === "negative" && line.value > 0
-            ? "font-medium text-red-600"
-            : line.kind === "negative"
-              ? "text-[#94A0BD]"
-              : labelClass[line.kind]
-        }`}
+    return (
+      <li
+        key={`${line.label}-${i}`}
+        className="flex items-start justify-between gap-3 border-b border-navy/[.04] py-1"
       >
-        {line.kind === "negative" && line.value > 0 ? "− " : ""}
-        {formatCurrency(line.value)}
-      </span>
-    </li>
-  );
+        <span className="flex flex-col">
+          <span className={muted ? "text-[#94A0BD]" : "text-[#5B647E]"}>{line.label}</span>
+          {line.note && <span className="text-[11px] text-[#94A0BD]">{line.note}</span>}
+        </span>
+        <span
+          className={`whitespace-nowrap ${
+            muted ? "text-[#94A0BD]" : isDeduction ? "font-medium text-red-600" : "text-navy"
+          }`}
+        >
+          {isDeduction && line.value !== 0 ? "− " : ""}
+          {formatCurrency(line.value)}
+        </span>
+      </li>
+    );
+  };
 
   return (
     <div className="grid grid-cols-2 gap-6 px-4 py-4">
       <div>
-        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
-          Preço original → descontos e taxas → quanto sobra
-        </p>
-        <ul className="flex flex-col gap-1 text-sm">{waterfall.map(renderLine)}</ul>
+        {sections.map((section) => (
+          <div key={section.title} className="mb-4">
+            <div className="mb-1 flex items-baseline justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+                {section.title}
+              </p>
+              {section.title !== "Referência (não entra na conta)" && (
+                <span
+                  className={`text-sm font-bold ${
+                    section.subtracted && section.total !== 0 ? "text-red-600" : "text-navy"
+                  }`}
+                >
+                  {section.subtracted && section.total !== 0 ? "− " : ""}
+                  {formatCurrency(section.total)}
+                </span>
+              )}
+            </div>
+            <ul className="flex flex-col gap-1 pl-3 text-sm">{section.lines.map(renderLine)}</ul>
+          </div>
+        ))}
 
-        <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
-          Referência (não entra na conta)
-        </p>
-        <ul className="flex flex-col gap-1 text-sm">{reference.map(renderLine)}</ul>
+        <div className="flex items-baseline justify-between gap-3 rounded bg-green-50 px-3 py-2">
+          <span className="flex flex-col">
+            <span className="font-bold text-green-800">Renda estimada do pedido</span>
+            <span className="text-[11px] text-[#5B647E]">
+              {voided
+                ? "pedido cancelado/reembolsado — nada foi recebido"
+                : "o que a Shopee repassa, antes do custo do produto e do imposto"}
+            </span>
+          </span>
+          <span className="whitespace-nowrap font-display text-lg font-bold text-green-800">
+            {formatCurrency(net)}
+          </span>
+        </div>
       </div>
 
       <div>

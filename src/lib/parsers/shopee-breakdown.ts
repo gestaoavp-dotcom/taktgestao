@@ -1,60 +1,68 @@
-// The price → discounts → net waterfall for a Shopee order line.
+// Reproduces Shopee's own "Informações de Pagamento" breakdown for one order
+// line, so the number here matches "Renda estimada do pedido" in seller center:
+//
+//   Subtotal dos Produtos + Subtotal estimado do frete − Taxas e Encargos
 //
 // Verified against the seller-center export: for every row,
 // "Preço original" × qtd − "Desconto do vendedor" = "Subtotal do produto"
-// (the advertised sale price). Everything the seller funds after that —
-// coupons and platform fees — comes off that price, and what is left is what
-// Shopee actually deposits.
+// (the advertised sale price), and the three shipping columns net out the way
+// Shopee shows them (buyer's shipping − logistics partner's charge + Shopee's
+// shipping subsidy).
 //
-// Shopee's own "Total global" is NOT the net: it is the buyer's payment minus
-// the seller coupon, with commission and service fees still inside it, so it
-// is shown as reference only.
+// Shopee's "Total global" column is NOT the net — it is what the buyer paid,
+// with commission and service fees still inside — so it is reference only.
 
 export type BreakdownLine = {
   label: string;
   note?: string;
   value: number;
-  kind: "positive" | "negative" | "subtotal" | "total" | "info";
+  /** item: adds · deduction: subtracts · info: shown but never counted */
+  kind: "item" | "deduction" | "info";
 };
 
-// Funded by the seller: each one comes off what Shopee deposits.
-const SELLER_DEDUCTIONS: { key: string; label?: string }[] = [
+export type BreakdownSection = {
+  title: string;
+  lines: BreakdownLine[];
+  total: number;
+  /** Sections whose total is subtracted from the order's income. */
+  subtracted?: boolean;
+};
+
+/** Funded by the seller: each one comes off the product subtotal. */
+const SELLER_DISCOUNTS: { key: string; label?: string }[] = [
   { key: "Cupom do vendedor" },
   { key: "Coin Cashback Voucher Amount Sponsored by Seller", label: "Cashback em moedas (vendedor)" },
   { key: "Desconto da Leve Mais por Menos do vendedor" },
   { key: "Compensar Moedas Shopee" },
-  { key: "Total descontado Cartão de Crédito" },
   { key: "Ajuste por pagamento via PIX" },
   { key: "Ajuste por participação em ação comercial" },
-  { key: "Taxa de transação" },
+  { key: "Total descontado Cartão de Crédito" },
+];
+
+/** Shopee's "Taxas e Encargos" block. */
+const FEES: { key: string; label?: string }[] = [
   { key: "Taxa de comissão líquida" },
   { key: "Taxa de serviço líquida" },
+  { key: "Taxa de Devolução Fácil Shopee" },
+  { key: "Taxa de transação" },
   { key: "Taxa de Envio Reversa" },
 ];
 
-// Shown for reference, never subtracted: money the buyer paid, discounts
-// Shopee itself funded, gross versions of fees, and Shopee's own totals.
-const REFERENCE_FIELDS: { key: string; label?: string; note?: string }[] = [
-  {
-    key: "Taxa de envio pagas pelo comprador",
-    label: "Frete pago pelo comprador",
-    note: "não é custo do vendedor",
-  },
-  { key: "Taxa de Serviço Instantâneo pago pelo comprador", note: "pago pelo comprador" },
-  { key: "Desconto de Frete Aproximado", note: "subsídio de frete da Shopee" },
+/** Shown for reference only — Shopee-funded or duplicated figures. */
+const REFERENCE: { key: string; label?: string; note?: string }[] = [
   { key: "Incentivo Shopee para ação comercial", note: "bancado pela Shopee" },
   { key: "Cupom", label: "Cupom Shopee", note: "bancado pela Shopee" },
   { key: "Incentivo de cupom", note: "bancado pela Shopee" },
   { key: "Desconto Shopee da Leve Mais por Menos", note: "bancado pela Shopee" },
-  { key: "Taxa de comissão bruta", note: "versão bruta da comissão já descontada acima" },
-  { key: "Taxa de serviço bruta", note: "versão bruta da taxa de serviço já descontada acima" },
+  { key: "Taxa de Serviço Instantâneo pago pelo comprador", note: "pago pelo comprador" },
+  { key: "Taxa de comissão bruta", note: "versão bruta da taxa já descontada acima" },
+  { key: "Taxa de serviço bruta", note: "versão bruta da taxa já descontada acima" },
   { key: "Valor Total", label: "Valor pago pelo comprador", note: "produto + frete" },
   {
     key: "Total global",
     label: "Total global (Shopee)",
-    note: "valor do pedido menos cupom, ainda com as taxas dentro",
+    note: "o que o comprador pagou, ainda com as taxas dentro",
   },
-  { key: "Valor estimado do frete" },
 ];
 
 function toNumber(value: unknown): number {
@@ -64,73 +72,98 @@ function toNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function round(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
 /** Nothing was charged to the buyer: cancelled or fully refunded. */
 function isVoided(raw: Record<string, unknown>) {
   return toNumber(raw["Valor Total"]) === 0;
 }
 
-/** What the seller is left with before their own product cost and taxes. */
+function productsTotal(raw: Record<string, unknown>) {
+  const salePrice = toNumber(raw["Subtotal do produto"]);
+  const discounts = SELLER_DISCOUNTS.reduce((sum, d) => sum + toNumber(raw[d.key]), 0);
+  return round(salePrice - discounts);
+}
+
+/** Buyer's shipping minus the carrier's charge plus Shopee's subsidy. */
+function shippingTotal(raw: Record<string, unknown>) {
+  return round(
+    toNumber(raw["Taxa de envio pagas pelo comprador"]) -
+      toNumber(raw["Valor estimado do frete"]) +
+      toNumber(raw["Desconto de Frete Aproximado"]),
+  );
+}
+
+function feesTotal(raw: Record<string, unknown>) {
+  return round(FEES.reduce((sum, f) => sum + toNumber(raw[f.key]), 0));
+}
+
+/** Shopee's "Renda estimada do pedido": what the platform deposits. */
 export function computeShopeeNet(raw: Record<string, unknown>): number {
   if (isVoided(raw)) return 0;
-
-  const salePrice = toNumber(raw["Subtotal do produto"]);
-  const deductions = SELLER_DEDUCTIONS.reduce((sum, d) => sum + toNumber(raw[d.key]), 0);
-
-  return Math.round((salePrice - deductions) * 100) / 100;
+  return round(productsTotal(raw) + shippingTotal(raw) - feesTotal(raw));
 }
 
 export function buildShopeeBreakdown(raw: Record<string, unknown>): {
-  lines: BreakdownLine[];
+  sections: BreakdownSection[];
   net: number;
   voided: boolean;
   otherFields: { label: string; value: unknown }[];
 } {
-  const lines: BreakdownLine[] = [];
   const seen = new Set<string>(["Quantidade", "Desconto do vendedor_1"]);
-  const voided = isVoided(raw);
   const quantity = toNumber(raw["Quantidade"]) || 1;
 
-  const push = (key: string, line: Omit<BreakdownLine, "value"> & { value?: number }) => {
+  const take = (key: string, label?: string, note?: string, kind: BreakdownLine["kind"] = "deduction") => {
     seen.add(key);
-    lines.push({ ...line, value: line.value ?? toNumber(raw[key]) });
+    return { label: label ?? key, note, value: toNumber(raw[key]), kind };
   };
 
-  push("Preço original", {
-    label: quantity > 1 ? `Preço original (× ${quantity})` : "Preço original",
-    value: toNumber(raw["Preço original"]) * quantity,
-    kind: "positive",
-  });
+  seen.add("Preço original");
+  seen.add("Subtotal do produto");
 
-  push("Desconto do vendedor", { label: "Desconto do vendedor", kind: "negative" });
+  const products: BreakdownLine[] = [
+    {
+      label: quantity > 1 ? `Preço original (× ${quantity})` : "Preço original",
+      value: round(toNumber(raw["Preço original"]) * quantity),
+      kind: "item",
+    },
+    take("Desconto do vendedor"),
+    {
+      label: "Preço de venda",
+      note: "valor anunciado, o que o cliente paga pelo produto",
+      value: toNumber(raw["Subtotal do produto"]),
+      kind: "item",
+    },
+    ...SELLER_DISCOUNTS.filter((d) => d.key in raw).map((d) => take(d.key, d.label)),
+  ];
 
-  push("Subtotal do produto", {
-    label: "Preço de venda",
-    note: "o que o cliente pagou pelo produto",
-    kind: "subtotal",
-  });
+  const shipping: BreakdownLine[] = [
+    take("Taxa de envio pagas pelo comprador", "Frete pago pelo comprador", undefined, "item"),
+    take("Valor estimado do frete", "Frete cobrado pelo parceiro logístico"),
+    take("Desconto de Frete Aproximado", "Desconto de frete da Shopee", undefined, "item"),
+  ];
 
-  for (const { key, label } of SELLER_DEDUCTIONS) {
-    if (!(key in raw)) continue;
-    push(key, { label: label ?? key, kind: "negative" });
-  }
+  const fees: BreakdownLine[] = FEES.filter((f) => f.key in raw).map((f) => take(f.key, f.label));
 
-  lines.push({
-    label: "Quanto sobra",
-    note: voided
-      ? "pedido cancelado/reembolsado — nada foi recebido"
-      : "antes do custo do produto e do imposto",
-    value: computeShopeeNet(raw),
-    kind: "total",
-  });
+  const reference: BreakdownLine[] = REFERENCE.filter((r) => r.key in raw).map((r) =>
+    take(r.key, r.label, r.note, "info"),
+  );
 
-  for (const { key, label, note } of REFERENCE_FIELDS) {
-    if (!(key in raw)) continue;
-    push(key, { label: label ?? key, note, kind: "info" });
+  const sections: BreakdownSection[] = [
+    { title: "Subtotal dos Produtos", lines: products, total: productsTotal(raw) },
+    { title: "Subtotal estimado do frete", lines: shipping, total: shippingTotal(raw) },
+    { title: "Taxas e Encargos", lines: fees, total: feesTotal(raw), subtracted: true },
+  ];
+
+  if (reference.length) {
+    sections.push({ title: "Referência (não entra na conta)", lines: reference, total: 0 });
   }
 
   const otherFields = Object.entries(raw)
     .filter(([key]) => !seen.has(key))
     .map(([label, value]) => ({ label, value }));
 
-  return { lines, net: computeShopeeNet(raw), voided, otherFields };
+  return { sections, net: computeShopeeNet(raw), voided: isVoided(raw), otherFields };
 }
