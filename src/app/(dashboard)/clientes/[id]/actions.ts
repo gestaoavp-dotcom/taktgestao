@@ -163,6 +163,7 @@ export async function addChange(
     client_id: clientId,
     changed_on: (formData.get("changed_on") as string) || undefined,
     marketplace: (formData.get("marketplace") as string) || null,
+    account_id: (formData.get("account_id") as string) || null,
     category: (formData.get("category") as string) || null,
     description: formData.get("description") as string,
     reason: (formData.get("reason") as string) || null,

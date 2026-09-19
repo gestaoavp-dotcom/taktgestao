@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client, ClientChange } from "@/lib/types";
+import type { Client, ClientAccount, ClientChange } from "@/lib/types";
 import { ClientChangesTable } from "@/components/client-changes-table";
 
 export default async function ClienteControlePage({
@@ -10,8 +10,14 @@ export default async function ClienteControlePage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: changes }] = await Promise.all([
+  const [{ data: client }, { data: accounts }, { data: changes }] = await Promise.all([
     supabase.from("clients").select("marketplaces").eq("id", id).maybeSingle<Pick<Client, "marketplaces">>(),
+    supabase
+      .from("client_accounts")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at")
+      .returns<ClientAccount[]>(),
     supabase
       .from("client_changes")
       .select("*")
@@ -24,6 +30,7 @@ export default async function ClienteControlePage({
     <ClientChangesTable
       clientId={id}
       changes={changes ?? []}
+      accounts={accounts ?? []}
       clientMarketplaces={client?.marketplaces ?? []}
     />
   );

@@ -1,5 +1,5 @@
-import { MARKETPLACES } from "@/lib/marketplaces";
-import type { ClientChangeCategory, ClientChangeStatus } from "@/lib/types";
+import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import type { ClientAccount, ClientChangeCategory, ClientChangeStatus } from "@/lib/types";
 
 export const CHANGE_CHANNELS = [
   ...MARKETPLACES,
@@ -43,3 +43,51 @@ export const CHANGE_STATUS_BADGE: Record<ClientChangeStatus, string> = {
   concluida: "bg-green-100 text-green-700",
   monitorando: "bg-yellow/20 text-[#8a6d1a]",
 };
+
+/**
+ * One entry per channel a change can be logged against: a specific store
+ * when the client has one or more accounts for that marketplace (so two
+ * Mercado Livre stores never get lumped together), otherwise the generic
+ * marketplace itself.
+ */
+export type ChangeChannelOption = {
+  key: string;
+  label: string;
+  marketplace: string;
+  accountId: string | null;
+};
+
+export function buildChannelOptions(
+  accounts: ClientAccount[],
+  clientMarketplaces: string[],
+): ChangeChannelOption[] {
+  const options: ChangeChannelOption[] = [];
+
+  for (const channel of CHANGE_CHANNELS) {
+    const channelAccounts = accounts.filter((a) => a.marketplace === channel.value);
+
+    if (channelAccounts.length > 0) {
+      for (const account of channelAccounts) {
+        options.push({
+          key: `account:${account.id}`,
+          label: `${MARKETPLACE_LABEL[account.marketplace] ?? account.marketplace} — ${account.store_name}`,
+          marketplace: account.marketplace,
+          accountId: account.id,
+        });
+      }
+    } else if (
+      clientMarketplaces.includes(channel.value) ||
+      channel.value === "outro" ||
+      channel.value === "site_proprio"
+    ) {
+      options.push({
+        key: `marketplace:${channel.value}`,
+        label: channel.label,
+        marketplace: channel.value,
+        accountId: null,
+      });
+    }
+  }
+
+  return options;
+}

@@ -58,6 +58,7 @@ export type ClientChange = {
   client_id: string;
   changed_on: string;
   marketplace: string | null;
+  account_id: string | null;
   category: ClientChangeCategory | null;
   description: string;
   reason: string | null;

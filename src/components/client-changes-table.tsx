@@ -2,16 +2,16 @@
 
 import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import type { ClientChange, ClientChangeStatus } from "@/lib/types";
+import type { ClientAccount, ClientChange, ClientChangeStatus } from "@/lib/types";
 import {
   addChange,
   deleteChange,
   updateChangeStatus,
 } from "@/app/(dashboard)/clientes/[id]/actions";
 import {
+  buildChannelOptions,
   CHANGE_CATEGORIES,
   CHANGE_CATEGORY_LABEL,
-  CHANGE_CHANNELS,
   CHANGE_CHANNEL_LABEL,
   CHANGE_STATUSES,
   CHANGE_STATUS_BADGE,
@@ -28,6 +28,12 @@ function formatDate(date: string | null) {
   if (!date) return "—";
   const [y, m, d] = date.split("-");
   return `${d}/${m}/${y}`;
+}
+
+function channelKeyOf(change: ClientChange) {
+  if (change.account_id) return `account:${change.account_id}`;
+  if (change.marketplace) return `marketplace:${change.marketplace}`;
+  return null;
 }
 
 function StatusSelect({
@@ -60,28 +66,43 @@ function StatusSelect({
 export function ClientChangesTable({
   clientId,
   changes,
+  accounts,
   clientMarketplaces,
 }: {
   clientId: string;
   changes: ClientChange[];
+  accounts: ClientAccount[];
   clientMarketplaces: string[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
 
+  const channelOptions = useMemo(
+    () => buildChannelOptions(accounts, clientMarketplaces),
+    [accounts, clientMarketplaces],
+  );
+
   const tabs = useMemo(() => {
-    const extra = changes
-      .map((c) => c.marketplace)
-      .filter((m): m is string => !!m && !clientMarketplaces.includes(m));
-    const values = [...clientMarketplaces, ...new Set(extra)];
+    const known = new Set(channelOptions.map((o) => o.key));
+    const orphanKeys = new Set(
+      changes.map(channelKeyOf).filter((k): k is string => !!k && !known.has(k)),
+    );
+    const orphanTabs = Array.from(orphanKeys).map((key) => {
+      const [, value] = key.split(":");
+      return { value: key, label: CHANGE_CHANNEL_LABEL[value] ?? value };
+    });
+
     return [
       { value: ALL_TAB, label: "Todos" },
-      ...values.map((v) => ({ value: v, label: CHANGE_CHANNEL_LABEL[v] ?? v })),
+      ...channelOptions.map((o) => ({ value: o.key, label: o.label })),
+      ...orphanTabs,
     ];
-  }, [changes, clientMarketplaces]);
+  }, [changes, channelOptions]);
 
   const visibleChanges =
-    activeTab === ALL_TAB ? changes : changes.filter((c) => c.marketplace === activeTab);
+    activeTab === ALL_TAB ? changes : changes.filter((c) => channelKeyOf(c) === activeTab);
+
+  const activeChannel = channelOptions.find((o) => o.key === activeTab);
 
   const [state, formAction, pending] = useActionState(
     async (prevState: Parameters<typeof addChange>[0], formData: FormData) => {
@@ -122,6 +143,8 @@ export function ClientChangesTable({
 
         <form ref={formRef} action={formAction} className="space-y-2">
           <input type="hidden" name="client_id" value={clientId} />
+          <input type="hidden" name="marketplace" value={activeChannel?.marketplace ?? ""} />
+          <input type="hidden" name="account_id" value={activeChannel?.accountId ?? ""} />
 
           <div className="grid grid-cols-4 gap-2">
             <input
@@ -131,17 +154,16 @@ export function ClientChangesTable({
               className={INPUT_CLASS}
             />
             <select
-              name="marketplace"
-              defaultValue={activeTab === ALL_TAB ? "" : activeTab}
-              key={activeTab}
+              value={activeTab === ALL_TAB ? "" : activeTab}
+              onChange={(e) => setActiveTab(e.target.value || ALL_TAB)}
               className={INPUT_CLASS}
             >
               <option value="" disabled>
-                Canal / Marketplace
+                Conta / Canal
               </option>
-              {CHANGE_CHANNELS.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
+              {channelOptions.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
                 </option>
               ))}
             </select>
@@ -210,7 +232,7 @@ export function ClientChangesTable({
           <thead className="bg-brand-gray">
             <tr>
               <th className="px-5 py-2 font-semibold text-navy">Data</th>
-              <th className="px-5 py-2 font-semibold text-navy">Canal</th>
+              <th className="px-5 py-2 font-semibold text-navy">Conta / Canal</th>
               <th className="px-5 py-2 font-semibold text-navy">Categoria</th>
               <th className="px-5 py-2 font-semibold text-navy">Ação feita</th>
               <th className="px-5 py-2 font-semibold text-navy">Motivo</th>
@@ -223,53 +245,60 @@ export function ClientChangesTable({
             </tr>
           </thead>
           <tbody>
-            {visibleChanges.map((change) => (
-              <tr key={change.id} className="group border-t border-navy/[.06]">
-                <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
-                  {formatDate(change.changed_on)}
-                </td>
-                <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
-                  {change.marketplace ? CHANGE_CHANNEL_LABEL[change.marketplace] ?? change.marketplace : "—"}
-                </td>
-                <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
-                  {change.category ? CHANGE_CATEGORY_LABEL[change.category] ?? change.category : "—"}
-                </td>
-                <td className={TRUNCATE_CELL} title={change.description}>
-                  {change.description}
-                </td>
-                <td className={TRUNCATE_CELL} title={change.reason ?? undefined}>
-                  {change.reason ?? "—"}
-                </td>
-                <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
-                  {change.owner ?? "—"}
-                </td>
-                <td className="whitespace-nowrap px-5 py-2.5">
-                  <StatusSelect clientId={clientId} change={change} />
-                </td>
-                <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
-                  {formatDate(change.closed_on)}
-                </td>
-                <td className={TRUNCATE_CELL} title={change.goal ?? undefined}>
-                  {change.goal ?? "—"}
-                </td>
-                <td className={TRUNCATE_CELL} title={change.evidence ?? undefined}>
-                  {change.evidence ?? "—"}
-                </td>
-                <td className="px-5 py-2.5 text-right">
-                  <form action={deleteChange}>
-                    <input type="hidden" name="id" value={change.id} />
-                    <input type="hidden" name="client_id" value={clientId} />
-                    <button
-                      type="submit"
-                      aria-label={`Excluir alteração de ${formatDate(change.changed_on)}`}
-                      className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
+            {visibleChanges.map((change) => {
+              const account = accounts.find((a) => a.id === change.account_id);
+              const channelLabel = account
+                ? `${CHANGE_CHANNEL_LABEL[account.marketplace] ?? account.marketplace} — ${account.store_name}`
+                : change.marketplace
+                  ? CHANGE_CHANNEL_LABEL[change.marketplace] ?? change.marketplace
+                  : "—";
+
+              return (
+                <tr key={change.id} className="group border-t border-navy/[.06]">
+                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                    {formatDate(change.changed_on)}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">{channelLabel}</td>
+                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                    {change.category ? CHANGE_CATEGORY_LABEL[change.category] ?? change.category : "—"}
+                  </td>
+                  <td className={TRUNCATE_CELL} title={change.description}>
+                    {change.description}
+                  </td>
+                  <td className={TRUNCATE_CELL} title={change.reason ?? undefined}>
+                    {change.reason ?? "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                    {change.owner ?? "—"}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-2.5">
+                    <StatusSelect clientId={clientId} change={change} />
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                    {formatDate(change.closed_on)}
+                  </td>
+                  <td className={TRUNCATE_CELL} title={change.goal ?? undefined}>
+                    {change.goal ?? "—"}
+                  </td>
+                  <td className={TRUNCATE_CELL} title={change.evidence ?? undefined}>
+                    {change.evidence ?? "—"}
+                  </td>
+                  <td className="px-5 py-2.5 text-right">
+                    <form action={deleteChange}>
+                      <input type="hidden" name="id" value={change.id} />
+                      <input type="hidden" name="client_id" value={clientId} />
+                      <button
+                        type="submit"
+                        aria-label={`Excluir alteração de ${formatDate(change.changed_on)}`}
+                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              );
+            })}
             {!visibleChanges.length && (
               <tr>
                 <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
