@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesOrder } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
+import { buildShopeeBreakdown } from "@/lib/parsers/shopee-breakdown";
 import { updateOrderCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const MONTHS = [
@@ -39,7 +41,94 @@ const STATUS_STYLE: Record<string, string> = {
   Cancelado: "bg-red-50 text-red-700",
 };
 
+function OrderBreakdown({ order }: { order: SalesOrder }) {
+  const [showOther, setShowOther] = useState(false);
+
+  if (!order.raw) {
+    return (
+      <p className="px-4 py-3 text-xs text-[#94A0BD]">
+        Esse pedido não tem o detalhamento da planilha guardado (foi importado antes dessa
+        funcionalidade existir).
+      </p>
+    );
+  }
+
+  const { lines, otherFields } = buildShopeeBreakdown(order.raw);
+
+  return (
+    <div className="grid grid-cols-2 gap-6 px-4 py-4">
+      <div>
+        <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+          Preço de venda → descontos → recebido
+        </p>
+        <ul className="flex flex-col gap-1 text-sm">
+          {lines.map((line, i) => (
+            <li
+              key={`${line.label}-${i}`}
+              className={`flex items-center justify-between border-b border-navy/[.04] py-1 ${
+                line.kind === "total" ? "mt-1 border-t border-navy/10 pt-2" : ""
+              }`}
+            >
+              <span
+                className={
+                  line.kind === "total"
+                    ? "font-bold text-navy"
+                    : line.kind === "positive"
+                      ? "font-semibold text-navy"
+                      : line.kind === "marker"
+                        ? "text-[#94A0BD]"
+                        : "text-[#5B647E]"
+                }
+              >
+                {line.label}
+              </span>
+              <span
+                className={
+                  line.kind === "total"
+                    ? "font-bold text-navy"
+                    : line.kind === "positive"
+                      ? "font-semibold text-navy"
+                      : line.kind === "marker"
+                        ? "text-[#94A0BD]"
+                        : line.value > 0
+                          ? "font-medium text-red-600"
+                          : "text-[#94A0BD]"
+                }
+              >
+                {line.kind === "negative" && line.value > 0 ? "− " : ""}
+                {formatCurrency(line.value)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowOther((v) => !v)}
+          className="mb-2 flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#94A0BD] hover:text-navy"
+        >
+          {showOther ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          Todos os outros campos da planilha ({otherFields.length})
+        </button>
+        {showOther && (
+          <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto text-xs">
+            {otherFields.map(({ label, value }) => (
+              <li key={label} className="flex justify-between gap-3 border-b border-navy/[.04] py-1">
+                <span className="text-[#94A0BD]">{label}</span>
+                <span className="truncate text-right text-[#5B647E]">{String(value ?? "—")}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function OrderRow({ clientId, order }: { clientId: string; order: SalesOrder }) {
+  const [expanded, setExpanded] = useState(false);
   const [cost, setCost] = useState(order.cost != null ? String(order.cost) : "");
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
   const [tax, setTax] = useState(order.tax_percent != null ? String(order.tax_percent) : "");
@@ -52,72 +141,111 @@ function OrderRow({ clientId, order }: { clientId: string; order: SalesOrder }) 
   const margin = order.net_settlement - costNum - extraNum - taxAmount;
 
   return (
-    <tr className="border-t border-navy/[.06]">
-      <td className="whitespace-nowrap px-4 py-2 text-[#5B647E]">
-        {order.created_on ? formatDate(order.created_on) : "—"}
-      </td>
-      <td className="whitespace-nowrap px-4 py-2 font-mono text-xs text-[#5B647E]">
-        {order.order_id}
-      </td>
-      <td className="max-w-[220px] truncate px-4 py-2 text-navy" title={order.product_name ?? undefined}>
-        {order.product_name ?? "—"}
-      </td>
-      <td className="whitespace-nowrap px-4 py-2 text-[#5B647E]">{order.sku ?? "—"}</td>
-      <td className="whitespace-nowrap px-4 py-2 text-center text-[#5B647E]">{order.quantity}</td>
-      <td className="whitespace-nowrap px-4 py-2">
-        <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-            STATUS_STYLE[order.status ?? ""] ?? "bg-brand-gray text-navy"
+    <>
+      <tr className="cursor-pointer border-t border-navy/[.06] hover:bg-brand-gray/30">
+        <td className="px-2 py-2" onClick={() => setExpanded((v) => !v)}>
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 text-[#94A0BD]" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-[#94A0BD]" />
+          )}
+        </td>
+        <td className="whitespace-nowrap px-2 py-2 text-[#5B647E]" onClick={() => setExpanded((v) => !v)}>
+          {order.created_on ? formatDate(order.created_on) : "—"}
+        </td>
+        <td
+          className="whitespace-nowrap px-4 py-2 font-mono text-xs text-[#5B647E]"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {order.order_id}
+        </td>
+        <td
+          className="max-w-[200px] truncate px-4 py-2 text-navy"
+          title={order.product_name ?? undefined}
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {order.product_name ?? "—"}
+        </td>
+        <td className="whitespace-nowrap px-4 py-2 text-[#5B647E]" onClick={() => setExpanded((v) => !v)}>
+          {order.sku ?? "—"}
+        </td>
+        <td
+          className="whitespace-nowrap px-4 py-2 text-center text-[#5B647E]"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {order.quantity}
+        </td>
+        <td className="whitespace-nowrap px-4 py-2" onClick={() => setExpanded((v) => !v)}>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+              STATUS_STYLE[order.status ?? ""] ?? "bg-brand-gray text-navy"
+            }`}
+          >
+            {order.status ?? "—"}
+          </span>
+        </td>
+        <td
+          className="whitespace-nowrap px-4 py-2 text-right text-navy"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {formatCurrency(order.unit_price)}
+        </td>
+        <td
+          className="whitespace-nowrap px-4 py-2 text-right text-navy"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {formatCurrency(order.net_settlement)}
+        </td>
+        <td className="px-2 py-2">
+          <form
+            action={formAction}
+            onBlur={(e) => e.currentTarget.requestSubmit()}
+            className="flex items-center gap-1"
+          >
+            <input type="hidden" name="id" value={order.id} />
+            <input type="hidden" name="client_id" value={clientId} />
+            <input
+              name="cost"
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              placeholder="Custo"
+              inputMode="decimal"
+              className={CELL_INPUT_CLASS}
+            />
+            <input
+              name="extra_costs"
+              value={extra}
+              onChange={(e) => setExtra(e.target.value)}
+              placeholder="Outros"
+              inputMode="decimal"
+              className={CELL_INPUT_CLASS}
+            />
+            <input
+              name="tax_percent"
+              value={tax}
+              onChange={(e) => setTax(e.target.value)}
+              placeholder="Imp. %"
+              inputMode="decimal"
+              className={`${CELL_INPUT_CLASS} w-16`}
+            />
+          </form>
+        </td>
+        <td
+          className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${
+            margin >= 0 ? "text-green-700" : "text-red-600"
           }`}
         >
-          {order.status ?? "—"}
-        </span>
-      </td>
-      <td className="whitespace-nowrap px-4 py-2 text-right text-navy">
-        {formatCurrency(order.net_settlement)}
-      </td>
-      <td className="px-2 py-2">
-        <form
-          action={formAction}
-          onBlur={(e) => e.currentTarget.requestSubmit()}
-          className="flex items-center gap-1"
-        >
-          <input type="hidden" name="id" value={order.id} />
-          <input type="hidden" name="client_id" value={clientId} />
-          <input
-            name="cost"
-            value={cost}
-            onChange={(e) => setCost(e.target.value)}
-            placeholder="Custo"
-            inputMode="decimal"
-            className={CELL_INPUT_CLASS}
-          />
-          <input
-            name="extra_costs"
-            value={extra}
-            onChange={(e) => setExtra(e.target.value)}
-            placeholder="Outros"
-            inputMode="decimal"
-            className={CELL_INPUT_CLASS}
-          />
-          <input
-            name="tax_percent"
-            value={tax}
-            onChange={(e) => setTax(e.target.value)}
-            placeholder="Imp. %"
-            inputMode="decimal"
-            className={`${CELL_INPUT_CLASS} w-16`}
-          />
-        </form>
-      </td>
-      <td
-        className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${
-          margin >= 0 ? "text-green-700" : "text-red-600"
-        }`}
-      >
-        {formatCurrency(margin)}
-      </td>
-    </tr>
+          {formatCurrency(margin)}
+        </td>
+      </tr>
+      {expanded && (
+        <tr className="border-t border-navy/[.06] bg-brand-gray/20">
+          <td colSpan={11}>
+            <OrderBreakdown order={order} />
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -201,18 +329,20 @@ export function SalesOrdersTable({
       </div>
 
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-        <table className="w-full min-w-[1100px] text-left text-sm">
+        <table className="w-full min-w-[1250px] text-left text-sm">
           <thead className="bg-brand-gray">
             <tr>
-              <th className="px-4 py-2 font-semibold text-navy">Data</th>
+              <th className="px-2 py-2" />
+              <th className="px-2 py-2 font-semibold text-navy">Data</th>
               <th className="px-4 py-2 font-semibold text-navy">Pedido</th>
               <th className="px-4 py-2 font-semibold text-navy">Produto</th>
               <th className="px-4 py-2 font-semibold text-navy">SKU</th>
-              <th className="px-4 py-2 font-semibold text-navy text-center">Qtd</th>
+              <th className="px-4 py-2 text-center font-semibold text-navy">Qtd</th>
               <th className="px-4 py-2 font-semibold text-navy">Status</th>
-              <th className="px-4 py-2 font-semibold text-navy text-right">Recebido</th>
+              <th className="px-4 py-2 text-right font-semibold text-navy">Preço de venda</th>
+              <th className="px-4 py-2 text-right font-semibold text-navy">Recebido</th>
               <th className="px-2 py-2 font-semibold text-navy">Custo / Outros / Imp. %</th>
-              <th className="px-4 py-2 font-semibold text-navy text-right">Sobrou</th>
+              <th className="px-4 py-2 text-right font-semibold text-navy">Sobrou</th>
             </tr>
           </thead>
           <tbody>
@@ -221,7 +351,7 @@ export function SalesOrdersTable({
             ))}
             {!filtered.length && (
               <tr>
-                <td colSpan={9} className="px-5 py-8 text-center text-[#94A0BD]">
+                <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
                   Nenhum pedido encontrado. Envie um documento em &quot;Importar documentos&quot;.
                 </td>
               </tr>
@@ -229,6 +359,10 @@ export function SalesOrdersTable({
           </tbody>
         </table>
       </div>
+      <p className="mt-2 text-xs text-[#94A0BD]">
+        Clique numa linha pra ver o detalhamento completo: preço de venda, todos os descontos da
+        planilha (em vermelho) e o valor final recebido.
+      </p>
     </div>
   );
 }

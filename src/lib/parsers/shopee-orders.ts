@@ -18,6 +18,7 @@ export type ParsedShopeeOrder = {
   commission_fee: number;
   service_fee: number;
   net_settlement: number;
+  raw: Record<string, unknown>;
 };
 
 function toNumber(value: unknown): number {
@@ -56,5 +57,6 @@ export function parseShopeeOrders(rows: Record<string, unknown>[]): ParsedShopee
       commission_fee: toNumber(row["Taxa de comissão líquida"]),
       service_fee: toNumber(row["Taxa de serviço líquida"]),
       net_settlement: toNumber(row["Total global"]),
+      raw: row,
     }));
 }

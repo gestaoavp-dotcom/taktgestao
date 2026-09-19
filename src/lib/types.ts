@@ -107,6 +107,7 @@ export type SalesOrder = {
   cost: number | null;
   extra_costs: number | null;
   tax_percent: number | null;
+  raw: Record<string, unknown> | null;
   created_at: string;
 };
 
