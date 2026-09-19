@@ -3,9 +3,10 @@
 import { useActionState, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesOrder } from "@/lib/types";
+import type { BreakdownLine } from "@/lib/parsers/shopee-breakdown";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
-import { buildShopeeBreakdown } from "@/lib/parsers/shopee-breakdown";
+import { buildShopeeBreakdown, computeShopeeNet } from "@/lib/parsers/shopee-breakdown";
 import { updateOrderCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const MONTHS = [
@@ -41,6 +42,11 @@ const STATUS_STYLE: Record<string, string> = {
   Cancelado: "bg-red-50 text-red-700",
 };
 
+/** What the marketplace actually deposits, before the seller's own costs. */
+function netOf(order: SalesOrder) {
+  return order.raw ? computeShopeeNet(order.raw) : order.net_settlement;
+}
+
 function OrderBreakdown({ order }: { order: SalesOrder }) {
   const [showOther, setShowOther] = useState(false);
 
@@ -54,58 +60,59 @@ function OrderBreakdown({ order }: { order: SalesOrder }) {
   }
 
   const { lines, otherFields } = buildShopeeBreakdown(order.raw);
+  const waterfall = lines.filter((l) => l.kind !== "info");
+  const reference = lines.filter((l) => l.kind === "info");
+
+  const labelClass: Record<BreakdownLine["kind"], string> = {
+    total: "font-bold text-green-800",
+    subtotal: "font-bold text-navy",
+    positive: "font-semibold text-navy",
+    info: "text-[#94A0BD]",
+    negative: "text-[#5B647E]",
+  };
+
+  const renderLine = (line: BreakdownLine, i: number) => (
+    <li
+      key={`${line.label}-${i}`}
+      className={`flex items-start justify-between gap-3 py-1 ${
+        line.kind === "total"
+          ? "mt-1 rounded bg-green-50 px-2 py-2"
+          : line.kind === "subtotal"
+            ? "border-y border-navy/10 bg-brand-gray/40 px-2"
+            : "border-b border-navy/[.04]"
+      }`}
+    >
+      <span className="flex flex-col">
+        <span className={labelClass[line.kind]}>{line.label}</span>
+        {line.note && <span className="text-[11px] text-[#94A0BD]">{line.note}</span>}
+      </span>
+      <span
+        className={`whitespace-nowrap ${
+          line.kind === "negative" && line.value > 0
+            ? "font-medium text-red-600"
+            : line.kind === "negative"
+              ? "text-[#94A0BD]"
+              : labelClass[line.kind]
+        }`}
+      >
+        {line.kind === "negative" && line.value > 0 ? "− " : ""}
+        {formatCurrency(line.value)}
+      </span>
+    </li>
+  );
 
   return (
     <div className="grid grid-cols-2 gap-6 px-4 py-4">
       <div>
         <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
-          Preço de venda → descontos → recebido
+          Preço original → descontos e taxas → quanto sobra
         </p>
-        <ul className="flex flex-col gap-1 text-sm">
-          {lines.map((line, i) => (
-            <li
-              key={`${line.label}-${i}`}
-              className={`flex items-start justify-between gap-3 border-b border-navy/[.04] py-1 ${
-                line.kind === "total" ? "mt-1 rounded bg-green-50 border-none px-2 py-2" : ""
-              }`}
-            >
-              <span className="flex flex-col">
-                <span
-                  className={
-                    line.kind === "total"
-                      ? "font-bold text-green-800"
-                      : line.kind === "positive"
-                        ? "font-semibold text-navy"
-                        : line.kind === "marker"
-                          ? "text-[#94A0BD]"
-                          : "text-[#5B647E]"
-                  }
-                >
-                  {line.label}
-                </span>
-                {line.note && (
-                  <span className="text-[11px] text-[#94A0BD]">{line.note}</span>
-                )}
-              </span>
-              <span
-                className={
-                  line.kind === "total"
-                    ? "whitespace-nowrap font-bold text-green-800"
-                    : line.kind === "positive"
-                      ? "whitespace-nowrap font-semibold text-navy"
-                      : line.kind === "marker"
-                        ? "whitespace-nowrap text-[#94A0BD]"
-                        : line.value > 0
-                          ? "whitespace-nowrap font-medium text-red-600"
-                          : "whitespace-nowrap text-[#94A0BD]"
-                }
-              >
-                {line.kind === "negative" && line.value > 0 ? "− " : ""}
-                {formatCurrency(line.value)}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ul className="flex flex-col gap-1 text-sm">{waterfall.map(renderLine)}</ul>
+
+        <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+          Referência (não entra na conta)
+        </p>
+        <ul className="flex flex-col gap-1 text-sm">{reference.map(renderLine)}</ul>
       </div>
 
       <div>
@@ -139,11 +146,12 @@ function OrderRow({ clientId, order }: { clientId: string; order: SalesOrder }) 
   const [tax, setTax] = useState(order.tax_percent != null ? String(order.tax_percent) : "");
   const [, formAction] = useActionState(updateOrderCosts, null);
 
+  const net = netOf(order);
   const costNum = parseFloat(cost.replace(",", ".")) || 0;
   const extraNum = parseFloat(extra.replace(",", ".")) || 0;
   const taxNum = parseFloat(tax.replace(",", ".")) || 0;
-  const taxAmount = (order.net_settlement * taxNum) / 100;
-  const margin = order.net_settlement - costNum - extraNum - taxAmount;
+  const taxAmount = (net * taxNum) / 100;
+  const margin = net - costNum - extraNum - taxAmount;
 
   return (
     <>
@@ -193,13 +201,13 @@ function OrderRow({ clientId, order }: { clientId: string; order: SalesOrder }) 
           className="whitespace-nowrap px-4 py-2 text-right text-navy"
           onClick={() => setExpanded((v) => !v)}
         >
-          {formatCurrency(order.unit_price)}
+          {formatCurrency(order.subtotal)}
         </td>
         <td
           className="whitespace-nowrap px-4 py-2 text-right text-navy"
           onClick={() => setExpanded((v) => !v)}
         >
-          {formatCurrency(order.net_settlement)}
+          {formatCurrency(net)}
         </td>
         <td className="px-2 py-2">
           <form
@@ -279,13 +287,15 @@ export function SalesOrdersTable({
 
   const totals = filtered.reduce(
     (acc, o) => {
-      acc.net += o.net_settlement;
+      const net = netOf(o);
+      acc.sold += o.subtotal;
+      acc.net += net;
       acc.cost += o.cost ?? 0;
       acc.extra += o.extra_costs ?? 0;
-      acc.tax += (o.net_settlement * (o.tax_percent ?? 0)) / 100;
+      acc.tax += (net * (o.tax_percent ?? 0)) / 100;
       return acc;
     },
-    { net: 0, cost: 0, extra: 0, tax: 0 },
+    { sold: 0, net: 0, cost: 0, extra: 0, tax: 0 },
   );
   const totalMargin = totals.net - totals.cost - totals.extra - totals.tax;
 
@@ -319,16 +329,34 @@ export function SalesOrdersTable({
           </select>
         </div>
 
-        <div className="rounded-lg bg-blue/5 px-5 py-2 text-right">
-          <div
-            className={`font-display text-2xl font-bold leading-none ${
-              totalMargin >= 0 ? "text-navy" : "text-red-600"
-            }`}
-          >
-            {formatCurrency(totalMargin)}
+        <div className="flex items-stretch gap-2">
+          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-navy">
+              {formatCurrency(totals.sold)}
+            </div>
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+              vendido
+            </div>
           </div>
-          <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
-            sobrou no total ({filtered.length} pedidos)
+          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-navy">
+              {formatCurrency(totals.net)}
+            </div>
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+              recebido da plataforma
+            </div>
+          </div>
+          <div className="rounded-lg bg-green-50 px-5 py-2 text-right">
+            <div
+              className={`font-display text-2xl font-bold leading-none ${
+                totalMargin >= 0 ? "text-green-800" : "text-red-600"
+              }`}
+            >
+              {formatCurrency(totalMargin)}
+            </div>
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+              sobrou ({filtered.length} pedidos)
+            </div>
           </div>
         </div>
       </div>
