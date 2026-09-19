@@ -44,11 +44,13 @@ function countOrders(rows: OrderRow[]) {
  * Revenue as billed to buyers, from the orders imported off the marketplace
  * reports. Cancelled and refunded orders are left out: the platform charged
  * nothing for them.
+ *
+ * With no `clientId`, it covers every client under management.
  */
 export async function getOrdersSummary(
   supabase: SupabaseClient,
-  clientId: string,
   range: DateRange,
+  filters: { clientId?: string; marketplace?: string } = {},
 ): Promise<OrdersSummary> {
   const periodStart = fromISO(range.start);
   const periodEnd = fromISO(range.end);
@@ -57,13 +59,16 @@ export async function getOrdersSummary(
   const prevStart = new Date(periodStart);
   prevStart.setDate(prevStart.getDate() - days);
 
-  const { data } = await supabase
+  let query = supabase
     .from("sales_orders")
     .select("order_id, created_on, marketplace, subtotal, total_value")
-    .eq("client_id", clientId)
     .gte("created_on", toISO(prevStart))
-    .lte("created_on", range.end)
-    .returns<OrderRow[]>();
+    .lte("created_on", range.end);
+
+  if (filters.clientId) query = query.eq("client_id", filters.clientId);
+  if (filters.marketplace) query = query.eq("marketplace", filters.marketplace);
+
+  const { data } = await query.returns<OrderRow[]>();
 
   const billed = (data ?? []).filter((r) => Number(r.total_value) > 0 && r.created_on);
   const current = billed.filter((r) => r.created_on! >= range.start);

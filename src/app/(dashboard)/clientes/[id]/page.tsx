@@ -38,7 +38,7 @@ export default async function ClienteDashboardPage({
       .eq("client_id", id)
       .order("created_at")
       .returns<ClientAccount[]>(),
-    getOrdersSummary(supabase, id, range),
+    getOrdersSummary(supabase, range, { clientId: id }),
     supabase
       .from("client_changes")
       .select("changed_on, marketplace")

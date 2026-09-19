@@ -37,7 +37,7 @@ export default async function ClienteVendasPage({
     previousTicket,
     chartData,
     platformRows,
-  } = await getOrdersSummary(supabase, id, range);
+  } = await getOrdersSummary(supabase, range, { clientId: id });
 
   return (
     <div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { DateField } from "@/components/date-field";
 
 function toISO(d: Date) {
@@ -33,9 +33,14 @@ const PRESETS = [
 export function DateRangePicker({ start, end }: { start: string; end: string }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   const apply = (range: { start: string; end: string }) => {
-    router.push(`${pathname}?de=${range.start}&ate=${range.end}`);
+    // Keep whatever else is filtering the page, like the marketplace.
+    const params = new URLSearchParams(searchParams);
+    params.set("de", range.start);
+    params.set("ate", range.end);
+    router.push(`${pathname}?${params}`);
   };
 
   return (
