@@ -6,6 +6,14 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
+  }).format(value);
+}
+
+/** Axis ticks are scale markers, not amounts — cents would just add noise. */
+function formatAxis(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -30,13 +38,7 @@ const PAD_RIGHT = 16;
 const PAD_TOP = 24;
 const PAD_BOTTOM = 32;
 
-export function AreaChart({
-  data,
-  valueFormatter = formatCurrency,
-}: {
-  data: { date: string; value: number }[];
-  valueFormatter?: (value: number) => string;
-}) {
+export function AreaChart({ data }: { data: { date: string; value: number }[] }) {
   const [hover, setHover] = useState<number | null>(null);
 
   const max = niceMax(Math.max(...data.map((d) => d.value)));
@@ -80,7 +82,7 @@ export function AreaChart({
                 strokeWidth={1}
               />
               <text x={PAD_LEFT - 10} y={y} textAnchor="end" dy="3" fontSize="11" fill="#94A0BD">
-                {valueFormatter(max * g)}
+                {formatAxis(max * g)}
               </text>
             </g>
           );
@@ -143,7 +145,7 @@ export function AreaChart({
           }}
         >
           <div className="text-white/70">{formatDateShort(points[hover].date)}</div>
-          <div className="font-display">{valueFormatter(points[hover].value)}</div>
+          <div className="font-display">{formatCurrency(points[hover].value)}</div>
         </div>
       )}
     </div>
