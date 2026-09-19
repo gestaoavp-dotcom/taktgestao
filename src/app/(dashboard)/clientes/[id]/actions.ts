@@ -55,6 +55,27 @@ export async function addAccount(
   return { ok: true };
 }
 
+export async function updateAccount(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+
+  const { error } = await supabase
+    .from("client_accounts")
+    .update({
+      store_name: formData.get("store_name") as string,
+      cnpj: (formData.get("cnpj") as string) || null,
+    })
+    .eq("id", formData.get("id") as string);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}`);
+  return { ok: true };
+}
+
 export async function deleteAccount(formData: FormData) {
   const supabase = await createClient();
   const clientId = formData.get("client_id") as string;

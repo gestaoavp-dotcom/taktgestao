@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import type { ClientChange, ClientChangeStatus } from "@/lib/types";
 import {
@@ -21,6 +21,8 @@ const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
 const TRUNCATE_CELL = "max-w-[220px] truncate px-5 py-2.5 text-[#5B647E]";
+
+const ALL_TAB = "all";
 
 function formatDate(date: string | null) {
   if (!date) return "—";
@@ -58,11 +60,28 @@ function StatusSelect({
 export function ClientChangesTable({
   clientId,
   changes,
+  clientMarketplaces,
 }: {
   clientId: string;
   changes: ClientChange[];
+  clientMarketplaces: string[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
+
+  const tabs = useMemo(() => {
+    const extra = changes
+      .map((c) => c.marketplace)
+      .filter((m): m is string => !!m && !clientMarketplaces.includes(m));
+    const values = [...clientMarketplaces, ...new Set(extra)];
+    return [
+      { value: ALL_TAB, label: "Todos" },
+      ...values.map((v) => ({ value: v, label: CHANGE_CHANNEL_LABEL[v] ?? v })),
+    ];
+  }, [changes, clientMarketplaces]);
+
+  const visibleChanges =
+    activeTab === ALL_TAB ? changes : changes.filter((c) => c.marketplace === activeTab);
 
   const [state, formAction, pending] = useActionState(
     async (prevState: Parameters<typeof addChange>[0], formData: FormData) => {
@@ -75,6 +94,25 @@ export function ClientChangesTable({
 
   return (
     <div>
+      {tabs.length > 2 && (
+        <nav className="mb-5 flex flex-wrap gap-1 border-b border-navy/[.08]">
+          {tabs.map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              onClick={() => setActiveTab(tab.value)}
+              className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                activeTab === tab.value
+                  ? "border-blue text-blue"
+                  : "border-transparent text-[#5B647E] hover:text-navy"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold text-navy">Registrar alteração</h2>
         <p className="mb-4 text-xs text-[#94A0BD]">
@@ -92,7 +130,12 @@ export function ClientChangesTable({
               defaultValue={new Date().toISOString().slice(0, 10)}
               className={INPUT_CLASS}
             />
-            <select name="marketplace" defaultValue="" className={INPUT_CLASS}>
+            <select
+              name="marketplace"
+              defaultValue={activeTab === ALL_TAB ? "" : activeTab}
+              key={activeTab}
+              className={INPUT_CLASS}
+            >
               <option value="" disabled>
                 Canal / Marketplace
               </option>
@@ -180,7 +223,7 @@ export function ClientChangesTable({
             </tr>
           </thead>
           <tbody>
-            {changes.map((change) => (
+            {visibleChanges.map((change) => (
               <tr key={change.id} className="group border-t border-navy/[.06]">
                 <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
                   {formatDate(change.changed_on)}
@@ -227,7 +270,7 @@ export function ClientChangesTable({
                 </td>
               </tr>
             ))}
-            {!changes.length && (
+            {!visibleChanges.length && (
               <tr>
                 <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
                   Nenhuma alteração registrada ainda.
