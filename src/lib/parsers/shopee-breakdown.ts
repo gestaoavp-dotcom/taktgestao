@@ -5,8 +5,21 @@
 
 export type BreakdownLine = {
   label: string;
+  note?: string;
   value: number;
   kind: "positive" | "negative" | "marker" | "total";
+};
+
+// Shopee's own wording is ambiguous in a few places; these read better in the
+// breakdown and say where the number actually comes from.
+const LABEL_OVERRIDES: Record<string, { label: string; note?: string }> = {
+  "Preço original": { label: "Preço original (de tabela)" },
+  "Preço acordado": { label: "Preço de venda", note: "valor anunciado, já com desconto aplicado" },
+  "Valor Total": { label: "Valor pago pelo comprador", note: "produto + frete" },
+  "Total global": {
+    label: "Total recebido",
+    note: "valor líquido da Shopee, já descontado tudo acima",
+  },
 };
 
 const POSITIVE_KEYS = ["Preço original", "Preço acordado", "Subtotal do produto"];
@@ -71,7 +84,13 @@ export function buildShopeeBreakdown(raw: Record<string, unknown>): {
   for (const key of SHOPEE_BREAKDOWN_KEYS) {
     if (!(key in raw)) continue;
     seen.add(key);
-    lines.push({ label: key.replace(/_1$/, " (2)"), value: toNumber(raw[key]), kind: kindOf(key) });
+    const override = LABEL_OVERRIDES[key];
+    lines.push({
+      label: override?.label ?? key.replace(/_1$/, " (2)"),
+      note: override?.note,
+      value: toNumber(raw[key]),
+      kind: kindOf(key),
+    });
   }
 
   const otherFields = Object.entries(raw)

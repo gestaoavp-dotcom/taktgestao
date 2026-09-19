@@ -65,34 +65,39 @@ function OrderBreakdown({ order }: { order: SalesOrder }) {
           {lines.map((line, i) => (
             <li
               key={`${line.label}-${i}`}
-              className={`flex items-center justify-between border-b border-navy/[.04] py-1 ${
-                line.kind === "total" ? "mt-1 border-t border-navy/10 pt-2" : ""
+              className={`flex items-start justify-between gap-3 border-b border-navy/[.04] py-1 ${
+                line.kind === "total" ? "mt-1 rounded bg-green-50 border-none px-2 py-2" : ""
               }`}
             >
-              <span
-                className={
-                  line.kind === "total"
-                    ? "font-bold text-navy"
-                    : line.kind === "positive"
-                      ? "font-semibold text-navy"
-                      : line.kind === "marker"
-                        ? "text-[#94A0BD]"
-                        : "text-[#5B647E]"
-                }
-              >
-                {line.label}
+              <span className="flex flex-col">
+                <span
+                  className={
+                    line.kind === "total"
+                      ? "font-bold text-green-800"
+                      : line.kind === "positive"
+                        ? "font-semibold text-navy"
+                        : line.kind === "marker"
+                          ? "text-[#94A0BD]"
+                          : "text-[#5B647E]"
+                  }
+                >
+                  {line.label}
+                </span>
+                {line.note && (
+                  <span className="text-[11px] text-[#94A0BD]">{line.note}</span>
+                )}
               </span>
               <span
                 className={
                   line.kind === "total"
-                    ? "font-bold text-navy"
+                    ? "whitespace-nowrap font-bold text-green-800"
                     : line.kind === "positive"
-                      ? "font-semibold text-navy"
+                      ? "whitespace-nowrap font-semibold text-navy"
                       : line.kind === "marker"
-                        ? "text-[#94A0BD]"
+                        ? "whitespace-nowrap text-[#94A0BD]"
                         : line.value > 0
-                          ? "font-medium text-red-600"
-                          : "text-[#94A0BD]"
+                          ? "whitespace-nowrap font-medium text-red-600"
+                          : "whitespace-nowrap text-[#94A0BD]"
                 }
               >
                 {line.kind === "negative" && line.value > 0 ? "− " : ""}
