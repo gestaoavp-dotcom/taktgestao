@@ -142,6 +142,40 @@ export type SalesAd = {
   created_at: string;
 };
 
+export type SalesTraffic = {
+  id: string;
+  client_id: string;
+  sales_report_id: string;
+  marketplace: string;
+  report_month: string;
+  item_id: string | null;
+  product_name: string;
+  sku: string | null;
+  variation_name: string | null;
+  is_variation: boolean;
+  impressions: number;
+  clicks: number;
+  unique_impressions: number;
+  unique_clicks: number;
+  visitors: number;
+  page_views: number;
+  bounced_visitors: number;
+  search_clicks: number;
+  likes: number;
+  cart_visitors: number;
+  cart_units: number;
+  orders_placed: number;
+  orders_paid: number;
+  units_placed: number;
+  units_paid: number;
+  buyers_placed: number;
+  buyers_paid: number;
+  sales_placed: number;
+  sales_paid: number;
+  raw: Record<string, unknown> | null;
+  created_at: string;
+};
+
 export type ClientLink = {
   id: string;
   client_id: string;

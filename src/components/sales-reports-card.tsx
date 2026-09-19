@@ -7,11 +7,13 @@ import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { createClient } from "@/lib/supabase/client";
 import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
 import { parseShopeeAds, stripAdsPreamble } from "@/lib/parsers/shopee-ads";
+import { parseShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import {
   deleteSalesReport,
   deleteSalesReportById,
   getSalesReportUrl,
   importSalesAds,
+  importSalesTraffic,
   importSalesOrders,
   markSalesReportError,
   registerSalesReport,
@@ -58,7 +60,7 @@ const MONTHS = [
 const READABLE: Record<SalesReportKind, string[]> = {
   pedidos: ["shopee"],
   ads: ["shopee"],
-  trafego: [],
+  trafego: ["shopee"],
 };
 
 function formatSize(bytes: number | null) {
@@ -174,6 +176,21 @@ export function SalesReportsCard({
             ads: parseShopeeAds(rows),
           });
           if (result && "error" in result) setError(result.error);
+        } else if (reportKind === "trafego") {
+          // Figures are Brazilian-formatted text, so keep the cells raw.
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array", raw: true });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { raw: true });
+
+          const result = await importSalesTraffic({
+            clientId,
+            reportId: registered.id,
+            marketplace: reportMarketplace,
+            reportMonth,
+            products: parseShopeeTraffic(rows),
+          });
+          if (result && "error" in result) setError(result.error);
         } else {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
@@ -246,7 +263,7 @@ export function SalesReportsCard({
       <p className="mb-4 text-xs text-[#94A0BD]">
         {KINDS.find((k) => k.value === kind)?.hint}
         {hasParser
-          ? ` — os dados são lidos automaticamente e aparecem na aba ${kind === "ads" ? "Ads" : "Pedidos"}.`
+          ? ` — os dados são lidos automaticamente e aparecem na aba ${kind === "ads" ? "Ads" : kind === "trafego" ? "Tráfego" : "Pedidos"}.`
           : " — a leitura automática desse tipo ainda não está pronta: o arquivo fica salvo, mas os dados não são extraídos."}
       </p>
 
