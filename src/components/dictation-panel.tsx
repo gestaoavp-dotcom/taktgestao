@@ -37,6 +37,37 @@ const MESSAGES: Record<string, string> = {
   network: "O reconhecimento de voz precisa de internet e a conexão falhou.",
 };
 
+/**
+ * Speech recognition gives no sign of which microphone it opened, so a muted
+ * or wrong input device looks exactly like recording that hears nothing. This
+ * listens to the same default device and reports the level, which tells the
+ * two apart.
+ */
+async function openMicMonitor(onLevel: (level: number) => void) {
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const audio = new AudioContext();
+  const analyser = audio.createAnalyser();
+  analyser.fftSize = 512;
+  audio.createMediaStreamSource(stream).connect(analyser);
+
+  const samples = new Uint8Array(analyser.fftSize);
+  let frame = 0;
+
+  const tick = () => {
+    analyser.getByteTimeDomainData(samples);
+    let sum = 0;
+    for (const sample of samples) sum += (sample - 128) ** 2;
+    onLevel(Math.min(1, Math.sqrt(sum / samples.length) / 40));
+    frame = requestAnimationFrame(tick);
+  };
+  tick();
+
+  return {
+    monitor: { stream, audio, get frame() { return frame; } },
+    label: stream.getAudioTracks()[0]?.label ?? null,
+  };
+}
+
 function createRecognition(): SpeechRecognitionLike | null {
   if (typeof window === "undefined") return null;
   const Ctor =
@@ -60,7 +91,13 @@ export function DictationPanel({
   const [error, setError] = useState<string | null>(null);
   const [unsupported, setUnsupported] = useState(false);
 
+  const [level, setLevel] = useState(0);
+  const [device, setDevice] = useState<string | null>(null);
+  const [deaf, setDeaf] = useState(false);
+
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const micRef = useRef<{ stream: MediaStream; audio: AudioContext; frame: number } | null>(null);
+  const peakRef = useRef(0);
   const finalRef = useRef("");
   /** True only between pressing stop and the engine confirming it. */
   const stoppingRef = useRef(false);
@@ -69,6 +106,7 @@ export function DictationPanel({
     () => () => {
       stoppingRef.current = true;
       recognitionRef.current?.abort();
+      micRef.current?.stream.getTracks().forEach((track) => track.stop());
     },
     [],
   );
@@ -109,6 +147,7 @@ export function DictationPanel({
 
       setListening(false);
       setInterim("");
+      closeMic();
 
       const spoken = finalRef.current.trim();
       if (spoken) onParsed(parseDictation(spoken, channels));
@@ -129,8 +168,28 @@ export function DictationPanel({
     setError(null);
     setText("");
     setInterim("");
+    setDeaf(false);
     finalRef.current = "";
+    peakRef.current = 0;
     stoppingRef.current = false;
+
+    void navigator.mediaDevices
+      ?.getUserMedia({ audio: true })
+      .then(async (probe) => {
+        probe.getTracks().forEach((t) => t.stop());
+        const { monitor, label } = await openMicMonitor((value) => {
+          peakRef.current = Math.max(peakRef.current, value);
+          setLevel(value);
+        });
+        micRef.current = monitor as never;
+        setDevice(label);
+        // Recording with a flat signal means the device is not the one picking
+        // up the voice.
+        window.setTimeout(() => {
+          if (peakRef.current < 0.02) setDeaf(true);
+        }, 4000);
+      })
+      .catch(() => setDevice(null));
 
     attach(recognition);
     recognitionRef.current = recognition;
@@ -144,9 +203,20 @@ export function DictationPanel({
     setListening(true);
   }
 
+  function closeMic() {
+    const mic = micRef.current;
+    if (!mic) return;
+    cancelAnimationFrame(mic.frame);
+    mic.stream.getTracks().forEach((track) => track.stop());
+    void mic.audio.close();
+    micRef.current = null;
+    setLevel(0);
+  }
+
   function stop() {
     stoppingRef.current = true;
     recognitionRef.current?.stop();
+    closeMic();
     setListening(false);
   }
 
@@ -204,6 +274,35 @@ export function DictationPanel({
           listening ? "border-red-300" : "border-navy/10"
         }`}
       />
+
+      {listening && (
+        <div className="mt-2 flex items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            Microfone
+          </span>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-brand-gray">
+            <div
+              className={`h-full rounded-full transition-[width] duration-75 ${
+                level > 0.02 ? "bg-green-500" : "bg-brand-gray"
+              }`}
+              style={{ width: `${Math.round(level * 100)}%` }}
+            />
+          </div>
+          {device && (
+            <span className="max-w-[220px] truncate text-[11px] text-[#94A0BD]" title={device}>
+              {device}
+            </span>
+          )}
+        </div>
+      )}
+
+      {listening && deaf && (
+        <p className="mt-2 rounded bg-orange-50 px-3 py-2 text-xs text-[#c2410c]">
+          A barra não se move: o microfone em uso não está captando sua voz. Troque o dispositivo de
+          entrada nas configurações de som do computador — o reconhecimento de voz usa sempre o
+          microfone padrão do sistema.
+        </p>
+      )}
 
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-[#94A0BD]">
