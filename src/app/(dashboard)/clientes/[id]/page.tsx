@@ -5,6 +5,7 @@ import type { Client, ClientAccount } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
 import { getOrdersSummary } from "@/lib/orders-summary";
+import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
 import { ChangesActivityCard } from "@/components/changes-activity-card";
 import { DateRangePicker } from "@/components/date-range-picker";
@@ -48,7 +49,7 @@ export default async function ClienteDashboardPage({
 
   if (!client) return null;
 
-  const { revenue, previousRevenue, orders, previousOrders, platformRows } = sales;
+  const { revenue, previousRevenue, orders, previousOrders, chartData, platformRows } = sales;
 
   return (
     <div className="flex flex-col gap-5">
@@ -89,6 +90,11 @@ export default async function ClienteDashboardPage({
             trend={0}
             icon="users"
           />
+        </div>
+
+        <div className="mb-5 rounded-lg bg-white p-6 shadow-sm">
+          <h3 className="mb-4 font-bold text-navy">Faturamento por dia</h3>
+          <AreaChart data={chartData} />
         </div>
 
         <div className="overflow-hidden rounded-lg bg-white shadow-sm">
