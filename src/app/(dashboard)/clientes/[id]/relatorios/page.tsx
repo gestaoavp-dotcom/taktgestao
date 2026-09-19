@@ -1,24 +1,14 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { ReportExportButton } from "@/components/report-export-button";
+import type { Client } from "@/lib/types";
+import { buildMonthlyReport, REPORT_SECTIONS, type ReportSection } from "@/lib/report";
+import { ReportOptions } from "@/components/report-options";
+import { MonthlyReportView } from "@/components/monthly-report";
 
-const PERIODS = [30, 60, 90];
+const ALL_SECTIONS = REPORT_SECTIONS.map((s) => s.value);
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
-
-function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
-}
-
-function formatDate(date: string) {
-  const [y, m, d] = date.split("-");
-  return `${d}/${m}/${y}`;
+function currentMonth() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
 export default async function ClienteRelatoriosPage({
@@ -26,126 +16,66 @@ export default async function ClienteRelatoriosPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ dias?: string }>;
+  searchParams: Promise<{ mes?: string; plataforma?: string; secoes?: string; gerar?: string }>;
 }) {
   const { id } = await params;
-  const { dias } = await searchParams;
-  const days = PERIODS.includes(Number(dias)) ? Number(dias) : 30;
-
+  const { mes, plataforma, secoes, gerar } = await searchParams;
   const supabase = await createClient();
 
-  const today = new Date();
-  const start = new Date(today);
-  start.setDate(start.getDate() - (days - 1));
+  const [{ data: client }, { data: months }] = await Promise.all([
+    supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+    supabase
+      .from("sales_reports")
+      .select("report_month")
+      .eq("client_id", id)
+      .not("report_month", "is", null)
+      .order("report_month", { ascending: false })
+      .returns<{ report_month: string }[]>(),
+  ]);
 
-  const { data: sales } = await supabase
-    .from("sales_daily")
-    .select("date, revenue, orders_count, platform")
-    .eq("client_id", id)
-    .gte("date", toISODate(start))
-    .lte("date", toISODate(today))
-    .order("date");
+  if (!client) return null;
 
-  const rows = sales ?? [];
-  const totalRevenue = rows.reduce((sum, s) => sum + Number(s.revenue), 0);
-  const totalOrders = rows.reduce((sum, s) => sum + s.orders_count, 0);
-  const ticket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-  const byPlatform = new Map<string, { revenue: number; orders: number }>();
-  for (const s of rows) {
-    const entry = byPlatform.get(s.platform) ?? { revenue: 0, orders: 0 };
-    entry.revenue += Number(s.revenue);
-    entry.orders += s.orders_count;
-    byPlatform.set(s.platform, entry);
-  }
-  const platformRows = Array.from(byPlatform.entries()).sort(
-    (a, b) => b[1].revenue - a[1].revenue,
+  const availableMonths = Array.from(new Set((months ?? []).map((m) => m.report_month)));
+  const month = mes ?? availableMonths[0] ?? currentMonth();
+  const marketplace = plataforma ?? "all";
+  const sections = (secoes ? (secoes.split(",") as ReportSection[]) : ALL_SECTIONS).filter((s) =>
+    ALL_SECTIONS.includes(s),
   );
 
-  const exportRows = rows.map((s) => ({
-    Data: formatDate(s.date),
-    Marketplace: MARKETPLACE_LABEL[s.platform] ?? s.platform,
-    Faturamento: Number(s.revenue).toFixed(2).replace(".", ","),
-    Pedidos: s.orders_count,
-  }));
+  const generated = gerar === "1";
+  const report = generated
+    ? await buildMonthlyReport(supabase, id, {
+        month,
+        marketplace: marketplace === "all" ? undefined : marketplace,
+        sections,
+      })
+    : null;
 
   return (
     <div>
-      <div className="mb-5 flex items-center justify-between">
-        <nav className="flex gap-1 rounded-lg bg-white p-1 shadow-sm">
-          {PERIODS.map((period) => (
-            <Link
-              key={period}
-              href={`/clientes/${id}/relatorios?dias=${period}`}
-              className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
-                days === period
-                  ? "bg-navy text-white"
-                  : "text-[#5B647E] hover:bg-brand-gray"
-              }`}
-            >
-              {period} dias
-            </Link>
-          ))}
-        </nav>
+      <ReportOptions
+        month={month}
+        marketplace={marketplace}
+        sections={sections}
+        availableMonths={availableMonths}
+        clientMarketplaces={client.marketplaces}
+        generated={generated}
+      />
 
-        <ReportExportButton
-          rows={exportRows}
-          filename={`relatorio-${days}-dias-${toISODate(today)}.csv`}
-        />
-      </div>
-
-      <div className="mb-5 grid grid-cols-3 gap-5">
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Faturamento no período</p>
-          <p className="text-2xl font-bold text-navy">{formatCurrency(totalRevenue)}</p>
-        </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Pedidos</p>
-          <p className="text-2xl font-bold text-navy">{totalOrders}</p>
-        </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Ticket médio</p>
-          <p className="text-2xl font-bold text-navy">{formatCurrency(ticket)}</p>
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <div className="border-b border-navy/[.08] px-5 py-4">
-          <h2 className="font-bold text-navy">Resumo por marketplace</h2>
-        </div>
-        {platformRows.length > 0 ? (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-brand-gray">
-              <tr>
-                <th className="px-5 py-2 font-semibold text-navy">Marketplace</th>
-                <th className="px-5 py-2 font-semibold text-navy">Faturamento</th>
-                <th className="px-5 py-2 font-semibold text-navy">Pedidos</th>
-                <th className="px-5 py-2 font-semibold text-navy">Participação</th>
-              </tr>
-            </thead>
-            <tbody>
-              {platformRows.map(([platform, data]) => (
-                <tr key={platform} className="border-t border-navy/[.06]">
-                  <td className="px-5 py-2.5 text-navy">
-                    {MARKETPLACE_LABEL[platform] ?? platform}
-                  </td>
-                  <td className="px-5 py-2.5 text-navy">{formatCurrency(data.revenue)}</td>
-                  <td className="px-5 py-2.5 text-[#5B647E]">{data.orders}</td>
-                  <td className="px-5 py-2.5 text-[#5B647E]">
-                    {totalRevenue > 0
-                      ? `${((data.revenue / totalRevenue) * 100).toFixed(1)}%`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="px-5 py-8 text-center text-sm text-[#94A0BD]">
-            Sem vendas importadas neste período.
+      {report ? (
+        <MonthlyReportView report={report} clientName={client.name} />
+      ) : (
+        <div className="rounded-lg bg-white py-16 text-center shadow-sm">
+          <p className="text-sm text-[#5B647E]">
+            Escolha o mês e a plataforma acima e clique em &quot;Gerar relatório&quot;.
           </p>
-        )}
-      </div>
+          {!availableMonths.length && (
+            <p className="mt-2 text-xs text-[#94A0BD]">
+              Nenhum documento importado ainda — comece por Dados → Importar documentos.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
