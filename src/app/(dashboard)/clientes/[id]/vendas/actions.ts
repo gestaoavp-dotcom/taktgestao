@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
+import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
 import type { SalesReportKind } from "@/lib/types";
 
 type ActionState = { ok: true } | { error: string } | null;
@@ -94,6 +95,39 @@ export async function importSalesOrders(input: {
 
   revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
   revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
+  return { ok: true };
+}
+
+export async function importSalesAds(input: {
+  clientId: string;
+  reportId: string;
+  marketplace: string;
+  reportMonth: string;
+  ads: ParsedShopeeAd[];
+}): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const rows = input.ads.map((a) => ({
+    client_id: input.clientId,
+    sales_report_id: input.reportId,
+    marketplace: input.marketplace,
+    report_month: input.reportMonth,
+    ...a,
+  }));
+
+  if (rows.length) {
+    const { error } = await supabase.from("sales_ads").insert(rows);
+    if (error) return { error: error.message };
+  }
+
+  const { error: statusError } = await supabase
+    .from("sales_reports")
+    .update({ status: "processado" })
+    .eq("id", input.reportId);
+  if (statusError) return { error: statusError.message };
+
+  revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
+  revalidatePath(`/clientes/${input.clientId}/vendas/ads`);
   return { ok: true };
 }
 

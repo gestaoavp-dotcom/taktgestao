@@ -114,6 +114,34 @@ export type SalesOrder = {
   created_at: string;
 };
 
+export type SalesAd = {
+  id: string;
+  client_id: string;
+  sales_report_id: string;
+  marketplace: string;
+  report_month: string;
+  ad_name: string;
+  status: string | null;
+  ad_type: string | null;
+  bid_method: string | null;
+  placement: string | null;
+  product_id: string | null;
+  started_on: string | null;
+  ended_on: string | null;
+  impressions: number;
+  clicks: number;
+  add_to_cart: number;
+  conversions: number;
+  direct_conversions: number;
+  items_sold: number;
+  direct_items_sold: number;
+  gmv: number;
+  direct_revenue: number;
+  expense: number;
+  raw: Record<string, unknown> | null;
+  created_at: string;
+};
+
 export type ClientLink = {
   id: string;
   client_id: string;

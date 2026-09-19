@@ -6,10 +6,12 @@ import type { SalesReport, SalesReportKind } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { createClient } from "@/lib/supabase/client";
 import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
+import { parseShopeeAds, stripAdsPreamble } from "@/lib/parsers/shopee-ads";
 import {
   deleteSalesReport,
   deleteSalesReportById,
   getSalesReportUrl,
+  importSalesAds,
   importSalesOrders,
   markSalesReportError,
   registerSalesReport,
@@ -52,8 +54,11 @@ const MONTHS = [
   "Dezembro",
 ];
 
-const PARSERS: Record<string, (rows: Record<string, unknown>[]) => ReturnType<typeof parseShopeeOrders>> = {
-  shopee: parseShopeeOrders,
+/** Marketplaces whose report we know how to read, per kind of report. */
+const READABLE: Record<SalesReportKind, string[]> = {
+  pedidos: ["shopee"],
+  ads: ["shopee"],
+  trafego: [],
 };
 
 function formatSize(bytes: number | null) {
@@ -149,27 +154,44 @@ export function SalesReportsCard({
       return;
     }
 
-    const parser = reportKind === "pedidos" ? PARSERS[reportMarketplace] : undefined;
-    if (parser) {
+    if (READABLE[reportKind].includes(reportMarketplace)) {
       try {
         const XLSX = await import("xlsx");
-        const buffer = await file.arrayBuffer();
-        const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
-        const orders = parser(rows);
 
-        const result = await importSalesOrders({
-          clientId,
-          reportId: registered.id,
-          marketplace: reportMarketplace,
-          reportMonth,
-          orders,
-        });
-        if (result && "error" in result) setError(result.error);
+        if (reportKind === "ads") {
+          // The ads export is a CSV with a preamble, and its day-first dates
+          // must not be reinterpreted, hence raw.
+          const text = stripAdsPreamble(await file.text());
+          const workbook = XLSX.read(text, { type: "string", raw: true });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { raw: true });
+
+          const result = await importSalesAds({
+            clientId,
+            reportId: registered.id,
+            marketplace: reportMarketplace,
+            reportMonth,
+            ads: parseShopeeAds(rows),
+          });
+          if (result && "error" in result) setError(result.error);
+        } else {
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+          const result = await importSalesOrders({
+            clientId,
+            reportId: registered.id,
+            marketplace: reportMarketplace,
+            reportMonth,
+            orders: parseShopeeOrders(rows),
+          });
+          if (result && "error" in result) setError(result.error);
+        }
       } catch {
         await markSalesReportError(registered.id, clientId);
-        setError("Não consegui ler o conteúdo do arquivo. Ele foi salvo, mas sem os pedidos.");
+        setError("Não consegui ler o conteúdo do arquivo. Ele foi salvo, mas sem os dados.");
       }
     }
 
@@ -198,7 +220,7 @@ export function SalesReportsCard({
     else setError("Não consegui gerar o link do arquivo.");
   }
 
-  const hasParser = kind === "pedidos" && Boolean(PARSERS[marketplace]);
+  const hasParser = READABLE[kind].includes(marketplace);
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -224,7 +246,7 @@ export function SalesReportsCard({
       <p className="mb-4 text-xs text-[#94A0BD]">
         {KINDS.find((k) => k.value === kind)?.hint}
         {hasParser
-          ? " — os pedidos são lidos automaticamente e aparecem na aba Pedidos."
+          ? ` — os dados são lidos automaticamente e aparecem na aba ${kind === "ads" ? "Ads" : "Pedidos"}.`
           : " — a leitura automática desse tipo ainda não está pronta: o arquivo fica salvo, mas os dados não são extraídos."}
       </p>
 
