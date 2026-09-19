@@ -4,19 +4,41 @@ import { useActionState, useEffect, useState } from "react";
 import { Folder, Phone, Plus, Search, Store, Trash2, X } from "lucide-react";
 import type { Client } from "@/lib/types";
 import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { createClientRecord, deleteClientRecord } from "@/app/(dashboard)/clientes/actions";
+import {
+  createClientRecord,
+  deleteClientRecord,
+  type CreateClientState,
+} from "@/app/(dashboard)/clientes/actions";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
+function formatPhone(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (!digits) return "";
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+}
+
 export function ClientsView({ clients }: { clients: Client[] }) {
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [state, formAction, pending] = useActionState(createClientRecord, null);
-
-  useEffect(() => {
-    if (state && "ok" in state) setModalOpen(false);
-  }, [state]);
+  const [phone, setPhone] = useState("");
+  const [state, formAction, pending] = useActionState(
+    async (prevState: CreateClientState, formData: FormData) => {
+      const result = await createClientRecord(prevState, formData);
+      if (result && "ok" in result) {
+        setModalOpen(false);
+        setPhone("");
+      }
+      return result;
+    },
+    null,
+  );
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -60,7 +82,10 @@ export function ClientsView({ clients }: { clients: Client[] }) {
 
           <button
             type="button"
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setPhone("");
+              setModalOpen(true);
+            }}
             className="flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
           >
             <Plus className="h-4 w-4" />
@@ -212,6 +237,10 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 <input
                   id="contact_phone"
                   name="contact_phone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={phone}
+                  onChange={(e) => setPhone(formatPhone(e.target.value))}
                   placeholder="(11) 90000-0000"
                   className={INPUT_CLASS}
                 />
