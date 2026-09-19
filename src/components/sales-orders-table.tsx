@@ -328,6 +328,9 @@ export function SalesOrdersTable({
     return map;
   });
   const [costByOrder, setCostByOrder] = useState<Record<string, string>>({});
+  const [costs, setCosts] = useState<"all" | "missing" | "filled">("all");
+  /** Rows rendered at once — the totals always cover the whole filter. */
+  const [limit, setLimit] = useState(300);
 
   // One tax rate for the whole client.
   const [tax, setTax] = useState(() => {
@@ -343,11 +346,24 @@ export function SalesOrdersTable({
     else setCostByOrder((prev) => ({ ...prev, [o.id]: value }));
   };
 
+  // Reads the stored cost, never the field being typed into: filtering on the
+  // live value would pull the row out from under the cursor at the first digit.
+  const missingCost = (o: SalesOrder) => !isOrderVoided(o) && o.cost == null;
+
   const filtered = orders.filter(
     (o) =>
       (marketplace === "all" || o.marketplace === marketplace) &&
-      (month === "all" || o.report_month === month),
+      (month === "all" || o.report_month === month) &&
+      (costs === "all" || (costs === "missing") === missingCost(o)),
   );
+
+  // A cost belongs to a SKU, not to an order: filling one order fills every
+  // order of that product, so what is left to do is counted in SKUs.
+  const pending = orders.filter(missingCost);
+  const pendingSkus = new Set(pending.map((o) => o.sku).filter(Boolean));
+  const pendingLoose = pending.filter((o) => !o.sku).length;
+
+  const shown = filtered.slice(0, limit);
 
   const totals = filtered.reduce(
     (acc, o) => {
@@ -372,7 +388,10 @@ export function SalesOrdersTable({
         <div className="flex flex-wrap gap-2">
           <select
             value={marketplace}
-            onChange={(e) => setMarketplace(e.target.value)}
+            onChange={(e) => {
+              setMarketplace(e.target.value);
+              setLimit(300);
+            }}
             className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
           >
             <option value="all">Todos os marketplaces</option>
@@ -383,8 +402,23 @@ export function SalesOrdersTable({
             ))}
           </select>
           <select
+            value={costs}
+            onChange={(e) => {
+              setCosts(e.target.value as typeof costs);
+              setLimit(300);
+            }}
+            className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          >
+            <option value="all">Todos os custos</option>
+            <option value="missing">Falta preencher o custo</option>
+            <option value="filled">Custo já preenchido</option>
+          </select>
+          <select
             value={month}
-            onChange={(e) => setMonth(e.target.value)}
+            onChange={(e) => {
+              setMonth(e.target.value);
+              setLimit(300);
+            }}
             className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
           >
             <option value="all">Todos os meses</option>
@@ -428,6 +462,27 @@ export function SalesOrdersTable({
         </div>
       </div>
 
+      {pending.length > 0 && costs !== "filled" && (
+        <p className="mb-4 rounded-lg bg-yellow/10 px-4 py-2.5 text-xs text-[#5B647E]">
+          <button
+            type="button"
+            onClick={() => {
+              setCosts("missing");
+              setLimit(300);
+            }}
+            className="font-bold text-navy underline-offset-2 hover:underline"
+          >
+            {pendingSkus.size > 0 &&
+              `${pendingSkus.size} ${pendingSkus.size === 1 ? "SKU" : "SKUs"} sem custo`}
+            {pendingSkus.size > 0 && pendingLoose > 0 && " e "}
+            {pendingLoose > 0 &&
+              `${pendingLoose} ${pendingLoose === 1 ? "pedido sem SKU" : "pedidos sem SKU"}`}
+          </button>{" "}
+          — em {pending.length} {pending.length === 1 ? "pedido" : "pedidos"}. Preenchendo o custo em
+          um pedido de cada SKU, o valor cola em todos os outros daquele produto.
+        </p>
+      )}
+
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
         <table className="w-full min-w-[1250px] text-left text-sm">
           <thead className="bg-brand-gray">
@@ -446,7 +501,7 @@ export function SalesOrdersTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((order) => (
+            {shown.map((order) => (
               <OrderRow
                 key={order.id}
                 clientId={clientId}
@@ -458,6 +513,19 @@ export function SalesOrdersTable({
                 share={shares.get(order.id) ?? 1}
               />
             ))}
+            {shown.length < filtered.length && (
+              <tr>
+                <td colSpan={11} className="px-5 py-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setLimit((n) => n + 500)}
+                    className="rounded-lg border border-navy/10 px-4 py-2 text-xs font-semibold text-navy transition-colors hover:bg-brand-gray"
+                  >
+                    Ver mais 500 — mostrando {shown.length} de {filtered.length}
+                  </button>
+                </td>
+              </tr>
+            )}
             {!filtered.length && (
               <tr>
                 <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
