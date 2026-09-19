@@ -27,6 +27,16 @@ export type DayAction = {
   sameDay: boolean;
 };
 
+export type ReportAction = {
+  date: string;
+  description: string;
+  category: string | null;
+  status: string;
+  owner: string | null;
+  reason: string | null;
+  goal: string | null;
+};
+
 export type DayDetail = {
   date: string;
   revenue: number;
@@ -95,7 +105,10 @@ export type MonthlyReport = {
     total: number;
     byCategory: { category: string; count: number }[];
     byStatus: { status: string; count: number }[];
-    pending: { description: string; owner: string | null; status: string }[];
+    byOwner: { owner: string; count: number }[];
+    /** Every action of the month, oldest first — the work log the client sees. */
+    items: ReportAction[];
+    pending: ReportAction[];
   };
   notes: ReportNote[];
 };
@@ -388,7 +401,7 @@ export async function buildMonthlyReport(
   const lookback = addDays(start, -2);
   let changeQuery = supabase
     .from("client_changes")
-    .select("changed_on, description, category, status, owner, marketplace")
+    .select("changed_on, description, category, status, owner, marketplace, reason, goal")
     .eq("client_id", clientId)
     .gte("changed_on", lookback)
     .lte("changed_on", end);
@@ -402,6 +415,8 @@ export async function buildMonthlyReport(
       status: string;
       owner: string | null;
       marketplace: string | null;
+      reason: string | null;
+      goal: string | null;
     }[]
   >();
 
@@ -411,6 +426,8 @@ export async function buildMonthlyReport(
     total: 0,
     byCategory: [],
     byStatus: [],
+    byOwner: [],
+    items: [],
     pending: [],
   };
   if (sections.includes("controle")) {
@@ -426,13 +443,38 @@ export async function buildMonthlyReport(
         .map(([k, count]) => ({ [key]: k, count }))
         .sort((a, b) => b.count - a.count);
 
+    const items: ReportAction[] = (rows ?? [])
+      .map((r) => ({
+        date: r.changed_on,
+        description: r.description,
+        category: r.category,
+        status: r.status,
+        owner: r.owner,
+        reason: r.reason,
+        goal: r.goal,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    // Owners are typed by hand ("Léo", "léo", "LÉO"), so group case-insensitively
+    // and show the spelling used most often.
+    const owners = new Map<string, { label: string; count: number }>();
+    for (const item of items) {
+      if (!item.owner) continue;
+      const key = item.owner.trim().toLowerCase();
+      const entry = owners.get(key) ?? { label: item.owner.trim(), count: 0 };
+      entry.count += 1;
+      owners.set(key, entry);
+    }
+
     changes = {
-      total: rows?.length ?? 0,
+      total: items.length,
       byCategory: tally("category") as { category: string; count: number }[],
       byStatus: tally("status") as { status: string; count: number }[],
-      pending: (rows ?? [])
-        .filter((r) => r.status !== "concluida")
-        .map((r) => ({ description: r.description, owner: r.owner, status: r.status })),
+      byOwner: Array.from(owners.values())
+        .map((o) => ({ owner: o.label, count: o.count }))
+        .sort((a, b) => b.count - a.count),
+      items,
+      pending: items.filter((r) => r.status !== "concluida"),
     };
   }
 

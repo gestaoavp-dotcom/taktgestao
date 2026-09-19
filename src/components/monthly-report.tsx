@@ -2,7 +2,12 @@ import { AlertTriangle, TrendingUp } from "lucide-react";
 import type { DayDetail, MonthlyReport } from "@/lib/report";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
-import { CHANGE_CATEGORY_LABEL, CHANGE_STATUS_LABEL } from "@/lib/client-changes";
+import {
+  CHANGE_CATEGORY_LABEL,
+  CHANGE_STATUS_BADGE,
+  CHANGE_STATUS_LABEL,
+} from "@/lib/client-changes";
+import type { ClientChangeStatus } from "@/lib/types";
 
 function pct(value: number) {
   return `${value.toFixed(2).replace(".", ",")}%`;
@@ -361,55 +366,92 @@ export function MonthlyReportView({
 
       {changes.total > 0 && (
         <Section title="Ações do mês">
-          <div className="flex flex-wrap gap-6">
+          <div className="mb-5 flex flex-wrap items-center gap-x-8 gap-y-4">
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+              <p className="font-display text-3xl font-bold text-navy">{changes.total}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+                {changes.total === 1 ? "ação realizada" : "ações realizadas"}
+              </p>
+            </div>
+
+            {changes.byOwner.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+                  Responsáveis
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {changes.byOwner.map((o) => (
+                    <span
+                      key={o.owner}
+                      className="rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white"
+                    >
+                      {o.owner} · {o.count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
                 Por categoria
               </p>
-              <ul className="flex flex-col gap-1 text-sm text-[#5B647E]">
+              <div className="flex flex-wrap gap-1.5">
                 {changes.byCategory.map((c) => (
-                  <li key={c.category}>
-                    {CHANGE_CATEGORY_LABEL[c.category] ?? c.category}:{" "}
-                    <strong className="text-navy">{c.count}</strong>
-                  </li>
+                  <span
+                    key={c.category}
+                    className="rounded-full bg-brand-gray px-2.5 py-1 text-xs font-semibold text-navy"
+                  >
+                    {CHANGE_CATEGORY_LABEL[c.category] ?? c.category} · {c.count}
+                  </span>
                 ))}
-              </ul>
-            </div>
-            <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
-                Por status
-              </p>
-              <ul className="flex flex-col gap-1 text-sm text-[#5B647E]">
-                {changes.byStatus.map((s) => (
-                  <li key={s.status}>
-                    {CHANGE_STATUS_LABEL[s.status] ?? s.status}:{" "}
-                    <strong className="text-navy">{s.count}</strong>
-                  </li>
-                ))}
-              </ul>
+              </div>
             </div>
           </div>
 
-          {changes.pending.length > 0 && (
-            <div className="mt-5">
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
-                Em aberto
-              </p>
-              <ul className="flex flex-col gap-1 text-sm text-[#5B647E]">
-                {changes.pending.map((p, i) => (
-                  <li key={i}>
-                    {p.description}
-                    {p.owner ? ` — ${p.owner}` : ""}{" "}
-                    <span className="text-[#94A0BD]">
-                      ({CHANGE_STATUS_LABEL[p.status] ?? p.status})
+          <div className="flex flex-col">
+            {changes.items.map((item, i, all) => {
+              const newDay = i === 0 || all[i - 1].date !== item.date;
+              return (
+                <div key={i} className="break-inside-avoid">
+                  {newDay && (
+                    <p className="mt-4 border-b border-navy/[.08] pb-1 font-display text-sm font-bold text-navy first:mt-0">
+                      {fmtDay(item.date)}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 py-2">
+                    {item.category && (
+                      <span className="rounded bg-blue/10 px-1.5 py-0.5 text-[10px] font-bold text-blue">
+                        {CHANGE_CATEGORY_LABEL[item.category] ?? item.category}
+                      </span>
+                    )}
+                    <span className="flex-1 text-sm text-navy">{item.description}</span>
+                    {item.owner && (
+                      <span className="text-xs font-semibold text-[#5B647E]">{item.owner}</span>
+                    )}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                        CHANGE_STATUS_BADGE[item.status as ClientChangeStatus] ??
+                        "bg-brand-gray text-navy"
+                      }`}
+                    >
+                      {CHANGE_STATUS_LABEL[item.status] ?? item.status}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                  </div>
+                  {(item.reason || item.goal) && (
+                    <p className="-mt-1 pb-2 pl-1 text-xs text-[#94A0BD]">
+                      {item.reason && <>Motivo: {item.reason}</>}
+                      {item.reason && item.goal && " · "}
+                      {item.goal && <>Esperado: {item.goal}</>}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </Section>
       )}
+
     </div>
   );
 }
