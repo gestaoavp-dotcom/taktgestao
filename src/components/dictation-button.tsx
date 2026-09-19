@@ -30,6 +30,13 @@ type SpeechRecognitionLike = {
   onend: (() => void) | null;
 };
 
+const MESSAGES: Record<string, string> = {
+  "not-allowed": "O navegador bloqueou o microfone. Libere o acesso no cadeado da barra de endereço.",
+  "service-not-allowed": "O navegador bloqueou o serviço de reconhecimento de voz.",
+  "audio-capture": "Nenhum microfone encontrado. Verifique se há um conectado e selecionado.",
+  network: "O reconhecimento de voz precisa de internet e a conexão falhou.",
+};
+
 function createRecognition(): SpeechRecognitionLike | null {
   if (typeof window === "undefined") return null;
   const Ctor =
@@ -85,13 +92,11 @@ export function DictationButton({
     };
 
     recognition.onerror = (event) => {
-      // "no-speech" and "aborted" just mean a quiet stretch; keep listening.
+      // A quiet stretch is not a failure — the session is picked back up in
+      // onend, so keep listening.
       if (event.error === "no-speech" || event.error === "aborted") return;
-      setError(
-        event.error === "not-allowed"
-          ? "Preciso de permissão para usar o microfone."
-          : "Não consegui captar o áudio. Tente de novo.",
-      );
+
+      setError(MESSAGES[event.error] ?? `Falha no reconhecimento de voz (${event.error}).`);
       stoppingRef.current = true;
       setListening(false);
     };
@@ -108,8 +113,16 @@ export function DictationButton({
       }
       setListening(false);
       setInterimText("");
+
       const spoken = finalRef.current.trim();
-      if (spoken) onParsed(parseDictation(spoken, channels), spoken);
+      if (spoken) {
+        onParsed(parseDictation(spoken, channels), spoken);
+      } else {
+        // Silence looks identical to a broken microphone unless we say so.
+        setError(
+          "Não captei nenhuma palavra. Verifique se o microfone certo está selecionado no navegador e fale mais perto.",
+        );
+      }
     };
   }
 
@@ -128,7 +141,13 @@ export function DictationButton({
 
     attach(recognition);
     recognitionRef.current = recognition;
-    recognition.start();
+
+    try {
+      recognition.start();
+    } catch (e) {
+      setError(`Não consegui iniciar a gravação: ${(e as Error).message}`);
+      return;
+    }
     setListening(true);
   }
 
