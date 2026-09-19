@@ -30,7 +30,13 @@ const PAD_RIGHT = 16;
 const PAD_TOP = 24;
 const PAD_BOTTOM = 32;
 
-export function AreaChart({ data }: { data: { date: string; value: number }[] }) {
+export function AreaChart({
+  data,
+  valueFormatter = formatCurrency,
+}: {
+  data: { date: string; value: number }[];
+  valueFormatter?: (value: number) => string;
+}) {
   const [hover, setHover] = useState<number | null>(null);
 
   const max = niceMax(Math.max(...data.map((d) => d.value)));
@@ -74,7 +80,7 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
                 strokeWidth={1}
               />
               <text x={PAD_LEFT - 10} y={y} textAnchor="end" dy="3" fontSize="11" fill="#94A0BD">
-                {formatCurrency(max * g)}
+                {valueFormatter(max * g)}
               </text>
             </g>
           );
@@ -137,7 +143,7 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
           }}
         >
           <div className="text-white/70">{formatDateShort(points[hover].date)}</div>
-          <div className="font-display">{formatCurrency(points[hover].value)}</div>
+          <div className="font-display">{valueFormatter(points[hover].value)}</div>
         </div>
       )}
     </div>
