@@ -46,12 +46,26 @@ export async function importSalesOrders(input: {
 }): Promise<ActionState> {
   const supabase = await createClient();
 
+  // A SKU's cost doesn't change month to month: carry over what the team
+  // already filled in so a new import doesn't start from scratch.
+  const skus = [...new Set(input.orders.map((o) => o.sku).filter((s): s is string => !!s))];
+  const { data: known } = await supabase
+    .from("sales_orders")
+    .select("sku, cost")
+    .eq("client_id", input.clientId)
+    .in("sku", skus)
+    .not("cost", "is", null)
+    .returns<{ sku: string; cost: number }[]>();
+
+  const costBySku = new Map((known ?? []).map((k) => [k.sku, k.cost]));
+
   const rows = input.orders.map((o) => ({
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
     report_month: input.reportMonth,
     ...o,
+    cost: o.sku ? costBySku.get(o.sku) ?? null : null,
   }));
 
   if (rows.length) {
@@ -123,16 +137,33 @@ export async function updateOrderCosts(
     return Number.isFinite(n) ? n : null;
   }
 
-  const { error } = await supabase
+  const cost = toNumberOrNull(formData.get("cost"));
+
+  const { data: updated, error } = await supabase
     .from("sales_orders")
     .update({
-      cost: toNumberOrNull(formData.get("cost")),
+      cost,
       extra_costs: toNumberOrNull(formData.get("extra_costs")),
       tax_percent: toNumberOrNull(formData.get("tax_percent")),
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("sku")
+    .single();
 
   if (error) return { error: error.message };
+
+  // The cost belongs to the SKU, not to one order: fill in every other order
+  // of the same product so the team types it once.
+  if (updated?.sku) {
+    const { error: spreadError } = await supabase
+      .from("sales_orders")
+      .update({ cost })
+      .eq("client_id", clientId)
+      .eq("sku", updated.sku)
+      .neq("id", id);
+
+    if (spreadError) return { error: spreadError.message };
+  }
 
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
   return { ok: true };

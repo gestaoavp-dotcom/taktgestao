@@ -149,9 +149,18 @@ function OrderBreakdown({ order }: { order: SalesOrder }) {
   );
 }
 
-function OrderRow({ clientId, order }: { clientId: string; order: SalesOrder }) {
+function OrderRow({
+  clientId,
+  order,
+  cost,
+  onCostChange,
+}: {
+  clientId: string;
+  order: SalesOrder;
+  cost: string;
+  onCostChange: (value: string) => void;
+}) {
   const [expanded, setExpanded] = useState(false);
-  const [cost, setCost] = useState(order.cost != null ? String(order.cost) : "");
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
   const [tax, setTax] = useState(order.tax_percent != null ? String(order.tax_percent) : "");
   const [, formAction] = useActionState(updateOrderCosts, null);
@@ -230,9 +239,12 @@ function OrderRow({ clientId, order }: { clientId: string; order: SalesOrder }) 
             <input
               name="cost"
               value={cost}
-              onChange={(e) => setCost(e.target.value)}
+              onChange={(e) => onCostChange(e.target.value)}
               placeholder="Custo"
               inputMode="decimal"
+              title={
+                order.sku ? `Custo do SKU ${order.sku} — vale para todos os pedidos dele` : undefined
+              }
               className={CELL_INPUT_CLASS}
             />
             <input
@@ -289,6 +301,25 @@ export function SalesOrdersTable({
   );
   const [month, setMonth] = useState<string>("all");
 
+  // One cost per SKU: typing it on any order shows up on every order of that
+  // product right away, while the server does the same to the stored rows.
+  const [costBySku, setCostBySku] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const o of orders) {
+      if (o.sku && o.cost != null) map[o.sku] = String(o.cost);
+    }
+    return map;
+  });
+  const [costByOrder, setCostByOrder] = useState<Record<string, string>>({});
+
+  const costOf = (o: SalesOrder) =>
+    (o.sku ? costBySku[o.sku] : costByOrder[o.id]) ?? (o.cost != null ? String(o.cost) : "");
+
+  const setCostOf = (o: SalesOrder, value: string) => {
+    if (o.sku) setCostBySku((prev) => ({ ...prev, [o.sku as string]: value }));
+    else setCostByOrder((prev) => ({ ...prev, [o.id]: value }));
+  };
+
   const filtered = orders.filter(
     (o) =>
       (marketplace === "all" || o.marketplace === marketplace) &&
@@ -300,7 +331,7 @@ export function SalesOrdersTable({
       const net = netOf(o);
       acc.sold += o.subtotal;
       acc.net += net;
-      acc.cost += o.cost ?? 0;
+      acc.cost += parseFloat(costOf(o).replace(",", ".")) || 0;
       acc.extra += o.extra_costs ?? 0;
       acc.tax += (net * (o.tax_percent ?? 0)) / 100;
       return acc;
@@ -390,7 +421,13 @@ export function SalesOrdersTable({
           </thead>
           <tbody>
             {filtered.map((order) => (
-              <OrderRow key={order.id} clientId={clientId} order={order} />
+              <OrderRow
+                key={order.id}
+                clientId={clientId}
+                order={order}
+                cost={costOf(order)}
+                onCostChange={(value) => setCostOf(order, value)}
+              />
             ))}
             {!filtered.length && (
               <tr>
