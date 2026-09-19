@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { segment: "", label: "Dashboard" },
-  { segment: "informacoes", label: "Informações" },
   { segment: "vendas", label: "Dados" },
   { segment: "controle", label: "Controle" },
   { segment: "links", label: "Links" },
   { segment: "relatorios", label: "Relatórios" },
+  { segment: "informacoes", label: "Informações" },
 ];
 
 export function ClientTabs({ clientId }: { clientId: string }) {

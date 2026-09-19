@@ -3,7 +3,8 @@
 import { useActionState, useRef, useState } from "react";
 import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import type { ClientAccount } from "@/lib/types";
-import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { MARKETPLACES } from "@/lib/marketplaces";
+import { MarketplaceBadge } from "@/components/marketplace-badge";
 import { addAccount, deleteAccount, updateAccount } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
@@ -93,6 +94,31 @@ export function ClientAccountsCard({
   const cnpjRef = useRef<HTMLInputElement>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  // One line per CNPJ: the same company often sells on several marketplaces,
+  // and what matters here is how many registrations exist and where each one
+  // operates. Accounts without a CNPJ are grouped by store instead.
+  const groups = Array.from(
+    accounts.reduce((map, account) => {
+      const key = account.cnpj?.trim() || `loja:${account.store_name}`;
+      const entry = map.get(key) ?? {
+        key,
+        cnpj: account.cnpj?.trim() || null,
+        store: account.store_name,
+        marketplaces: [] as string[],
+      };
+      if (!entry.marketplaces.includes(account.marketplace)) {
+        entry.marketplaces.push(account.marketplace);
+      }
+      return map.set(key, entry);
+    }, new Map<string, { key: string; cnpj: string | null; store: string; marketplaces: string[] }>()),
+  ).map(([, group]) => ({
+    ...group,
+    marketplaces: group.marketplaces.sort(
+      (a, b) =>
+        MARKETPLACES.findIndex((m) => m.value === a) - MARKETPLACES.findIndex((m) => m.value === b),
+    ),
+  }));
+
   const [state, formAction, pending] = useActionState(
     async (prevState: Parameters<typeof addAccount>[0], formData: FormData) => {
       const result = await addAccount(prevState, formData);
@@ -106,11 +132,32 @@ export function ClientAccountsCard({
     <section className="rounded-lg bg-white p-5 shadow-sm">
       <h2 className="mb-1 font-bold text-navy">Contas gerenciadas</h2>
       <p className="mb-4 text-xs text-[#94A0BD]">
-        {accounts.length} {accounts.length === 1 ? "loja" : "lojas"} sob gestão
+        {accounts.length} {accounts.length === 1 ? "conta" : "contas"} em{" "}
+        {groups.length} {groups.length === 1 ? "CNPJ" : "CNPJs"}
       </p>
 
+      {groups.length > 0 && (
+        <ul className="mb-5 flex flex-col gap-2">
+          {groups.map((group) => (
+            <li key={group.key} className="rounded-lg border border-navy/[.08] px-3 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-navy">{group.store}</p>
+                  <p className="text-xs text-[#94A0BD]">{group.cnpj ?? "Sem CNPJ cadastrado"}</p>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {group.marketplaces.map((m) => (
+                    <MarketplaceBadge key={m} marketplace={m} />
+                  ))}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       {accounts.length > 0 && (
-        <ul className="mb-5 divide-y divide-navy/[.06]">
+        <ul className="mb-5 divide-y divide-navy/[.06] border-t border-navy/[.06] pt-1">
           {accounts.map((account) =>
             editingId === account.id ? (
               <li key={account.id} className="flex items-center gap-3">
@@ -122,9 +169,7 @@ export function ClientAccountsCard({
               </li>
             ) : (
               <li key={account.id} className="group flex items-center gap-3 py-2.5">
-                <span className="rounded-full bg-blue/10 px-2 py-0.5 text-[11px] font-semibold text-blue">
-                  {MARKETPLACE_LABEL[account.marketplace] ?? account.marketplace}
-                </span>
+                <MarketplaceBadge marketplace={account.marketplace} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold text-navy">{account.store_name}</p>
                   <p className="text-xs text-[#94A0BD]">{account.cnpj ?? "Sem CNPJ"}</p>

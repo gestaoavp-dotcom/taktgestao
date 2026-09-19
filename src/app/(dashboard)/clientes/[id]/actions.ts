@@ -33,6 +33,27 @@ export async function updateBilling(
   return { ok: true };
 }
 
+export async function updateContact(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      contact_email: (formData.get("contact_email") as string) || null,
+      contact_phone: (formData.get("contact_phone") as string) || null,
+    })
+    .eq("id", clientId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}/informacoes`);
+  return { ok: true };
+}
+
 export async function addAccount(
   _prevState: ActionState,
   formData: FormData,
