@@ -3,7 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Client, ClientAccount } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { getSalesSummary, lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { getOrdersSummary } from "@/lib/orders-summary";
 import { KpiCard } from "@/components/kpi-card";
 import { ChangesActivityCard } from "@/components/changes-activity-card";
 import { DateRangePicker } from "@/components/date-range-picker";
@@ -37,7 +38,7 @@ export default async function ClienteDashboardPage({
       .eq("client_id", id)
       .order("created_at")
       .returns<ClientAccount[]>(),
-    getSalesSummary(supabase, id, range),
+    getOrdersSummary(supabase, id, range),
     supabase
       .from("client_changes")
       .select("changed_on, marketplace")
@@ -47,7 +48,7 @@ export default async function ClienteDashboardPage({
 
   if (!client) return null;
 
-  const { currentRevenue, previousRevenue, currentOrders, previousOrders, platformRows } = sales;
+  const { revenue, previousRevenue, orders, previousOrders, platformRows } = sales;
 
   return (
     <div className="flex flex-col gap-5">
@@ -72,14 +73,14 @@ export default async function ClienteDashboardPage({
         <div className="mb-5 grid grid-cols-3 gap-5">
           <KpiCard
             label="Faturamento"
-            value={formatCurrency(currentRevenue)}
-            trend={trendOf(currentRevenue, previousRevenue)}
+            value={formatCurrency(revenue)}
+            trend={trendOf(revenue, previousRevenue)}
             icon="wallet"
           />
           <KpiCard
             label="Pedidos"
-            value={String(currentOrders)}
-            trend={trendOf(currentOrders, previousOrders)}
+            value={String(orders)}
+            trend={trendOf(orders, previousOrders)}
             icon="package"
           />
           <KpiCard
@@ -117,7 +118,7 @@ export default async function ClienteDashboardPage({
             </table>
           ) : (
             <p className="px-5 py-8 text-center text-sm text-[#94A0BD]">
-              Nenhuma venda importada para este cliente ainda.
+              Nenhum pedido nesse período.
             </p>
           )}
         </div>

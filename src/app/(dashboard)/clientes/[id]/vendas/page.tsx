@@ -2,50 +2,74 @@ import { createClient } from "@/lib/supabase/server";
 import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
+import { DateRangePicker } from "@/components/date-range-picker";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { getSalesSummary, lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { getOrdersSummary } from "@/lib/orders-summary";
 
-const DAYS = 30;
+const DEFAULT_DAYS = 30;
+
+function formatBR(iso: string) {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 export default async function ClienteVendasPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ de?: string; ate?: string }>;
 }) {
   const { id } = await params;
+  const { de, ate } = await searchParams;
   const supabase = await createClient();
 
+  const fallback = lastDays(DEFAULT_DAYS);
+  const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
+
   const {
-    currentRevenue,
+    revenue,
+    orders,
+    ticket,
     previousRevenue,
-    currentOrders,
     previousOrders,
-    currentTicket,
     previousTicket,
     chartData,
     platformRows,
-  } = await getSalesSummary(supabase, id, lastDays(DAYS));
+  } = await getOrdersSummary(supabase, id, range);
 
   return (
     <div>
       <VendasSubTabs clientId={id} />
+
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-bold text-navy">
+          Período{" "}
+          <span className="font-normal text-[#5B647E]">
+            ({formatBR(range.start)} a {formatBR(range.end)})
+          </span>
+        </h2>
+        <DateRangePicker start={range.start} end={range.end} />
+      </div>
+
       <div className="mb-5 grid grid-cols-3 gap-5">
         <KpiCard
-          label="Faturamento (30 dias)"
-          value={formatCurrency(currentRevenue)}
-          trend={trendOf(currentRevenue, previousRevenue)}
+          label="Faturamento"
+          value={formatCurrency(revenue)}
+          trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
         />
         <KpiCard
-          label="Pedidos (30 dias)"
-          value={String(currentOrders)}
-          trend={trendOf(currentOrders, previousOrders)}
+          label="Pedidos"
+          value={String(orders)}
+          trend={trendOf(orders, previousOrders)}
           icon="package"
         />
         <KpiCard
           label="Ticket médio"
-          value={formatCurrency(currentTicket)}
-          trend={trendOf(currentTicket, previousTicket)}
+          value={formatCurrency(ticket)}
+          trend={trendOf(ticket, previousTicket)}
           icon="receipt"
         />
       </div>
@@ -86,10 +110,15 @@ export default async function ClienteVendasPage({
           </table>
         ) : (
           <p className="px-5 py-8 text-center text-sm text-[#94A0BD]">
-            Nenhuma venda importada para este cliente ainda.
+            Nenhum pedido nesse período. Importe um documento em &quot;Importar documentos&quot;.
           </p>
         )}
       </div>
+
+      <p className="mt-3 text-xs text-[#94A0BD]">
+        Faturamento é o valor vendido aos compradores, vindo dos documentos de pedidos importados.
+        Pedidos cancelados e reembolsados ficam de fora.
+      </p>
     </div>
   );
 }
