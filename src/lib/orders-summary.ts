@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isBilledOrder } from "@/lib/parsers/order-breakdown";
 import type { DateRange } from "@/lib/sales-summary";
 
 export type OrdersSummary = {
@@ -18,6 +19,7 @@ type OrderRow = {
   marketplace: string;
   subtotal: number;
   total_value: number;
+  net_settlement: number;
 };
 
 function toISO(d: Date) {
@@ -61,7 +63,7 @@ export async function getOrdersSummary(
 
   let query = supabase
     .from("sales_orders")
-    .select("order_id, created_on, marketplace, subtotal, total_value")
+    .select("order_id, created_on, marketplace, subtotal, total_value, net_settlement")
     .gte("created_on", toISO(prevStart))
     .lte("created_on", range.end);
 
@@ -70,7 +72,7 @@ export async function getOrdersSummary(
 
   const { data } = await query.returns<OrderRow[]>();
 
-  const billed = (data ?? []).filter((r) => Number(r.total_value) > 0 && r.created_on);
+  const billed = (data ?? []).filter((r) => isBilledOrder(r) && r.created_on);
   const current = billed.filter((r) => r.created_on! >= range.start);
   const previous = billed.filter((r) => r.created_on! < range.start);
 

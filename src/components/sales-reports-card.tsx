@@ -9,6 +9,10 @@ import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
 import { parseShopeeAds, stripAdsPreamble } from "@/lib/parsers/shopee-ads";
 import { parseShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import {
+  MERCADO_LIVRE_HEADER_ROW,
+  parseMercadoLivreOrders,
+} from "@/lib/parsers/mercado-livre-orders";
+import {
   deleteSalesReport,
   deleteSalesReportById,
   getSalesReportUrl,
@@ -58,7 +62,7 @@ const MONTHS = [
 
 /** Marketplaces whose report we know how to read, per kind of report. */
 const READABLE: Record<SalesReportKind, string[]> = {
-  pedidos: ["shopee"],
+  pedidos: ["shopee", "mercado_livre"],
   ads: ["shopee"],
   trafego: ["shopee"],
 };
@@ -189,6 +193,24 @@ export function SalesReportsCard({
             marketplace: reportMarketplace,
             reportMonth,
             products: parseShopeeTraffic(rows),
+          });
+          if (result && "error" in result) setError(result.error);
+        } else if (reportMarketplace === "mercado_livre") {
+          // Mercado Livre opens the sheet with five rows of headings and links,
+          // so the header is where it actually is, not where it usually is.
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+            range: MERCADO_LIVRE_HEADER_ROW,
+          });
+
+          const result = await importSalesOrders({
+            clientId,
+            reportId: registered.id,
+            marketplace: reportMarketplace,
+            reportMonth,
+            orders: parseMercadoLivreOrders(rows),
           });
           if (result && "error" in result) setError(result.error);
         } else {

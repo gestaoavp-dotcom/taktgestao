@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isBilledOrder } from "@/lib/parsers/order-breakdown";
 
 // Assembles the monthly report from the four sources the team imports:
 // orders, ads, traffic and the change log. Every figure is computed here —
@@ -180,6 +181,7 @@ type OrderRow = {
   quantity: number;
   subtotal: number;
   total_value: number;
+  net_settlement: number;
 };
 
 export async function buildMonthlyReport(
@@ -194,7 +196,9 @@ export async function buildMonthlyReport(
   const ordersQuery = (from: string, to: string) => {
     let q = supabase
       .from("sales_orders")
-      .select("order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value")
+      .select(
+        "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement",
+      )
       .eq("client_id", clientId)
       .gte("created_on", from)
       .lte("created_on", to);
@@ -208,8 +212,8 @@ export async function buildMonthlyReport(
   ]);
 
   // An order that was cancelled or refunded was never revenue.
-  const billed = (current ?? []).filter((o) => Number(o.total_value) > 0);
-  const billedPrev = (previous ?? []).filter((o) => Number(o.total_value) > 0);
+  const billed = (current ?? []).filter(isBilledOrder);
+  const billedPrev = (previous ?? []).filter(isBilledOrder);
 
   const revenueOf = (rows: OrderRow[]) => rows.reduce((s, o) => s + Number(o.subtotal), 0);
   const ordersOf = (rows: OrderRow[]) => new Set(rows.map((o) => o.order_id)).size;

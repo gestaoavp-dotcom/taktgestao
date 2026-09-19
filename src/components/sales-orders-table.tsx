@@ -3,10 +3,16 @@
 import { useActionState, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesOrder } from "@/lib/types";
-import type { BreakdownLine } from "@/lib/parsers/shopee-breakdown";
+import type { BreakdownLine } from "@/lib/parsers/breakdown";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
-import { buildShopeeBreakdown, computeShopeeNet } from "@/lib/parsers/shopee-breakdown";
+import {
+  buildOrderBreakdown,
+  isExtraLine,
+  isOrderVoided,
+  orderNet,
+  orderShares,
+} from "@/lib/parsers/order-breakdown";
 import { updateOrderCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const MONTHS = [
@@ -42,43 +48,11 @@ const STATUS_STYLE: Record<string, string> = {
   Cancelado: "bg-red-50 text-red-700",
 };
 
-/**
- * Cancelled or refunded: the platform charged nothing and the product never
- * left the shelf, so the order costs nothing either.
- */
-function isVoided(order: SalesOrder) {
-  return Number(order.total_value) === 0;
-}
-
-/** What the marketplace actually deposits, before the seller's own costs. */
-function netOf(order: SalesOrder, share = 1) {
-  return order.raw ? computeShopeeNet(order.raw, share) : order.net_settlement;
-}
-
-/**
- * Shopee repeats order-level amounts on every line of a multi-item order, so
- * each line takes its slice by how much of the order's products it accounts for.
- */
-function buildShares(orders: SalesOrder[]) {
-  const lines = new Map<string, SalesOrder[]>();
-  for (const o of orders) {
-    lines.set(o.order_id, [...(lines.get(o.order_id) ?? []), o]);
-  }
-
-  const shares = new Map<string, number>();
-  for (const group of lines.values()) {
-    const total = group.reduce((sum, o) => sum + o.subtotal, 0);
-    for (const o of group) {
-      shares.set(o.id, group.length === 1 ? 1 : total > 0 ? o.subtotal / total : 1 / group.length);
-    }
-  }
-  return shares;
-}
-
 function OrderBreakdown({ order, share }: { order: SalesOrder; share: number }) {
   const [showOther, setShowOther] = useState(false);
+  const breakdown = buildOrderBreakdown(order, share);
 
-  if (!order.raw) {
+  if (!breakdown) {
     return (
       <p className="px-4 py-3 text-xs text-[#94A0BD]">
         Esse pedido não tem o detalhamento da planilha guardado (foi importado antes dessa
@@ -87,7 +61,8 @@ function OrderBreakdown({ order, share }: { order: SalesOrder; share: number }) 
     );
   }
 
-  const { sections, net, voided, otherFields } = buildShopeeBreakdown(order.raw, share);
+  const { sections, net, voided, otherFields } = breakdown;
+  const platform = MARKETPLACE_LABEL[order.marketplace] ?? "a plataforma";
 
   const renderLine = (line: BreakdownLine, i: number) => {
     const isDeduction = line.kind === "deduction";
@@ -147,7 +122,9 @@ function OrderBreakdown({ order, share }: { order: SalesOrder; share: number }) 
             <span className="text-[11px] text-[#5B647E]">
               {voided
                 ? "pedido cancelado/reembolsado — nada foi recebido"
-                : "o que a Shopee repassa, antes do custo do produto e do imposto"}
+                : isExtraLine(order)
+                  ? "produto adicional da mesma venda — os valores estão na outra linha"
+                  : `o que ${platform} repassa, antes do custo do produto e do imposto`}
             </span>
           </span>
           <span className="whitespace-nowrap font-display text-lg font-bold text-green-800">
@@ -201,11 +178,11 @@ function OrderRow({
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
   const [, formAction] = useActionState(updateOrderCosts, null);
 
-  const net = netOf(order, share);
+  const net = orderNet(order, share);
   const costNum = parseFloat(cost.replace(",", ".")) || 0;
   const extraNum = parseFloat(extra.replace(",", ".")) || 0;
   const taxNum = parseFloat(tax.replace(",", ".")) || 0;
-  const voided = isVoided(order);
+  const voided = isOrderVoided(order);
   const taxAmount = (net * taxNum) / 100;
   const margin = voided ? 0 : net - costNum - extraNum - taxAmount;
 
@@ -339,7 +316,7 @@ export function SalesOrdersTable({
   );
   const [month, setMonth] = useState<string>("all");
 
-  const shares = useMemo(() => buildShares(orders), [orders]);
+  const shares = useMemo(() => orderShares(orders), [orders]);
 
   // One cost per SKU: typing it on any order shows up on every order of that
   // product right away, while the server does the same to the stored rows.
@@ -375,9 +352,9 @@ export function SalesOrdersTable({
   const totals = filtered.reduce(
     (acc, o) => {
       // A cancelled order neither sold nor cost anything.
-      if (isVoided(o)) return acc;
+      if (isOrderVoided(o)) return acc;
 
-      const net = netOf(o, shares.get(o.id) ?? 1);
+      const net = orderNet(o, shares.get(o.id) ?? 1);
       acc.sold += o.subtotal;
       acc.net += net;
       acc.cost += parseFloat(costOf(o).replace(",", ".")) || 0;

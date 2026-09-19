@@ -12,24 +12,9 @@
 // Shopee's "Total global" column is NOT the net — it is what the buyer paid,
 // with commission and service fees still inside — so it is reference only.
 
-export type BreakdownLine = {
-  label: string;
-  note?: string;
-  value: number;
-  /** item: adds · deduction: subtracts · info: shown but never counted */
-  kind: "item" | "deduction" | "info";
-};
+import { round, toNumber, type BreakdownLine, type BreakdownSection } from "./breakdown";
 
-export type BreakdownSection = {
-  title: string;
-  note?: string;
-  lines: BreakdownLine[];
-  total: number;
-  /** Sections whose total is subtracted from the order's income. */
-  subtracted?: boolean;
-  /** false = shown for context only, never part of the net. */
-  counted?: boolean;
-};
+export type { BreakdownLine, BreakdownSection };
 
 /** Funded by the seller: each one comes off the product subtotal. */
 const SELLER_DISCOUNTS: { key: string; label?: string }[] = [
@@ -67,17 +52,6 @@ const REFERENCE: { key: string; label?: string; note?: string }[] = [
     note: "o que o comprador pagou, ainda com as taxas dentro",
   },
 ];
-
-function toNumber(value: unknown): number {
-  if (typeof value === "number") return value;
-  if (!value) return 0;
-  const n = parseFloat(String(value).replace(",", "."));
-  return Number.isFinite(n) ? n : 0;
-}
-
-function round(value: number) {
-  return Math.round(value * 100) / 100;
-}
 
 /** Nothing was charged to the buyer: cancelled or fully refunded. */
 function isVoided(raw: Record<string, unknown>) {
