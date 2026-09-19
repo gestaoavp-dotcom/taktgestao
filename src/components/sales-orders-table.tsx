@@ -94,8 +94,11 @@ function OrderBreakdown({ order }: { order: SalesOrder }) {
             <div className="mb-1 flex items-baseline justify-between gap-3">
               <p className="text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
                 {section.title}
+                {section.note && (
+                  <span className="ml-2 font-semibold normal-case text-red-600">{section.note}</span>
+                )}
               </p>
-              {section.title !== "Referência (não entra na conta)" && (
+              {section.counted !== false && (
                 <span
                   className={`text-sm font-bold ${
                     section.subtracted && section.total !== 0 ? "text-red-600" : "text-navy"

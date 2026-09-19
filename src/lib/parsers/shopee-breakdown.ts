@@ -22,10 +22,13 @@ export type BreakdownLine = {
 
 export type BreakdownSection = {
   title: string;
+  note?: string;
   lines: BreakdownLine[];
   total: number;
   /** Sections whose total is subtracted from the order's income. */
   subtracted?: boolean;
+  /** false = shown for context only, never part of the net. */
+  counted?: boolean;
 };
 
 /** Funded by the seller: each one comes off the product subtotal. */
@@ -100,10 +103,14 @@ function feesTotal(raw: Record<string, unknown>) {
   return round(FEES.reduce((sum, f) => sum + toNumber(raw[f.key]), 0));
 }
 
-/** Shopee's "Renda estimada do pedido": what the platform deposits. */
+/**
+ * What the platform deposits. Shipping is left out on purpose: the buyer's
+ * payment plus Shopee's subsidy cover the carrier's charge, so the seller
+ * neither pays nor keeps anything there.
+ */
 export function computeShopeeNet(raw: Record<string, unknown>): number {
   if (isVoided(raw)) return 0;
-  return round(productsTotal(raw) + shippingTotal(raw) - feesTotal(raw));
+  return round(productsTotal(raw) - feesTotal(raw));
 }
 
 export function buildShopeeBreakdown(raw: Record<string, unknown>): {
@@ -151,14 +158,31 @@ export function buildShopeeBreakdown(raw: Record<string, unknown>): {
     take(r.key, r.label, r.note, "info"),
   );
 
+  const freight = shippingTotal(raw);
+
   const sections: BreakdownSection[] = [
     { title: "Subtotal dos Produtos", lines: products, total: productsTotal(raw) },
-    { title: "Subtotal estimado do frete", lines: shipping, total: shippingTotal(raw) },
     { title: "Taxas e Encargos", lines: fees, total: feesTotal(raw), subtracted: true },
+    {
+      title: "Frete (não entra na conta)",
+      // Zero means the buyer's payment plus Shopee's subsidy covered the
+      // carrier exactly; anything else is worth a second look. A voided order
+      // keeps an estimated freight it never incurred, so it doesn't count.
+      note:
+        freight === 0 || isVoided(raw) ? undefined : "atenção: esse frete não fechou em zero",
+      lines: shipping,
+      total: freight,
+      counted: false,
+    },
   ];
 
   if (reference.length) {
-    sections.push({ title: "Referência (não entra na conta)", lines: reference, total: 0 });
+    sections.push({
+      title: "Referência (não entra na conta)",
+      lines: reference,
+      total: 0,
+      counted: false,
+    });
   }
 
   const otherFields = Object.entries(raw)
