@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Client, Task } from "@/lib/types";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { DateField } from "@/components/date-field";
 import { createTask, deleteTask, updateTaskStatus } from "./actions";
 
 const STATUS_LABEL: Record<Task["status"], string> = {
@@ -68,10 +69,9 @@ export default async function TarefasPage() {
           <option value="medium">Prioridade média</option>
           <option value="high">Prioridade alta</option>
         </select>
-        <input
+        <DateField
           name="due_date"
-          type="date"
-          className="col-span-2 rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="col-span-2 flex w-full items-center justify-between rounded border border-navy/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-blue"
         />
         <button
           type="submit"

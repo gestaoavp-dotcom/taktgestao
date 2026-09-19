@@ -5,6 +5,7 @@ import {
   deleteFinanceEntry,
   toggleFinanceEntryStatus,
 } from "./actions";
+import { DateField } from "@/components/date-field";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -92,10 +93,9 @@ export default async function FinancasPage() {
             </option>
           ))}
         </select>
-        <input
+        <DateField
           name="due_date"
-          type="date"
-          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue flex w-full items-center justify-between"
         />
         <button
           type="submit"

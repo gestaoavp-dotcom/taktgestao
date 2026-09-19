@@ -181,6 +181,37 @@ export async function addChange(
   return { ok: true };
 }
 
+export async function updateChange(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+  const id = formData.get("id") as string;
+
+  const { error } = await supabase
+    .from("client_changes")
+    .update({
+      changed_on: (formData.get("changed_on") as string) || undefined,
+      marketplace: (formData.get("marketplace") as string) || null,
+      account_id: (formData.get("account_id") as string) || null,
+      category: (formData.get("category") as string) || null,
+      description: formData.get("description") as string,
+      reason: (formData.get("reason") as string) || null,
+      owner: (formData.get("owner") as string) || null,
+      status: (formData.get("status") as string) || "aberta",
+      closed_on: (formData.get("closed_on") as string) || null,
+      goal: (formData.get("goal") as string) || null,
+      evidence: (formData.get("evidence") as string) || null,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}/controle`);
+  return { ok: true };
+}
+
 export async function updateChangeStatus(formData: FormData) {
   const supabase = await createClient();
   const clientId = formData.get("client_id") as string;

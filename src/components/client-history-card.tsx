@@ -4,6 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import { CalendarDays, MessageSquare, Trash2 } from "lucide-react";
 import type { ClientUpdate } from "@/lib/types";
 import { addUpdate, deleteUpdate } from "@/app/(dashboard)/clientes/[id]/actions";
+import { DateField } from "@/components/date-field";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
@@ -74,12 +75,12 @@ export function ClientHistoryCard({
             placeholder={kind === "meeting" ? "Assunto da reunião" : "O que aconteceu"}
             className={INPUT_CLASS}
           />
-          <input
-            name="happened_on"
-            type="date"
-            defaultValue={new Date().toISOString().slice(0, 10)}
-            className="w-44 rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
-          />
+          <div className="w-44">
+            <DateField
+              name="happened_on"
+              defaultValue={new Date().toISOString().slice(0, 10)}
+            />
+          </div>
         </div>
 
         <textarea

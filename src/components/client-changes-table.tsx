@@ -1,11 +1,12 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Trash2, Pencil, X } from "lucide-react";
 import type { ClientAccount, ClientChange, ClientChangeStatus } from "@/lib/types";
 import {
   addChange,
   deleteChange,
+  updateChange,
   updateChangeStatus,
 } from "@/app/(dashboard)/clientes/[id]/actions";
 import {
@@ -15,7 +16,9 @@ import {
   CHANGE_CHANNEL_LABEL,
   CHANGE_STATUSES,
   CHANGE_STATUS_BADGE,
+  type ChangeChannelOption,
 } from "@/lib/client-changes";
+import { DateField } from "@/components/date-field";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
@@ -75,12 +78,20 @@ export function ClientChangesTable({
   clientMarketplaces: string[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const editingRef = useRef(false);
   const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
+  const [editingChange, setEditingChange] = useState<ClientChange | null>(null);
+  const [formChannel, setFormChannel] = useState<ChangeChannelOption | null>(null);
 
   const channelOptions = useMemo(
     () => buildChannelOptions(accounts, clientMarketplaces),
     [accounts, clientMarketplaces],
   );
+
+  useEffect(() => {
+    if (editingRef.current) return;
+    setFormChannel(channelOptions.find((o) => o.key === activeTab) ?? null);
+  }, [activeTab, channelOptions]);
 
   const tabs = useMemo(() => {
     const known = new Set(channelOptions.map((o) => o.key));
@@ -102,12 +113,28 @@ export function ClientChangesTable({
   const visibleChanges =
     activeTab === ALL_TAB ? changes : changes.filter((c) => channelKeyOf(c) === activeTab);
 
-  const activeChannel = channelOptions.find((o) => o.key === activeTab);
+  function startEdit(change: ClientChange) {
+    editingRef.current = true;
+    setEditingChange(change);
+    const key = channelKeyOf(change);
+    setFormChannel(channelOptions.find((o) => o.key === key) ?? null);
+  }
+
+  function cancelEdit() {
+    editingRef.current = false;
+    setEditingChange(null);
+    setFormChannel(channelOptions.find((o) => o.key === activeTab) ?? null);
+  }
 
   const [state, formAction, pending] = useActionState(
     async (prevState: Parameters<typeof addChange>[0], formData: FormData) => {
-      const result = await addChange(prevState, formData);
-      if (result && "ok" in result) formRef.current?.reset();
+      const fn = editingRef.current ? updateChange : addChange;
+      const result = await fn(prevState, formData);
+      if (result && "ok" in result) {
+        formRef.current?.reset();
+        editingRef.current = false;
+        setEditingChange(null);
+      }
       return result;
     },
     null,
@@ -135,27 +162,43 @@ export function ClientChangesTable({
       )}
 
       <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Registrar alteração</h2>
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="font-bold text-navy">
+            {editingChange ? "Editar alteração" : "Registrar alteração"}
+          </h2>
+          {editingChange && (
+            <button
+              type="button"
+              onClick={cancelEdit}
+              className="flex items-center gap-1 text-xs font-semibold text-[#5B647E] hover:text-navy"
+            >
+              <X className="h-3.5 w-3.5" />
+              Cancelar edição
+            </button>
+          )}
+        </div>
         <p className="mb-4 text-xs text-[#94A0BD]">
           Toda mudança feita na conta do cliente, com o motivo, a meta esperada e quem fez.
           Atualize o status sempre que houver progresso — nunca deixe em branco.
         </p>
 
-        <form ref={formRef} action={formAction} className="space-y-2">
+        <form key={editingChange?.id ?? "new"} ref={formRef} action={formAction} className="space-y-2">
+          <input type="hidden" name="id" value={editingChange?.id ?? ""} />
           <input type="hidden" name="client_id" value={clientId} />
-          <input type="hidden" name="marketplace" value={activeChannel?.marketplace ?? ""} />
-          <input type="hidden" name="account_id" value={activeChannel?.accountId ?? ""} />
+          <input type="hidden" name="marketplace" value={formChannel?.marketplace ?? ""} />
+          <input type="hidden" name="account_id" value={formChannel?.accountId ?? ""} />
 
           <div className="grid grid-cols-4 gap-2">
-            <input
+            <DateField
               name="changed_on"
-              type="date"
-              defaultValue={new Date().toISOString().slice(0, 10)}
-              className={INPUT_CLASS}
+              defaultValue={editingChange?.changed_on ?? new Date().toISOString().slice(0, 10)}
+              className={`flex items-center justify-between ${INPUT_CLASS}`}
             />
             <select
-              value={activeTab === ALL_TAB ? "" : activeTab}
-              onChange={(e) => setActiveTab(e.target.value || ALL_TAB)}
+              value={formChannel?.key ?? ""}
+              onChange={(e) =>
+                setFormChannel(channelOptions.find((o) => o.key === e.target.value) ?? null)
+              }
               className={INPUT_CLASS}
             >
               <option value="" disabled>
@@ -167,7 +210,11 @@ export function ClientChangesTable({
                 </option>
               ))}
             </select>
-            <select name="category" defaultValue="" className={INPUT_CLASS}>
+            <select
+              name="category"
+              defaultValue={editingChange?.category ?? ""}
+              className={INPUT_CLASS}
+            >
               <option value="" disabled>
                 Categoria
               </option>
@@ -177,7 +224,11 @@ export function ClientChangesTable({
                 </option>
               ))}
             </select>
-            <select name="status" defaultValue="aberta" className={INPUT_CLASS}>
+            <select
+              name="status"
+              defaultValue={editingChange?.status ?? "aberta"}
+              className={INPUT_CLASS}
+            >
               {CHANGE_STATUSES.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
@@ -189,24 +240,42 @@ export function ClientChangesTable({
           <input
             name="description"
             required
+            defaultValue={editingChange?.description ?? ""}
             placeholder="Ação feita — o que foi feito, de forma objetiva"
             className={INPUT_CLASS}
           />
 
           <div className="grid grid-cols-3 gap-2">
-            <input name="reason" placeholder="Motivo / Gatilho" className={INPUT_CLASS} />
+            <input
+              name="reason"
+              defaultValue={editingChange?.reason ?? ""}
+              placeholder="Motivo / Gatilho"
+              className={INPUT_CLASS}
+            />
             <input
               name="goal"
+              defaultValue={editingChange?.goal ?? ""}
               placeholder="Resultado esperado / Métrica"
               className={INPUT_CLASS}
             />
-            <input name="owner" placeholder="Responsável(is)" className={INPUT_CLASS} />
+            <input
+              name="owner"
+              defaultValue={editingChange?.owner ?? ""}
+              placeholder="Responsável(is)"
+              className={INPUT_CLASS}
+            />
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <input name="closed_on" type="date" placeholder="Encerramento" className={INPUT_CLASS} />
+            <DateField
+              name="closed_on"
+              defaultValue={editingChange?.closed_on}
+              placeholder="Encerramento"
+              className={`flex items-center justify-between ${INPUT_CLASS}`}
+            />
             <input
               name="evidence"
+              defaultValue={editingChange?.evidence ?? ""}
               placeholder="Observação / Evidência"
               className={`${INPUT_CLASS} col-span-2`}
             />
@@ -222,13 +291,17 @@ export function ClientChangesTable({
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-navy py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
-            {pending ? "Registrando..." : "Registrar alteração"}
+            {pending
+              ? "Salvando..."
+              : editingChange
+                ? "Salvar alteração"
+                : "Registrar alteração"}
           </button>
         </form>
       </div>
 
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
-        <table className="w-full min-w-[1200px] text-left text-sm">
+        <table className="w-full min-w-[1240px] text-left text-sm">
           <thead className="bg-brand-gray">
             <tr>
               <th className="px-5 py-2 font-semibold text-navy">Data</th>
@@ -283,18 +356,28 @@ export function ClientChangesTable({
                   <td className={TRUNCATE_CELL} title={change.evidence ?? undefined}>
                     {change.evidence ?? "—"}
                   </td>
-                  <td className="px-5 py-2.5 text-right">
-                    <form action={deleteChange}>
-                      <input type="hidden" name="id" value={change.id} />
-                      <input type="hidden" name="client_id" value={clientId} />
+                  <td className="px-5 py-2.5">
+                    <div className="flex items-center justify-end gap-0.5">
                       <button
-                        type="submit"
-                        aria-label={`Excluir alteração de ${formatDate(change.changed_on)}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                        type="button"
+                        onClick={() => startEdit(change)}
+                        aria-label={`Editar alteração de ${formatDate(change.changed_on)}`}
+                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-brand-gray hover:text-navy focus:opacity-100 group-hover:opacity-100"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </button>
-                    </form>
+                      <form action={deleteChange}>
+                        <input type="hidden" name="id" value={change.id} />
+                        <input type="hidden" name="client_id" value={clientId} />
+                        <button
+                          type="submit"
+                          aria-label={`Excluir alteração de ${formatDate(change.changed_on)}`}
+                          className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               );
