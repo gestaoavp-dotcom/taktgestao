@@ -29,7 +29,9 @@ export function DashboardShell({
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
+      {/* min-w-0 keeps wide tables scrolling inside their own box instead of
+          stretching the page sideways when the sidebar is open. */}
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Header email={email} onToggleSidebar={() => setCollapsed((c) => !c)} />
         <main className="flex-1 p-8">{children}</main>
       </div>
