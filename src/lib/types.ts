@@ -74,10 +74,39 @@ export type SalesReport = {
   id: string;
   client_id: string;
   marketplace: string;
+  report_month: string | null;
   name: string;
   path: string;
   size: number | null;
   status: "recebido" | "processado" | "erro";
+  created_at: string;
+};
+
+export type SalesOrder = {
+  id: string;
+  client_id: string;
+  sales_report_id: string;
+  marketplace: string;
+  report_month: string;
+  order_id: string;
+  status: string | null;
+  refund_status: string | null;
+  created_on: string | null;
+  product_name: string | null;
+  sku: string | null;
+  quantity: number;
+  returned_quantity: number;
+  unit_price: number;
+  subtotal: number;
+  total_value: number;
+  shipping_fee_buyer: number;
+  transaction_fee: number;
+  commission_fee: number;
+  service_fee: number;
+  net_settlement: number;
+  cost: number | null;
+  extra_costs: number | null;
+  tax_percent: number | null;
   created_at: string;
 };
 

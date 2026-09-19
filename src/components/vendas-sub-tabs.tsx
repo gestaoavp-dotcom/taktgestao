@@ -10,6 +10,7 @@ export function VendasSubTabs({ clientId }: { clientId: string }) {
   const tabs = [
     { href: base, label: "Visão geral" },
     { href: `${base}/importar`, label: "Importar documentos" },
+    { href: `${base}/pedidos`, label: "Pedidos" },
   ];
 
   return (

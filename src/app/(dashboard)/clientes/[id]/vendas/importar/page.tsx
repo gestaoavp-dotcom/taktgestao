@@ -11,7 +11,7 @@ export default async function ImportarVendasPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: reports }] = await Promise.all([
+  const [{ data: client }, { data: reports }, { data: orderRows }] = await Promise.all([
     supabase
       .from("clients")
       .select("marketplaces")
@@ -23,7 +23,17 @@ export default async function ImportarVendasPage({
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .returns<SalesReport[]>(),
+    supabase
+      .from("sales_orders")
+      .select("sales_report_id")
+      .eq("client_id", id)
+      .returns<{ sales_report_id: string }[]>(),
   ]);
+
+  const orderCounts: Record<string, number> = {};
+  for (const row of orderRows ?? []) {
+    orderCounts[row.sales_report_id] = (orderCounts[row.sales_report_id] ?? 0) + 1;
+  }
 
   return (
     <div>
@@ -32,6 +42,7 @@ export default async function ImportarVendasPage({
         clientId={id}
         clientMarketplaces={client?.marketplaces ?? []}
         reports={reports ?? []}
+        orderCounts={orderCounts}
       />
     </div>
   );
