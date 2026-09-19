@@ -41,6 +41,25 @@ export type ClientFile = {
   created_at: string;
 };
 
+export type ClientChange = {
+  id: string;
+  client_id: string;
+  changed_on: string;
+  description: string;
+  reason: string | null;
+  goal: string | null;
+  owner: string | null;
+  created_at: string;
+};
+
+export type ClientLink = {
+  id: string;
+  client_id: string;
+  label: string;
+  url: string;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   title: string;
