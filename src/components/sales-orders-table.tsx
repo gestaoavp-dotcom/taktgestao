@@ -154,15 +154,18 @@ function OrderRow({
   order,
   cost,
   onCostChange,
+  tax,
+  onTaxChange,
 }: {
   clientId: string;
   order: SalesOrder;
   cost: string;
   onCostChange: (value: string) => void;
+  tax: string;
+  onTaxChange: (value: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
-  const [tax, setTax] = useState(order.tax_percent != null ? String(order.tax_percent) : "");
   const [, formAction] = useActionState(updateOrderCosts, null);
 
   const net = netOf(order);
@@ -258,9 +261,10 @@ function OrderRow({
             <input
               name="tax_percent"
               value={tax}
-              onChange={(e) => setTax(e.target.value)}
+              onChange={(e) => onTaxChange(e.target.value)}
               placeholder="Imp. %"
               inputMode="decimal"
+              title="Imposto — vale para todos os pedidos do cliente"
               className={`${CELL_INPUT_CLASS} w-16`}
             />
           </form>
@@ -312,6 +316,12 @@ export function SalesOrdersTable({
   });
   const [costByOrder, setCostByOrder] = useState<Record<string, string>>({});
 
+  // One tax rate for the whole client.
+  const [tax, setTax] = useState(() => {
+    const withTax = orders.find((o) => o.tax_percent != null);
+    return withTax?.tax_percent != null ? String(withTax.tax_percent) : "";
+  });
+
   const costOf = (o: SalesOrder) =>
     (o.sku ? costBySku[o.sku] : costByOrder[o.id]) ?? (o.cost != null ? String(o.cost) : "");
 
@@ -333,7 +343,7 @@ export function SalesOrdersTable({
       acc.net += net;
       acc.cost += parseFloat(costOf(o).replace(",", ".")) || 0;
       acc.extra += o.extra_costs ?? 0;
-      acc.tax += (net * (o.tax_percent ?? 0)) / 100;
+      acc.tax += (net * (parseFloat(tax.replace(",", ".")) || 0)) / 100;
       return acc;
     },
     { sold: 0, net: 0, cost: 0, extra: 0, tax: 0 },
@@ -427,6 +437,8 @@ export function SalesOrdersTable({
                 order={order}
                 cost={costOf(order)}
                 onCostChange={(value) => setCostOf(order, value)}
+                tax={tax}
+                onTaxChange={setTax}
               />
             ))}
             {!filtered.length && (

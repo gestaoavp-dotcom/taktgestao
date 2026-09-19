@@ -59,6 +59,15 @@ export async function importSalesOrders(input: {
 
   const costBySku = new Map((known ?? []).map((k) => [k.sku, k.cost]));
 
+  // The tax rate is a single client-wide number: reuse it on the new rows.
+  const { data: taxRow } = await supabase
+    .from("sales_orders")
+    .select("tax_percent")
+    .eq("client_id", input.clientId)
+    .not("tax_percent", "is", null)
+    .limit(1)
+    .maybeSingle<{ tax_percent: number }>();
+
   const rows = input.orders.map((o) => ({
     client_id: input.clientId,
     sales_report_id: input.reportId,
@@ -66,6 +75,7 @@ export async function importSalesOrders(input: {
     report_month: input.reportMonth,
     ...o,
     cost: o.sku ? costBySku.get(o.sku) ?? null : null,
+    tax_percent: taxRow?.tax_percent ?? null,
   }));
 
   if (rows.length) {
@@ -138,13 +148,14 @@ export async function updateOrderCosts(
   }
 
   const cost = toNumberOrNull(formData.get("cost"));
+  const taxPercent = toNumberOrNull(formData.get("tax_percent"));
 
   const { data: updated, error } = await supabase
     .from("sales_orders")
     .update({
       cost,
       extra_costs: toNumberOrNull(formData.get("extra_costs")),
-      tax_percent: toNumberOrNull(formData.get("tax_percent")),
+      tax_percent: taxPercent,
     })
     .eq("id", id)
     .select("sku")
@@ -164,6 +175,15 @@ export async function updateOrderCosts(
 
     if (spreadError) return { error: spreadError.message };
   }
+
+  // The tax rate is one number for the whole client.
+  const { error: taxError } = await supabase
+    .from("sales_orders")
+    .update({ tax_percent: taxPercent })
+    .eq("client_id", clientId)
+    .neq("id", id);
+
+  if (taxError) return { error: taxError.message };
 
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
   return { ok: true };
