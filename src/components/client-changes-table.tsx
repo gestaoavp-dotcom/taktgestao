@@ -6,7 +6,7 @@ import type { ClientAccount, ClientChange } from "@/lib/types";
 import type { ChangeChannelOption } from "@/lib/client-changes";
 import { addChange, deleteChange } from "@/app/(dashboard)/clientes/[id]/actions";
 import { DateField } from "@/components/date-field";
-import { DictationButton } from "@/components/dictation-button";
+import { DictationPanel } from "@/components/dictation-panel";
 import type { DictatedChange } from "@/lib/dictation";
 import {
   buildChannelOptions,
@@ -121,25 +121,24 @@ export function ClientChangesTable({
       </div>
 
       <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-bold text-navy">Registrar alteração</h2>
-            <p className="text-xs text-[#94A0BD]">
-              Toda mudança feita na conta, com o motivo, a meta esperada e quem fez. Atualize o
-              status sempre que houver progresso — nunca deixe em branco.
-            </p>
-          </div>
-          <DictationButton
-            channels={channelOptions}
-            onParsed={(parsed) => {
-              setDraft(parsed);
-              setDraftVersion((v) => v + 1);
-              if (parsed.channelKey) {
-                setFormChannel(channelOptions.find((o) => o.key === parsed.channelKey) ?? null);
-              }
-            }}
-          />
+        <div className="mb-3">
+          <h2 className="font-bold text-navy">Registrar alteração</h2>
+          <p className="text-xs text-[#94A0BD]">
+            Toda mudança feita na conta, com o motivo, a meta esperada e quem fez. Atualize o
+            status sempre que houver progresso — nunca deixe em branco.
+          </p>
         </div>
+
+        <DictationPanel
+          channels={channelOptions}
+          onParsed={(parsed) => {
+            setDraft(parsed);
+            setDraftVersion((v) => v + 1);
+            if (parsed.channelKey) {
+              setFormChannel(channelOptions.find((o) => o.key === parsed.channelKey) ?? null);
+            }
+          }}
+        />
 
         <form key={draftVersion} ref={formRef} action={formAction} className="space-y-2">
           <input type="hidden" name="client_id" value={clientId} />
