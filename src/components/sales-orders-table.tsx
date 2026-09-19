@@ -43,11 +43,31 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 /** What the marketplace actually deposits, before the seller's own costs. */
-function netOf(order: SalesOrder) {
-  return order.raw ? computeShopeeNet(order.raw) : order.net_settlement;
+function netOf(order: SalesOrder, share = 1) {
+  return order.raw ? computeShopeeNet(order.raw, share) : order.net_settlement;
 }
 
-function OrderBreakdown({ order }: { order: SalesOrder }) {
+/**
+ * Shopee repeats order-level amounts on every line of a multi-item order, so
+ * each line takes its slice by how much of the order's products it accounts for.
+ */
+function buildShares(orders: SalesOrder[]) {
+  const lines = new Map<string, SalesOrder[]>();
+  for (const o of orders) {
+    lines.set(o.order_id, [...(lines.get(o.order_id) ?? []), o]);
+  }
+
+  const shares = new Map<string, number>();
+  for (const group of lines.values()) {
+    const total = group.reduce((sum, o) => sum + o.subtotal, 0);
+    for (const o of group) {
+      shares.set(o.id, group.length === 1 ? 1 : total > 0 ? o.subtotal / total : 1 / group.length);
+    }
+  }
+  return shares;
+}
+
+function OrderBreakdown({ order, share }: { order: SalesOrder; share: number }) {
   const [showOther, setShowOther] = useState(false);
 
   if (!order.raw) {
@@ -59,7 +79,7 @@ function OrderBreakdown({ order }: { order: SalesOrder }) {
     );
   }
 
-  const { sections, net, voided, otherFields } = buildShopeeBreakdown(order.raw);
+  const { sections, net, voided, otherFields } = buildShopeeBreakdown(order.raw, share);
 
   const renderLine = (line: BreakdownLine, i: number) => {
     const isDeduction = line.kind === "deduction";
@@ -159,6 +179,7 @@ function OrderRow({
   onCostChange,
   tax,
   onTaxChange,
+  share,
 }: {
   clientId: string;
   order: SalesOrder;
@@ -166,12 +187,13 @@ function OrderRow({
   onCostChange: (value: string) => void;
   tax: string;
   onTaxChange: (value: string) => void;
+  share: number;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
   const [, formAction] = useActionState(updateOrderCosts, null);
 
-  const net = netOf(order);
+  const net = netOf(order, share);
   const costNum = parseFloat(cost.replace(",", ".")) || 0;
   const extraNum = parseFloat(extra.replace(",", ".")) || 0;
   const taxNum = parseFloat(tax.replace(",", ".")) || 0;
@@ -283,7 +305,7 @@ function OrderRow({
       {expanded && (
         <tr className="border-t border-navy/[.06] bg-brand-gray/20">
           <td colSpan={11}>
-            <OrderBreakdown order={order} />
+            <OrderBreakdown order={order} share={share} />
           </td>
         </tr>
       )}
@@ -307,6 +329,8 @@ export function SalesOrdersTable({
     [orders],
   );
   const [month, setMonth] = useState<string>("all");
+
+  const shares = useMemo(() => buildShares(orders), [orders]);
 
   // One cost per SKU: typing it on any order shows up on every order of that
   // product right away, while the server does the same to the stored rows.
@@ -341,7 +365,7 @@ export function SalesOrdersTable({
 
   const totals = filtered.reduce(
     (acc, o) => {
-      const net = netOf(o);
+      const net = netOf(o, shares.get(o.id) ?? 1);
       acc.sold += o.subtotal;
       acc.net += net;
       acc.cost += parseFloat(costOf(o).replace(",", ".")) || 0;
@@ -442,6 +466,7 @@ export function SalesOrdersTable({
                 onCostChange={(value) => setCostOf(order, value)}
                 tax={tax}
                 onTaxChange={setTax}
+                share={shares.get(order.id) ?? 1}
               />
             ))}
             {!filtered.length && (

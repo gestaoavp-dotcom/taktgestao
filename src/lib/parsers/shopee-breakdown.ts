@@ -84,10 +84,10 @@ function isVoided(raw: Record<string, unknown>) {
   return toNumber(raw["Valor Total"]) === 0;
 }
 
-function productsTotal(raw: Record<string, unknown>) {
+function productsTotal(raw: Record<string, unknown>, share = 1) {
   const salePrice = toNumber(raw["Subtotal do produto"]);
   const discounts = SELLER_DISCOUNTS.reduce((sum, d) => sum + toNumber(raw[d.key]), 0);
-  return round(salePrice - discounts);
+  return round(salePrice - discounts * share);
 }
 
 /** Buyer's shipping minus the carrier's charge plus Shopee's subsidy. */
@@ -99,32 +99,53 @@ function shippingTotal(raw: Record<string, unknown>) {
   );
 }
 
-function feesTotal(raw: Record<string, unknown>) {
-  return round(FEES.reduce((sum, f) => sum + toNumber(raw[f.key]), 0));
+function feesTotal(raw: Record<string, unknown>, share = 1) {
+  return round(FEES.reduce((sum, f) => sum + toNumber(raw[f.key]), 0) * share);
 }
 
 /**
  * What the platform deposits. Shipping is left out on purpose: the buyer's
  * payment plus Shopee's subsidy cover the carrier's charge, so the seller
  * neither pays nor keeps anything there.
+ *
+ * `share` is this line's slice of its order. Shopee repeats order-level
+ * amounts (coupons, fees) on every line of a multi-item order, so without it
+ * those amounts would be counted once per line.
  */
-export function computeShopeeNet(raw: Record<string, unknown>): number {
+export function computeShopeeNet(raw: Record<string, unknown>, share = 1): number {
   if (isVoided(raw)) return 0;
-  return round(productsTotal(raw) - feesTotal(raw));
+  return round(productsTotal(raw, share) - feesTotal(raw, share));
 }
 
-export function buildShopeeBreakdown(raw: Record<string, unknown>): {
+export function buildShopeeBreakdown(
+  raw: Record<string, unknown>,
+  share = 1,
+): {
   sections: BreakdownSection[];
   net: number;
   voided: boolean;
+  shared: boolean;
   otherFields: { label: string; value: unknown }[];
 } {
   const seen = new Set<string>(["Quantidade", "Desconto do vendedor_1"]);
   const quantity = toNumber(raw["Quantidade"]) || 1;
+  const shared = share !== 1;
+  const sharedNote = shared ? `${Math.round(share * 100)}% do pedido` : undefined;
 
   const take = (key: string, label?: string, note?: string, kind: BreakdownLine["kind"] = "deduction") => {
     seen.add(key);
     return { label: label ?? key, note, value: toNumber(raw[key]), kind };
+  };
+
+  /** Order-level amount, split across the order's lines. */
+  const takeShared = (key: string, label?: string) => {
+    seen.add(key);
+    return {
+      label: label ?? key,
+      note: sharedNote,
+      value: round(toNumber(raw[key]) * share),
+      kind: "deduction" as const,
+    };
   };
 
   seen.add("Preço original");
@@ -143,7 +164,7 @@ export function buildShopeeBreakdown(raw: Record<string, unknown>): {
       value: toNumber(raw["Subtotal do produto"]),
       kind: "item",
     },
-    ...SELLER_DISCOUNTS.filter((d) => d.key in raw).map((d) => take(d.key, d.label)),
+    ...SELLER_DISCOUNTS.filter((d) => d.key in raw).map((d) => takeShared(d.key, d.label)),
   ];
 
   const shipping: BreakdownLine[] = [
@@ -152,7 +173,9 @@ export function buildShopeeBreakdown(raw: Record<string, unknown>): {
     take("Desconto de Frete Aproximado", "Desconto de frete da Shopee", undefined, "item"),
   ];
 
-  const fees: BreakdownLine[] = FEES.filter((f) => f.key in raw).map((f) => take(f.key, f.label));
+  const fees: BreakdownLine[] = FEES.filter((f) => f.key in raw).map((f) =>
+    takeShared(f.key, f.label),
+  );
 
   const reference: BreakdownLine[] = REFERENCE.filter((r) => r.key in raw).map((r) =>
     take(r.key, r.label, r.note, "info"),
@@ -161,8 +184,13 @@ export function buildShopeeBreakdown(raw: Record<string, unknown>): {
   const freight = shippingTotal(raw);
 
   const sections: BreakdownSection[] = [
-    { title: "Subtotal dos Produtos", lines: products, total: productsTotal(raw) },
-    { title: "Taxas e Encargos", lines: fees, total: feesTotal(raw), subtracted: true },
+    {
+      title: "Subtotal dos Produtos",
+      note: shared ? "pedido com mais de um item — valores do pedido rateados" : undefined,
+      lines: products,
+      total: productsTotal(raw, share),
+    },
+    { title: "Taxas e Encargos", lines: fees, total: feesTotal(raw, share), subtracted: true },
     {
       title: "Frete (não entra na conta)",
       // Zero means the buyer's payment plus Shopee's subsidy covered the
@@ -189,5 +217,11 @@ export function buildShopeeBreakdown(raw: Record<string, unknown>): {
     .filter(([key]) => !seen.has(key))
     .map(([label, value]) => ({ label, value }));
 
-  return { sections, net: computeShopeeNet(raw), voided: isVoided(raw), otherFields };
+  return {
+    sections,
+    net: computeShopeeNet(raw, share),
+    voided: isVoided(raw),
+    shared,
+    otherFields,
+  };
 }
