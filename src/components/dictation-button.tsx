@@ -1,19 +1,31 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mic, Square } from "lucide-react";
 import { parseDictation, type DictatedChange } from "@/lib/dictation";
 import type { ChangeChannelOption } from "@/lib/client-changes";
 
-// The browser's own speech recognition: no key, no cost, and the audio never
-// leaves the person's machine on its way to us.
+// The browser's own speech recognition: no key, no cost, and nothing to send
+// anywhere ourselves.
+//
+// Two behaviours drive the shape of this component:
+//  - The engine ends the session by itself after a pause, even with
+//    `continuous` on. Treating that as "the person finished" cut people off
+//    mid-sentence, so a session that ends on its own is restarted and only an
+//    explicit stop finishes the dictation.
+//  - `results` is re-indexed after each restart, so finalised text accumulates
+//    in a ref and only the tail is treated as provisional.
+
+type SpeechResult = { isFinal: boolean; 0: { transcript: string } };
+
 type SpeechRecognitionLike = {
   lang: string;
   continuous: boolean;
   interimResults: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  abort: () => void;
+  onresult: ((event: { resultIndex: number; results: ArrayLike<SpeechResult> }) => void) | null;
   onerror: ((event: { error: string }) => void) | null;
   onend: (() => void) | null;
 };
@@ -36,11 +48,70 @@ export function DictationButton({
   onParsed: (parsed: DictatedChange, transcript: string) => void;
 }) {
   const [listening, setListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [finalText, setFinalText] = useState("");
+  const [interimText, setInterimText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [supported, setSupported] = useState(true);
+
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const textRef = useRef("");
+  const finalRef = useRef("");
+  /** True only between the person pressing stop and the engine confirming it. */
+  const stoppingRef = useRef(false);
+
+  // Assumed supported until a click proves otherwise: checking during render
+  // would read `window` on the server and mismatch on hydration.
+  useEffect(
+    () => () => {
+      stoppingRef.current = true;
+      recognitionRef.current?.abort();
+    },
+    [],
+  );
+
+  function attach(recognition: SpeechRecognitionLike) {
+    recognition.lang = "pt-BR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) finalRef.current += result[0].transcript;
+        else interim += result[0].transcript;
+      }
+      setFinalText(finalRef.current);
+      setInterimText(interim);
+    };
+
+    recognition.onerror = (event) => {
+      // "no-speech" and "aborted" just mean a quiet stretch; keep listening.
+      if (event.error === "no-speech" || event.error === "aborted") return;
+      setError(
+        event.error === "not-allowed"
+          ? "Preciso de permissão para usar o microfone."
+          : "Não consegui captar o áudio. Tente de novo.",
+      );
+      stoppingRef.current = true;
+      setListening(false);
+    };
+
+    recognition.onend = () => {
+      if (!stoppingRef.current) {
+        // Ended on its own after a pause — pick it straight back up.
+        try {
+          recognition.start();
+          return;
+        } catch {
+          // Falls through to finishing if the engine refuses to restart.
+        }
+      }
+      setListening(false);
+      setInterimText("");
+      const spoken = finalRef.current.trim();
+      if (spoken) onParsed(parseDictation(spoken, channels), spoken);
+    };
+  }
 
   function start() {
     const recognition = createRecognition();
@@ -50,69 +121,77 @@ export function DictationButton({
     }
 
     setError(null);
-    setTranscript("");
-    textRef.current = "";
+    setFinalText("");
+    setInterimText("");
+    finalRef.current = "";
+    stoppingRef.current = false;
 
-    recognition.lang = "pt-BR";
-    recognition.continuous = true;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event) => {
-      let full = "";
-      for (let i = 0; i < event.results.length; i++) full += event.results[i][0].transcript;
-      textRef.current = full;
-      setTranscript(full);
-    };
-    recognition.onerror = (event) => {
-      setError(
-        event.error === "not-allowed"
-          ? "Preciso de permissão para usar o microfone."
-          : "Não consegui captar o áudio. Tente de novo.",
-      );
-      setListening(false);
-    };
-    recognition.onend = () => {
-      setListening(false);
-      const spoken = textRef.current.trim();
-      if (spoken) onParsed(parseDictation(spoken, channels), spoken);
-    };
-
+    attach(recognition);
     recognitionRef.current = recognition;
     recognition.start();
     setListening(true);
   }
 
+  function stop() {
+    stoppingRef.current = true;
+    recognitionRef.current?.stop();
+    // Don't wait on the engine: the button should react to the click at once.
+    setListening(false);
+  }
+
   if (!supported) {
     return (
-      <p className="text-xs text-[#94A0BD]">
+      <p className="max-w-xs text-xs text-[#94A0BD]">
         O ditado por voz funciona no Chrome, Edge e Safari. Nesse navegador, preencha os campos
         normalmente.
       </p>
     );
   }
 
+  const live = `${finalText}${interimText}`.trim();
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex max-w-md flex-col items-end gap-2">
       <button
         type="button"
-        onClick={() => (listening ? recognitionRef.current?.stop() : start())}
-        className={`flex items-center gap-2 self-start rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+        onClick={() => (listening ? stop() : start())}
+        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
           listening
             ? "bg-red-600 text-white hover:bg-red-700"
             : "border border-navy/10 text-navy hover:bg-brand-gray"
         }`}
       >
-        {listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-        {listening ? "Parar e preencher" : "Ditar alteração"}
+        {listening ? (
+          <>
+            <Square className="h-4 w-4 fill-current" />
+            Parar e preencher
+            <span className="ml-1 h-2 w-2 animate-pulse rounded-full bg-white" />
+          </>
+        ) : (
+          <>
+            <Mic className="h-4 w-4" />
+            Ditar alteração
+          </>
+        )}
       </button>
 
-      {listening && (
-        <p className="text-xs text-[#5B647E]">
-          Ouvindo… diga: <em>no dia tal, na conta tal, categoria tal, fiz tal coisa, pelo motivo
-          tal, responsável fulano, está em andamento, resultado esperado tal, observação tal</em>.
-        </p>
+      {(listening || live) && (
+        <div className="w-full rounded-lg border border-navy/10 bg-brand-gray/30 p-3">
+          {listening && !live && (
+            <p className="text-xs text-[#94A0BD]">
+              Ouvindo… diga o dia, a conta, a categoria, o que foi feito, o motivo, o responsável,
+              o status, o resultado esperado e a observação.
+            </p>
+          )}
+          {live && (
+            <p className="text-sm text-navy">
+              {finalText}
+              <span className="text-[#94A0BD]">{interimText}</span>
+            </p>
+          )}
+        </div>
       )}
-      {transcript && <p className="text-xs italic text-[#94A0BD]">&ldquo;{transcript}&rdquo;</p>}
+
       {error && <p className="text-xs text-red-700">{error}</p>}
     </div>
   );
