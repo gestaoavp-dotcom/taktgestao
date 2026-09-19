@@ -1,27 +1,17 @@
 "use client";
 
-import { useActionState, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2, Pencil } from "lucide-react";
-import type { ClientAccount, ClientChange, ClientChangeStatus } from "@/lib/types";
-import {
-  addChange,
-  deleteChange,
-  updateChangeStatus,
-} from "@/app/(dashboard)/clientes/[id]/actions";
+import type { ClientAccount, ClientChange } from "@/lib/types";
+import { deleteChange } from "@/app/(dashboard)/clientes/[id]/actions";
 import {
   buildChannelOptions,
-  CHANGE_CATEGORIES,
   CHANGE_CATEGORY_LABEL,
   CHANGE_CHANNEL_LABEL,
   CHANGE_STATUSES,
   CHANGE_STATUS_BADGE,
-  type ChangeChannelOption,
 } from "@/lib/client-changes";
-import { DateField } from "@/components/date-field";
-import { EditChangeModal } from "@/components/edit-change-modal";
-
-const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+import { ChangeWorkspaceModal } from "@/components/change-workspace-modal";
 
 const TRUNCATE_CELL = "max-w-[220px] truncate px-5 py-2.5 text-[#5B647E]";
 
@@ -39,33 +29,6 @@ function channelKeyOf(change: ClientChange) {
   return null;
 }
 
-function StatusSelect({
-  clientId,
-  change,
-}: {
-  clientId: string;
-  change: ClientChange;
-}) {
-  return (
-    <form action={updateChangeStatus}>
-      <input type="hidden" name="id" value={change.id} />
-      <input type="hidden" name="client_id" value={clientId} />
-      <select
-        name="status"
-        defaultValue={change.status}
-        onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className={`rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none ${CHANGE_STATUS_BADGE[change.status as ClientChangeStatus]}`}
-      >
-        {CHANGE_STATUSES.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-    </form>
-  );
-}
-
 export function ClientChangesTable({
   clientId,
   changes,
@@ -77,20 +40,13 @@ export function ClientChangesTable({
   accounts: ClientAccount[];
   clientMarketplaces: string[];
 }) {
-  const formRef = useRef<HTMLFormElement>(null);
   const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
-  const [editingChange, setEditingChange] = useState<ClientChange | null>(null);
-  const [formChannel, setFormChannel] = useState<ChangeChannelOption | null>(null);
+  const [workspace, setWorkspace] = useState<{ selectedId: string } | null>(null);
 
   const channelOptions = useMemo(
     () => buildChannelOptions(accounts, clientMarketplaces),
     [accounts, clientMarketplaces],
   );
-
-  function selectTab(value: string) {
-    setActiveTab(value);
-    setFormChannel(channelOptions.find((o) => o.key === value) ?? null);
-  }
 
   const tabs = useMemo(() => {
     const known = new Set(channelOptions.map((o) => o.key));
@@ -112,132 +68,37 @@ export function ClientChangesTable({
   const visibleChanges =
     activeTab === ALL_TAB ? changes : changes.filter((c) => channelKeyOf(c) === activeTab);
 
-  const [state, formAction, pending] = useActionState(
-    async (prevState: Parameters<typeof addChange>[0], formData: FormData) => {
-      const result = await addChange(prevState, formData);
-      if (result && "ok" in result) formRef.current?.reset();
-      return result;
-    },
-    null,
-  );
-
   return (
     <div>
-      {tabs.length > 2 && (
-        <nav className="mb-5 flex flex-wrap gap-1 border-b border-navy/[.08]">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => selectTab(tab.value)}
-              className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
-                activeTab === tab.value
-                  ? "border-blue text-blue"
-                  : "border-transparent text-[#5B647E] hover:text-navy"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-      )}
-
-      <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Registrar alteração</h2>
-        <p className="mb-4 text-xs text-[#94A0BD]">
-          Toda mudança feita na conta do cliente, com o motivo, a meta esperada e quem fez.
-          Atualize o status sempre que houver progresso — nunca deixe em branco.
-        </p>
-
-        <form ref={formRef} action={formAction} className="space-y-2">
-          <input type="hidden" name="client_id" value={clientId} />
-          <input type="hidden" name="marketplace" value={formChannel?.marketplace ?? ""} />
-          <input type="hidden" name="account_id" value={formChannel?.accountId ?? ""} />
-
-          <div className="grid grid-cols-4 gap-2">
-            <DateField
-              name="changed_on"
-              defaultValue={new Date().toISOString().slice(0, 10)}
-              className={`flex items-center justify-between ${INPUT_CLASS}`}
-            />
-            <select
-              value={formChannel?.key ?? ""}
-              onChange={(e) =>
-                setFormChannel(channelOptions.find((o) => o.key === e.target.value) ?? null)
-              }
-              className={INPUT_CLASS}
-            >
-              <option value="" disabled>
-                Conta / Canal
-              </option>
-              {channelOptions.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <select name="category" defaultValue="" className={INPUT_CLASS}>
-              <option value="" disabled>
-                Categoria
-              </option>
-              {CHANGE_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-            <select name="status" defaultValue="aberta" className={INPUT_CLASS}>
-              {CHANGE_STATUSES.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <input
-            name="description"
-            required
-            placeholder="Ação feita — o que foi feito, de forma objetiva"
-            className={INPUT_CLASS}
-          />
-
-          <div className="grid grid-cols-3 gap-2">
-            <input name="reason" placeholder="Motivo / Gatilho" className={INPUT_CLASS} />
-            <input
-              name="goal"
-              placeholder="Resultado esperado / Métrica"
-              className={INPUT_CLASS}
-            />
-            <input name="owner" placeholder="Responsável(is)" className={INPUT_CLASS} />
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            <DateField
-              name="closed_on"
-              placeholder="Encerramento"
-              className={`flex items-center justify-between ${INPUT_CLASS}`}
-            />
-            <input
-              name="evidence"
-              placeholder="Observação / Evidência"
-              className={`${INPUT_CLASS} col-span-2`}
-            />
-          </div>
-
-          {state && "error" in state && (
-            <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={pending}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-navy py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
-          >
-            <Plus className="h-4 w-4" />
-            {pending ? "Registrando..." : "Registrar alteração"}
-          </button>
-        </form>
+      <div className="mb-4 flex items-center justify-between">
+        {tabs.length > 2 ? (
+          <nav className="flex flex-wrap gap-1 border-b border-navy/[.08]">
+            {tabs.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  activeTab === tab.value
+                    ? "border-blue text-blue"
+                    : "border-transparent text-[#5B647E] hover:text-navy"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        ) : (
+          <div />
+        )}
+        <button
+          type="button"
+          onClick={() => setWorkspace({ selectedId: "new" })}
+          className="flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+        >
+          <Plus className="h-4 w-4" />
+          Nova alteração
+        </button>
       </div>
 
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
@@ -267,7 +128,11 @@ export function ClientChangesTable({
                   : "—";
 
               return (
-                <tr key={change.id} className="group border-t border-navy/[.06]">
+                <tr
+                  key={change.id}
+                  onClick={() => setWorkspace({ selectedId: change.id })}
+                  className="group cursor-pointer border-t border-navy/[.06] hover:bg-brand-gray/40"
+                >
                   <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
                     {formatDate(change.changed_on)}
                   </td>
@@ -285,7 +150,11 @@ export function ClientChangesTable({
                     {change.owner ?? "—"}
                   </td>
                   <td className="whitespace-nowrap px-5 py-2.5">
-                    <StatusSelect clientId={clientId} change={change} />
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${CHANGE_STATUS_BADGE[change.status]}`}
+                    >
+                      {CHANGE_STATUSES.find((s) => s.value === change.status)?.label}
+                    </span>
                   </td>
                   <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
                     {formatDate(change.closed_on)}
@@ -300,13 +169,16 @@ export function ClientChangesTable({
                     <div className="flex items-center justify-end gap-0.5">
                       <button
                         type="button"
-                        onClick={() => setEditingChange(change)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWorkspace({ selectedId: change.id });
+                        }}
                         aria-label={`Editar alteração de ${formatDate(change.changed_on)}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-brand-gray hover:text-navy focus:opacity-100 group-hover:opacity-100"
+                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-white hover:text-navy focus:opacity-100 group-hover:opacity-100"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
-                      <form action={deleteChange}>
+                      <form action={deleteChange} onClick={(e) => e.stopPropagation()}>
                         <input type="hidden" name="id" value={change.id} />
                         <input type="hidden" name="client_id" value={clientId} />
                         <button
@@ -333,11 +205,15 @@ export function ClientChangesTable({
         </table>
       </div>
 
-      {editingChange && (
-        <EditChangeModal
-          change={editingChange}
+      {workspace && (
+        <ChangeWorkspaceModal
+          clientId={clientId}
+          changes={visibleChanges}
+          accounts={accounts}
           channelOptions={channelOptions}
-          onClose={() => setEditingChange(null)}
+          initialSelectedId={workspace.selectedId}
+          defaultChannelKey={activeTab === ALL_TAB ? "" : activeTab}
+          onClose={() => setWorkspace(null)}
         />
       )}
     </div>
