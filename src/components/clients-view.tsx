@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import { Folder, Phone, Plus, Search, Store, Trash2, X } from "lucide-react";
 import type { Client } from "@/lib/types";
 import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
@@ -99,12 +100,17 @@ export function ClientsView({ clients }: { clients: Client[] }) {
           {visible.map((client) => (
             <div key={client.id} className="group">
               <div className="h-3 w-24 rounded-t-lg bg-blue/20" />
-              <div className="rounded-lg rounded-tl-none bg-white p-5 shadow-sm">
+              <div className="relative rounded-lg rounded-tl-none bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
+                <Link
+                  href={`/clientes/${client.id}`}
+                  aria-label={`Abrir ${client.name}`}
+                  className="absolute inset-0 rounded-lg rounded-tl-none"
+                />
                 <div className="mb-4 flex items-start justify-between">
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue/10">
                     <Folder className="h-5 w-5 text-blue" />
                   </div>
-                  <form action={deleteClientRecord}>
+                  <form action={deleteClientRecord} className="relative z-10">
                     <input type="hidden" name="id" value={client.id} />
                     <button
                       type="submit"

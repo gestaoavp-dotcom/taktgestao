@@ -7,6 +7,37 @@ export type Client = {
   contact_phone: string | null;
   status: "active" | "inactive";
   notes: string | null;
+  monthly_fee: number | null;
+  payment_day: number | null;
+  payment_method: string | null;
+  created_at: string;
+};
+
+export type ClientAccount = {
+  id: string;
+  client_id: string;
+  marketplace: string;
+  store_name: string;
+  cnpj: string | null;
+  created_at: string;
+};
+
+export type ClientUpdate = {
+  id: string;
+  client_id: string;
+  kind: "update" | "meeting";
+  title: string;
+  body: string | null;
+  happened_on: string;
+  created_at: string;
+};
+
+export type ClientFile = {
+  id: string;
+  client_id: string;
+  name: string;
+  path: string;
+  size: number | null;
   created_at: string;
 };
 
