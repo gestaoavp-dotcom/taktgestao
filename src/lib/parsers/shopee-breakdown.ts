@@ -15,6 +15,10 @@ export type BreakdownLine = {
 const LABEL_OVERRIDES: Record<string, { label: string; note?: string }> = {
   "Preço original": { label: "Preço original (de tabela)" },
   "Preço acordado": { label: "Preço de venda", note: "valor anunciado, já com desconto aplicado" },
+  "Taxa de envio pagas pelo comprador": {
+    label: "Frete pago pelo comprador",
+    note: "não é custo do vendedor — não entra na conta",
+  },
   "Valor Total": { label: "Valor pago pelo comprador", note: "produto + frete" },
   "Total global": {
     label: "Total recebido",
@@ -24,7 +28,8 @@ const LABEL_OVERRIDES: Record<string, { label: string; note?: string }> = {
 
 const POSITIVE_KEYS = ["Preço original", "Preço acordado", "Subtotal do produto"];
 
-const MARKER_KEYS = ["Valor Total"];
+// Not deductions: money the buyer paid or totals Shopee itself computes.
+const MARKER_KEYS = ["Taxa de envio pagas pelo comprador", "Valor Total"];
 
 const TOTAL_KEYS = ["Total global"];
 
@@ -42,7 +47,6 @@ const NEGATIVE_KEYS = [
   "Desconto da Leve Mais por Menos do vendedor",
   "Compensar Moedas Shopee",
   "Total descontado Cartão de Crédito",
-  "Taxa de envio pagas pelo comprador",
   "Taxa de Serviço Instantâneo pago pelo comprador",
   "Desconto de Frete Aproximado",
   "Taxa de Envio Reversa",
