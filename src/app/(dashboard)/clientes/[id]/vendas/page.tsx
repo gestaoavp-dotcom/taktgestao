@@ -3,7 +3,7 @@ import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { getSalesSummary, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { getSalesSummary, lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
 
 const DAYS = 30;
 
@@ -24,7 +24,7 @@ export default async function ClienteVendasPage({
     previousTicket,
     chartData,
     platformRows,
-  } = await getSalesSummary(supabase, id, DAYS);
+  } = await getSalesSummary(supabase, id, lastDays(DAYS));
 
   return (
     <div>

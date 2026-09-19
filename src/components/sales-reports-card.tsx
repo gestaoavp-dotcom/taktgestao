@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Download, FileSpreadsheet, RefreshCw, Trash2, Upload } from "lucide-react";
-import type { SalesReport } from "@/lib/types";
+import type { SalesReport, SalesReportKind } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { createClient } from "@/lib/supabase/client";
 import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
@@ -26,6 +26,16 @@ const STATUS_BADGE: Record<SalesReport["status"], string> = {
   processado: "bg-green-100 text-green-700",
   erro: "bg-red-50 text-red-700",
 };
+
+const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
+  {
+    value: "vendas",
+    label: "Vendas",
+    hint: "relatório de pedidos: valores, pagamentos, cancelamentos e devoluções",
+  },
+  { value: "trafego", label: "Tráfego", hint: "visitas, visualizações e conversão das páginas" },
+  { value: "ads", label: "Ads", hint: "campanhas: investimento, cliques e vendas por anúncio" },
+];
 
 const MONTHS = [
   "Janeiro",
@@ -75,6 +85,7 @@ export function SalesReportsCard({
   orderCounts: Record<string, number>;
 }) {
   const now = new Date();
+  const [kind, setKind] = useState<SalesReportKind>("vendas");
   const [marketplace, setMarketplace] = useState<string>(clientMarketplaces[0] ?? "mercado_livre");
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -84,7 +95,7 @@ export function SalesReportsCard({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const visible = reports.filter((r) => r.marketplace === marketplace);
+  const visible = reports.filter((r) => r.marketplace === marketplace && r.kind === kind);
 
   const grouped = useMemo(() => {
     const byMonth = new Map<string, SalesReport[]>();
@@ -101,6 +112,7 @@ export function SalesReportsCard({
     setUploading(true);
     setError(null);
 
+    const reportKind = replaceReport?.kind ?? kind;
     const reportMarketplace = replaceReport?.marketplace ?? marketplace;
     const reportMonth = replaceReport?.report_month ?? `${year}-${String(month).padStart(2, "0")}-01`;
 
@@ -120,6 +132,7 @@ export function SalesReportsCard({
 
     const registered = await registerSalesReport({
       clientId,
+      kind: reportKind,
       marketplace: reportMarketplace,
       reportMonth,
       name: file.name,
@@ -133,7 +146,7 @@ export function SalesReportsCard({
       return;
     }
 
-    const parser = PARSERS[reportMarketplace];
+    const parser = reportKind === "vendas" ? PARSERS[reportMarketplace] : undefined;
     if (parser) {
       try {
         const XLSX = await import("xlsx");
@@ -182,17 +195,34 @@ export function SalesReportsCard({
     else setError("Não consegui gerar o link do arquivo.");
   }
 
-  const hasParser = Boolean(PARSERS[marketplace]);
+  const hasParser = kind === "vendas" && Boolean(PARSERS[marketplace]);
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm">
-      <h2 className="mb-1 font-bold text-navy">Documentos de vendas por marketplace</h2>
+      <h2 className="mb-3 font-bold text-navy">Importar documentos</h2>
+
+      <nav className="mb-3 flex gap-1 border-b border-navy/[.08]">
+        {KINDS.map((k) => (
+          <button
+            key={k.value}
+            type="button"
+            onClick={() => setKind(k.value)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
+              kind === k.value
+                ? "border-blue text-blue"
+                : "border-transparent text-[#5B647E] hover:text-navy"
+            }`}
+          >
+            {k.label}
+          </button>
+        ))}
+      </nav>
+
       <p className="mb-4 text-xs text-[#94A0BD]">
-        Envie aqui o relatório baixado de cada marketplace (pedidos, pagamentos, cancelamentos e
-        devoluções).
+        {KINDS.find((k) => k.value === kind)?.hint}
         {hasParser
-          ? " Os pedidos são lidos automaticamente e aparecem na aba Pedidos."
-          : " A leitura automática desse marketplace ainda não está pronta — o arquivo fica salvo, mas os pedidos não são extraídos ainda."}
+          ? " — os pedidos são lidos automaticamente e aparecem na aba Pedidos."
+          : " — a leitura automática desse tipo ainda não está pronta: o arquivo fica salvo, mas os dados não são extraídos."}
       </p>
 
       <div className="mb-4 flex flex-wrap gap-1.5">
@@ -238,7 +268,9 @@ export function SalesReportsCard({
 
         <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/20 py-2.5 text-sm font-semibold text-[#5B647E] transition-colors hover:border-blue hover:text-blue">
           <Upload className="h-4 w-4" />
-          {uploading && !replacingId ? "Enviando..." : "Enviar documento deste mês"}
+          {uploading && !replacingId
+            ? "Enviando..."
+            : `Enviar documento de ${KINDS.find((k) => k.value === kind)?.label.toLowerCase()} deste mês`}
           <input
             ref={inputRef}
             type="file"
@@ -329,7 +361,8 @@ export function SalesReportsCard({
         </div>
       ) : (
         <p className="mt-2 text-sm text-[#94A0BD]">
-          Nenhum documento enviado ainda para {MARKETPLACE_LABEL[marketplace] ?? marketplace}.
+          Nenhum documento de {KINDS.find((k) => k.value === kind)?.label.toLowerCase()} enviado
+          ainda para {MARKETPLACE_LABEL[marketplace] ?? marketplace}.
         </p>
       )}
     </div>

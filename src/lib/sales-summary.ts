@@ -12,17 +12,40 @@ export type SalesSummary = {
 };
 
 function toISODate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+export type DateRange = { start: string; end: string };
+
+/** The N days ending today, as a range. */
+export function lastDays(days: number): DateRange {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(start.getDate() - (days - 1));
+  return { start: toISODate(start), end: toISODate(end) };
+}
+
+function fromISO(value: string) {
+  const [y, m, d] = value.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function daysBetween(range: DateRange) {
+  const ms = fromISO(range.end).getTime() - fromISO(range.start).getTime();
+  return Math.round(ms / 86_400_000) + 1;
 }
 
 export async function getSalesSummary(
   supabase: SupabaseClient,
   clientId: string,
-  days: number,
+  range: DateRange,
 ): Promise<SalesSummary> {
-  const today = new Date();
-  const periodStart = new Date(today);
-  periodStart.setDate(periodStart.getDate() - (days - 1));
+  const days = daysBetween(range);
+  const periodStart = fromISO(range.start);
+  const today = fromISO(range.end);
+  // The equally long stretch right before, so the trend compares like with like.
   const prevStart = new Date(periodStart);
   prevStart.setDate(prevStart.getDate() - days);
 

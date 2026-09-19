@@ -70,9 +70,12 @@ export type ClientChange = {
   created_at: string;
 };
 
+export type SalesReportKind = "vendas" | "trafego" | "ads";
+
 export type SalesReport = {
   id: string;
   client_id: string;
+  kind: SalesReportKind;
   marketplace: string;
   report_month: string | null;
   name: string;

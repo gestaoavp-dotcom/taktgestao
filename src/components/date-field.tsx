@@ -56,17 +56,24 @@ export function DateField({
   placeholder = "dd/mm/aaaa",
   required,
   className,
+  onChange,
 }: {
   name: string;
   defaultValue?: string | null;
   placeholder?: string;
   required?: boolean;
   className?: string;
+  onChange?: (value: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue ?? "");
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(() => fromISO(defaultValue) ?? new Date());
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const commit = (next: string) => {
+    setValue(next);
+    onChange?.(next);
+  };
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
@@ -137,7 +144,7 @@ export function DateField({
                   key={i}
                   type="button"
                   onClick={() => {
-                    setValue(toISO(d));
+                    commit(toISO(d));
                     setOpen(false);
                   }}
                   className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs transition-colors ${
@@ -158,7 +165,7 @@ export function DateField({
             <button
               type="button"
               onClick={() => {
-                setValue(toISO(new Date()));
+                commit(toISO(new Date()));
                 setOpen(false);
               }}
               className="flex-1 rounded-lg border border-navy/10 py-1 text-xs font-semibold text-navy hover:bg-brand-gray"
@@ -169,7 +176,7 @@ export function DateField({
               <button
                 type="button"
                 onClick={() => {
-                  setValue("");
+                  commit("");
                   setOpen(false);
                 }}
                 className="flex-1 rounded-lg border border-navy/10 py-1 text-xs font-semibold text-[#5B647E] hover:bg-brand-gray"

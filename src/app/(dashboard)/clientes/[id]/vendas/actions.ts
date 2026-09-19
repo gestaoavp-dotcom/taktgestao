@@ -3,11 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
+import type { SalesReportKind } from "@/lib/types";
 
 type ActionState = { ok: true } | { error: string } | null;
 
 export async function registerSalesReport(input: {
   clientId: string;
+  kind: SalesReportKind;
   marketplace: string;
   reportMonth: string;
   name: string;
@@ -21,6 +23,7 @@ export async function registerSalesReport(input: {
     .from("sales_reports")
     .insert({
       client_id: input.clientId,
+      kind: input.kind,
       marketplace: input.marketplace,
       report_month: input.reportMonth,
       name: input.name,

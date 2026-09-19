@@ -3,19 +3,31 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Client, ClientAccount } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { getSalesSummary, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { getSalesSummary, lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
 import { KpiCard } from "@/components/kpi-card";
 import { ChangesActivityCard } from "@/components/changes-activity-card";
+import { DateRangePicker } from "@/components/date-range-picker";
 
-const DAYS = 30;
+const DEFAULT_DAYS = 30;
+
+function formatBR(iso: string) {
+  const [y, m, d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
 export default async function ClienteDashboardPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ de?: string; ate?: string }>;
 }) {
   const { id } = await params;
+  const { de, ate } = await searchParams;
   const supabase = await createClient();
+
+  const fallback = lastDays(DEFAULT_DAYS);
+  const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
 
   const [{ data: client }, { data: accounts }, sales, { data: allChanges }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
@@ -25,7 +37,7 @@ export default async function ClienteDashboardPage({
       .eq("client_id", id)
       .order("created_at")
       .returns<ClientAccount[]>(),
-    getSalesSummary(supabase, id, DAYS),
+    getSalesSummary(supabase, id, range),
     supabase
       .from("client_changes")
       .select("changed_on, marketplace")
@@ -40,8 +52,14 @@ export default async function ClienteDashboardPage({
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-bold text-navy">Vendas (últimos 30 dias)</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-bold text-navy">
+            Vendas{" "}
+            <span className="font-normal text-[#5B647E]">
+              ({formatBR(range.start)} a {formatBR(range.end)})
+            </span>
+          </h2>
+          <DateRangePicker start={range.start} end={range.end} />
           <Link
             href={`/clientes/${id}/vendas`}
             className="flex items-center gap-1 text-xs font-semibold text-blue hover:underline"
