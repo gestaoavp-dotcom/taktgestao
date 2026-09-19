@@ -29,8 +29,8 @@ const STATUS_BADGE: Record<SalesReport["status"], string> = {
 
 const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
   {
-    value: "vendas",
-    label: "Vendas",
+    value: "pedidos",
+    label: "Pedidos",
     hint: "relatório de pedidos: valores, pagamentos, cancelamentos e devoluções",
   },
   { value: "trafego", label: "Tráfego", hint: "visitas, visualizações e conversão das páginas" },
@@ -85,7 +85,7 @@ export function SalesReportsCard({
   orderCounts: Record<string, number>;
 }) {
   const now = new Date();
-  const [kind, setKind] = useState<SalesReportKind>("vendas");
+  const [kind, setKind] = useState<SalesReportKind>("pedidos");
   const [marketplace, setMarketplace] = useState<string>(clientMarketplaces[0] ?? "mercado_livre");
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -95,7 +95,10 @@ export function SalesReportsCard({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const visible = reports.filter((r) => r.marketplace === marketplace && r.kind === kind);
+  // Reports uploaded before the kind column existed are order reports.
+  const visible = reports.filter(
+    (r) => r.marketplace === marketplace && (r.kind ?? "pedidos") === kind,
+  );
 
   const grouped = useMemo(() => {
     const byMonth = new Map<string, SalesReport[]>();
@@ -146,7 +149,7 @@ export function SalesReportsCard({
       return;
     }
 
-    const parser = reportKind === "vendas" ? PARSERS[reportMarketplace] : undefined;
+    const parser = reportKind === "pedidos" ? PARSERS[reportMarketplace] : undefined;
     if (parser) {
       try {
         const XLSX = await import("xlsx");
@@ -195,7 +198,7 @@ export function SalesReportsCard({
     else setError("Não consegui gerar o link do arquivo.");
   }
 
-  const hasParser = kind === "vendas" && Boolean(PARSERS[marketplace]);
+  const hasParser = kind === "pedidos" && Boolean(PARSERS[marketplace]);
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm">
