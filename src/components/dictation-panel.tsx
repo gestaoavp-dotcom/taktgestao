@@ -7,14 +7,20 @@ import type { ChangeChannelOption } from "@/lib/client-changes";
 
 // The browser's own speech recognition: no key, no cost, nothing sent by us.
 //
-// Three behaviours shape this component:
+// Four behaviours shape this component:
 //  - The engine ends a session by itself after a pause, even with `continuous`
 //    on. That used to be treated as "finished", which cut people off, so only
 //    an explicit stop ends the dictation; anything else restarts.
+//  - Restarting on the same object throws often enough that each restart gets a
+//    fresh one, on the next tick.
 //  - `results` is re-indexed on each restart, so settled text accumulates in a
 //    ref and only the tail counts as provisional.
 //  - The transcript is editable. Speech recognition mishears product names and
 //    numbers, and fixing the sentence is faster than fixing five fields.
+//
+// Recognition is also opaque: it reports neither which microphone it opened nor
+// why it produced nothing. A parallel level meter and an event log make both
+// visible, because the failure modes look identical from the outside.
 
 type SpeechResult = { isFinal: boolean; 0: { transcript: string } };
 
@@ -32,10 +38,25 @@ type SpeechRecognitionLike = {
 
 const MESSAGES: Record<string, string> = {
   "not-allowed": "O navegador bloqueou o microfone. Libere o acesso no cadeado da barra de endereço.",
-  "service-not-allowed": "O navegador bloqueou o serviço de reconhecimento de voz.",
+  "service-not-allowed":
+    "Este navegador não tem acesso ao serviço de reconhecimento de voz do Google. Use o Chrome ou o Edge.",
   "audio-capture": "Nenhum microfone encontrado. Verifique se há um conectado e selecionado.",
   network: "O reconhecimento de voz precisa de internet e a conexão falhou.",
+  "language-not-supported": "Este navegador não reconhece português (pt-BR).",
 };
+
+/** Chromium builds without Google's speech key start, capture, and return nothing. */
+function browserName() {
+  if (typeof navigator === "undefined") return "desconhecido";
+  const ua = navigator.userAgent;
+  if ("brave" in navigator) return "Brave";
+  if (ua.includes("Edg/")) return "Edge";
+  if (ua.includes("OPR/")) return "Opera";
+  if (ua.includes("Chrome/")) return "Chrome";
+  if (ua.includes("Firefox/")) return "Firefox";
+  if (ua.includes("Safari/")) return "Safari";
+  return "outro";
+}
 
 /**
  * Speech recognition gives no sign of which microphone it opened, so a muted
@@ -51,21 +72,18 @@ async function openMicMonitor(onLevel: (level: number) => void) {
   audio.createMediaStreamSource(stream).connect(analyser);
 
   const samples = new Uint8Array(analyser.fftSize);
-  let frame = 0;
+  const monitor = { stream, audio, frame: 0 };
 
   const tick = () => {
     analyser.getByteTimeDomainData(samples);
     let sum = 0;
     for (const sample of samples) sum += (sample - 128) ** 2;
     onLevel(Math.min(1, Math.sqrt(sum / samples.length) / 40));
-    frame = requestAnimationFrame(tick);
+    monitor.frame = requestAnimationFrame(tick);
   };
   tick();
 
-  return {
-    monitor: { stream, audio, get frame() { return frame; } },
-    label: stream.getAudioTracks()[0]?.label ?? null,
-  };
+  return { monitor, label: stream.getAudioTracks()[0]?.label ?? null };
 }
 
 function createRecognition(): SpeechRecognitionLike | null {
@@ -94,10 +112,15 @@ export function DictationPanel({
   const [level, setLevel] = useState(0);
   const [device, setDevice] = useState<string | null>(null);
   const [deaf, setDeaf] = useState(false);
+  const [mute, setMute] = useState(false);
+  const [log, setLog] = useState<string[]>([]);
+  const [showLog, setShowLog] = useState(false);
 
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const micRef = useRef<{ stream: MediaStream; audio: AudioContext; frame: number } | null>(null);
   const peakRef = useRef(0);
+  const resultsRef = useRef(0);
+  const errorRef = useRef(false);
   const finalRef = useRef("");
   /** True only between pressing stop and the engine confirming it. */
   const stoppingRef = useRef(false);
@@ -111,6 +134,11 @@ export function DictationPanel({
     [],
   );
 
+  function note(line: string) {
+    const at = new Date().toLocaleTimeString("pt-BR");
+    setLog((previous) => [...previous.slice(-11), `${at} · ${line}`]);
+  }
+
   function attach(recognition: SpeechRecognitionLike) {
     recognition.lang = "pt-BR";
     recognition.continuous = true;
@@ -123,39 +151,71 @@ export function DictationPanel({
         if (result.isFinal) finalRef.current += result[0].transcript;
         else pending += result[0].transcript;
       }
+      resultsRef.current += 1;
       setText(finalRef.current);
       setInterim(pending);
+      setMute(false);
     };
 
     recognition.onerror = (event) => {
-      // A quiet stretch is not a failure; onend picks the session back up.
-      if (event.error === "no-speech" || event.error === "aborted") return;
+      if (event.error === "aborted") return;
+
+      // A quiet stretch is not a failure; onend picks the session back up. But
+      // "no speech" while the meter shows sound means the engine is receiving
+      // audio and returning nothing — a different problem, worth saying.
+      if (event.error === "no-speech") {
+        note("sem fala reconhecida");
+        if (peakRef.current > 0.05 && resultsRef.current === 0) setMute(true);
+        return;
+      }
+
+      note(`erro: ${event.error}`);
+      errorRef.current = true;
       setError(MESSAGES[event.error] ?? `Falha no reconhecimento de voz (${event.error}).`);
       stoppingRef.current = true;
       setListening(false);
     };
 
     recognition.onend = () => {
-      if (!stoppingRef.current) {
-        try {
-          recognition.start();
-          return;
-        } catch {
-          // Falls through to finishing if the engine refuses to restart.
-        }
+      if (stoppingRef.current) {
+        finish();
+        return;
       }
 
-      setListening(false);
-      setInterim("");
-      closeMic();
-
-      const spoken = finalRef.current.trim();
-      if (spoken) onParsed(parseDictation(spoken, channels));
-      else
-        setError(
-          "Não captei nenhuma palavra. Verifique o microfone selecionado no navegador, ou escreva no campo abaixo.",
-        );
+      // Chrome refuses a same-object restart often enough that a fresh object on
+      // the next tick is the only reliable path.
+      window.setTimeout(() => {
+        if (stoppingRef.current) return;
+        const next = createRecognition();
+        if (!next) {
+          finish();
+          return;
+        }
+        attach(next);
+        recognitionRef.current = next;
+        try {
+          next.start();
+          note("reiniciado");
+        } catch (e) {
+          note(`não reiniciou: ${(e as Error).message}`);
+          finish();
+        }
+      }, 250);
     };
+  }
+
+  function finish() {
+    note("encerrado");
+    setListening(false);
+    setInterim("");
+    closeMic();
+
+    const spoken = finalRef.current.trim();
+    if (spoken) onParsed(parseDictation(spoken, channels));
+    else if (!errorRef.current)
+      setError(
+        "Não captei nenhuma palavra. Veja o diagnóstico abaixo, ou escreva a alteração no campo acima.",
+      );
   }
 
   function start() {
@@ -169,27 +229,37 @@ export function DictationPanel({
     setText("");
     setInterim("");
     setDeaf(false);
+    setMute(false);
+    setLog([]);
     finalRef.current = "";
     peakRef.current = 0;
+    resultsRef.current = 0;
+    errorRef.current = false;
     stoppingRef.current = false;
 
-    void navigator.mediaDevices
-      ?.getUserMedia({ audio: true })
-      .then(async (probe) => {
-        probe.getTracks().forEach((t) => t.stop());
-        const { monitor, label } = await openMicMonitor((value) => {
-          peakRef.current = Math.max(peakRef.current, value);
-          setLevel(value);
-        });
-        micRef.current = monitor as never;
+    note(`iniciando em ${browserName()}`);
+
+    void openMicMonitor((value) => {
+      peakRef.current = Math.max(peakRef.current, value);
+      setLevel(value);
+    })
+      .then(({ monitor, label }) => {
+        micRef.current = monitor;
         setDevice(label);
+        note(`microfone: ${label ?? "sem nome"}`);
         // Recording with a flat signal means the device is not the one picking
         // up the voice.
         window.setTimeout(() => {
-          if (peakRef.current < 0.02) setDeaf(true);
+          if (peakRef.current < 0.02) {
+            setDeaf(true);
+            note("nenhum som captado em 4s");
+          }
         }, 4000);
       })
-      .catch(() => setDevice(null));
+      .catch((e: Error) => {
+        setDevice(null);
+        note(`microfone indisponível: ${e.name}`);
+      });
 
     attach(recognition);
     recognitionRef.current = recognition;
@@ -197,6 +267,7 @@ export function DictationPanel({
     try {
       recognition.start();
     } catch (e) {
+      errorRef.current = true;
       setError(`Não consegui iniciar a gravação: ${(e as Error).message}`);
       return;
     }
@@ -304,6 +375,14 @@ export function DictationPanel({
         </p>
       )}
 
+      {mute && (
+        <p className="mt-2 rounded bg-orange-50 px-3 py-2 text-xs text-[#c2410c]">
+          O microfone está captando som, mas o navegador não devolve nenhuma transcrição. Isso
+          costuma ser o navegador: o reconhecimento de voz depende de um serviço do Google que só
+          vem habilitado no Chrome e no Edge oficiais. Abra o sistema no Chrome e tente de novo.
+        </p>
+      )}
+
       <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs text-[#94A0BD]">
           {listening
@@ -327,6 +406,25 @@ export function DictationPanel({
           O ditado por voz funciona no Chrome, Edge e Safari. Nesse navegador, escreva no campo
           acima ou preencha os campos normalmente.
         </p>
+      )}
+
+      {log.length > 0 && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setShowLog((v) => !v)}
+            className="text-[11px] font-semibold text-[#94A0BD] underline-offset-2 hover:underline"
+          >
+            {showLog ? "Ocultar diagnóstico" : "Ver diagnóstico"}
+          </button>
+          {showLog && (
+            <ul className="mt-1.5 rounded bg-brand-gray px-3 py-2 font-mono text-[11px] leading-relaxed text-navy/70">
+              {log.map((line, i) => (
+                <li key={i}>{line}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   );
