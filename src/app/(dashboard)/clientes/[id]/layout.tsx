@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Phone, Store } from "lucide-react";
+import { ArrowLeft, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Client, ClientAccount } from "@/lib/types";
-import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { MARKETPLACES } from "@/lib/marketplaces";
 import { ClientTabs } from "@/components/client-tabs";
+import { MarketplaceBadge } from "@/components/marketplace-badge";
 
 export default async function ClientLayout({
   children,
@@ -28,11 +29,20 @@ export default async function ClientLayout({
 
   if (!client) notFound();
 
-  const storeNames = accounts?.length
-    ? Array.from(new Set(accounts.map((a) => a.store_name)))
-    : client.store_name
-      ? [client.store_name]
-      : [];
+  // One line per store, listing the marketplaces that store sells on, always
+  // in the same order so the badges line up between stores.
+  const order = MARKETPLACES.map((m) => m.value as string);
+  const stores = new Map<string, string[]>();
+  for (const account of accounts ?? []) {
+    stores.set(account.store_name, [
+      ...(stores.get(account.store_name) ?? []),
+      account.marketplace,
+    ]);
+  }
+  for (const [name, marketplaces] of stores) {
+    stores.set(name, [...marketplaces].sort((a, b) => order.indexOf(a) - order.indexOf(b)));
+  }
+  if (!stores.size && client.store_name) stores.set(client.store_name, client.marketplaces);
 
   return (
     <div>
@@ -47,26 +57,17 @@ export default async function ClientLayout({
       <header className="rounded-t-lg bg-white px-6 pt-6 shadow-sm">
         <h1 className="text-2xl font-bold text-navy">{client.name}</h1>
 
-        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-[#5B647E]">
-          {storeNames.map((name) => (
-            <span key={name} className="flex items-center gap-1.5">
-              <Store className="h-4 w-4 text-[#94A0BD]" />
-              {name}
-            </span>
-          ))}
-          {client.contact_phone && (
-            <span className="flex items-center gap-1.5">
-              <Phone className="h-4 w-4 text-[#94A0BD]" />
-              {client.contact_phone}
-            </span>
-          )}
-          {client.marketplaces.map((m) => (
-            <span
-              key={m}
-              className="rounded-full bg-blue/10 px-2.5 py-0.5 text-xs font-semibold text-blue"
-            >
-              {MARKETPLACE_LABEL[m] ?? m}
-            </span>
+        <div className="mt-3 flex flex-col gap-1.5 text-sm text-[#5B647E]">
+          {Array.from(stores).map(([name, marketplaces]) => (
+            <div key={name} className="flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1.5 font-semibold text-navy">
+                <Store className="h-4 w-4 text-[#94A0BD]" />
+                {name}
+              </span>
+              {marketplaces.map((m) => (
+                <MarketplaceBadge key={`${name}-${m}`} marketplace={m} />
+              ))}
+            </div>
           ))}
         </div>
 
