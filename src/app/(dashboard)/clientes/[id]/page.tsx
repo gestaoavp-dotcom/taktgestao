@@ -13,10 +13,6 @@ import { ChangesActivityCard } from "@/components/changes-activity-card";
 
 const DAYS = 30;
 
-function toISO(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 export default async function ClienteDashboardPage({
   params,
 }: {
@@ -25,11 +21,7 @@ export default async function ClienteDashboardPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const today = new Date();
-  const monthStart = toISO(new Date(today.getFullYear(), today.getMonth(), 1));
-  const monthEnd = toISO(today);
-
-  const [{ data: client }, { data: accounts }, { data: updates }, { data: files }, sales, { data: monthChanges }] =
+  const [{ data: client }, { data: accounts }, { data: updates }, { data: files }, sales, { data: allChanges }] =
     await Promise.all([
       supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
       supabase
@@ -55,8 +47,6 @@ export default async function ClienteDashboardPage({
         .from("client_changes")
         .select("changed_on, marketplace")
         .eq("client_id", id)
-        .gte("changed_on", monthStart)
-        .lte("changed_on", monthEnd)
         .returns<{ changed_on: string; marketplace: string | null }[]>(),
     ]);
 
@@ -132,12 +122,7 @@ export default async function ClienteDashboardPage({
         </div>
       </div>
 
-      <ChangesActivityCard
-        changes={monthChanges ?? []}
-        clientMarketplaces={client.marketplaces}
-        monthStart={monthStart}
-        monthEnd={monthEnd}
-      />
+      <ChangesActivityCard changes={allChanges ?? []} clientMarketplaces={client.marketplaces} />
 
       <div className="grid grid-cols-3 gap-5">
         <ClientBillingCard client={client} />
