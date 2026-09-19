@@ -70,6 +70,17 @@ export type ClientChange = {
   created_at: string;
 };
 
+export type SalesReport = {
+  id: string;
+  client_id: string;
+  marketplace: string;
+  name: string;
+  path: string;
+  size: number | null;
+  status: "recebido" | "processado" | "erro";
+  created_at: string;
+};
+
 export type ClientLink = {
   id: string;
   client_id: string;

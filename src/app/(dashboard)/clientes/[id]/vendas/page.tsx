@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
+import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { getSalesSummary, trendOf, formatCurrency } from "@/lib/sales-summary";
 
@@ -27,6 +28,7 @@ export default async function ClienteVendasPage({
 
   return (
     <div>
+      <VendasSubTabs clientId={id} />
       <div className="mb-5 grid grid-cols-3 gap-5">
         <KpiCard
           label="Faturamento (30 dias)"
