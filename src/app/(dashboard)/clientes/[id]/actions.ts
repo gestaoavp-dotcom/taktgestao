@@ -141,10 +141,15 @@ export async function addChange(
   const { error } = await supabase.from("client_changes").insert({
     client_id: clientId,
     changed_on: (formData.get("changed_on") as string) || undefined,
+    marketplace: (formData.get("marketplace") as string) || null,
+    category: (formData.get("category") as string) || null,
     description: formData.get("description") as string,
     reason: (formData.get("reason") as string) || null,
-    goal: (formData.get("goal") as string) || null,
     owner: (formData.get("owner") as string) || null,
+    status: (formData.get("status") as string) || "aberta",
+    closed_on: (formData.get("closed_on") as string) || null,
+    goal: (formData.get("goal") as string) || null,
+    evidence: (formData.get("evidence") as string) || null,
     created_by: auth.user?.id,
   });
 
@@ -152,6 +157,22 @@ export async function addChange(
 
   revalidatePath(`/clientes/${clientId}/controle`);
   return { ok: true };
+}
+
+export async function updateChangeStatus(formData: FormData) {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+  const status = formData.get("status") as string;
+
+  await supabase
+    .from("client_changes")
+    .update({
+      status,
+      closed_on: status === "concluida" ? new Date().toISOString().slice(0, 10) : null,
+    })
+    .eq("id", formData.get("id") as string);
+
+  revalidatePath(`/clientes/${clientId}/controle`);
 }
 
 export async function deleteChange(formData: FormData) {

@@ -41,14 +41,31 @@ export type ClientFile = {
   created_at: string;
 };
 
+export type ClientChangeStatus = "aberta" | "em_andamento" | "concluida" | "monitorando";
+
+export type ClientChangeCategory =
+  | "preco"
+  | "oferta"
+  | "campanha"
+  | "estoque"
+  | "atendimento_amazon"
+  | "conteudo"
+  | "avaliacao"
+  | "outro";
+
 export type ClientChange = {
   id: string;
   client_id: string;
   changed_on: string;
+  marketplace: string | null;
+  category: ClientChangeCategory | null;
   description: string;
   reason: string | null;
-  goal: string | null;
   owner: string | null;
+  status: ClientChangeStatus;
+  closed_on: string | null;
+  goal: string | null;
+  evidence: string | null;
   created_at: string;
 };
 
