@@ -194,14 +194,3 @@ export type Task = {
   due_date: string | null;
   created_at: string;
 };
-
-export type FinanceEntry = {
-  id: string;
-  client_id: string | null;
-  type: "income" | "expense";
-  description: string;
-  amount: number;
-  due_date: string | null;
-  status: "pending" | "paid";
-  created_at: string;
-};
