@@ -119,16 +119,36 @@ export default async function ResumoPage({
   const avgRatio = history.length
     ? history.reduce((sum, m) => sum + (m.fixed + m.variable) / m.recebido, 0) / history.length
     : null;
+  const avgRecebido = history.length
+    ? history.reduce((sum, m) => sum + m.recebido, 0) / history.length
+    : null;
 
-  // A healthy-cash suggestion, not a rule: it drifts around a 12% baseline as
-  // this month's expenses come in above or below the recent average, but
-  // never below 5% or above 20%.
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+  // A healthy-cash suggestion, not a rule: it drifts around a 12% baseline,
+  // never below 5% or above 20%. Two signals pull on it with equal weight —
+  // despesas acima ou abaixo do normal, e recebido acima ou abaixo do normal
+  // — so the suggestion lands on a point that balances what came in against
+  // what went out this month, not just one side of it.
   let suggestedPct = BASE_RESERVE_PCT;
-  if (currentRatio !== null && avgRatio !== null) {
-    const diff = avgRatio - currentRatio;
-    suggestedPct = Math.min(MAX_RESERVE_PCT, Math.max(MIN_RESERVE_PCT, BASE_RESERVE_PCT + diff * 25));
+  let expenseSignal: number | null = null;
+  let revenueSignal: number | null = null;
+  if (currentRatio !== null && avgRatio !== null && avgRecebido) {
+    expenseSignal = clamp((avgRatio - currentRatio) * 25, -6, 6);
+    revenueSignal = clamp(((current.recebido - avgRecebido) / avgRecebido) * 15, -6, 6);
+    const adjustment = (expenseSignal + revenueSignal) / 2;
+    suggestedPct = clamp(BASE_RESERVE_PCT + adjustment, MIN_RESERVE_PCT, MAX_RESERVE_PCT);
   }
   const suggestedAmount = current.recebido > 0 ? (current.recebido * suggestedPct) / 100 : 0;
+
+  const trend = (value: number, reference: number) => {
+    if (value > reference * 1.03) return "up";
+    if (value < reference * 0.97) return "down";
+    return "flat";
+  };
+  const revenueTrend = avgRecebido ? trend(current.recebido, avgRecebido) : null;
+  const expenseTrend =
+    currentRatio !== null && avgRatio !== null ? trend(currentRatio, avgRatio) : null;
 
   return (
     <div>
@@ -180,8 +200,9 @@ export default async function ResumoPage({
       <div className="rounded-lg bg-white p-5 shadow-sm">
         <h2 className="mb-1 font-bold text-navy">Sugestão de caixa</h2>
         <p className="mb-4 text-xs text-[#94A0BD]">
-          Só uma sugestão, não uma obrigação — varia entre 5% e 20% do recebido do mês
-          conforme as despesas oscilam em relação à média recente.
+          Só uma sugestão, não uma obrigação — varia entre 5% e 20% do recebido do mês.
+          Recebido e despesas pesam igual: um mês bom (recebido alto, despesas baixas)
+          puxa a sugestão para cima, um mês apertado puxa para baixo.
         </p>
         <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
           <p className="text-3xl font-bold text-navy">{suggestedPct.toFixed(0)}%</p>
@@ -190,13 +211,17 @@ export default async function ResumoPage({
             <strong className="text-navy">{formatCurrency(suggestedAmount)}</strong>
           </p>
         </div>
-        {currentRatio !== null && avgRatio !== null ? (
+        {revenueTrend !== null && expenseTrend !== null ? (
           <p className="mt-2 text-xs text-[#5B647E]">
-            {currentRatio > avgRatio
-              ? "As despesas deste mês ficaram acima da média recente, então a sugestão caiu um pouco."
-              : currentRatio < avgRatio
-                ? "As despesas deste mês ficaram abaixo da média recente, então a sugestão subiu um pouco."
-                : "As despesas deste mês seguiram a média recente."}
+            Recebido{" "}
+            {revenueTrend === "up"
+              ? "acima"
+              : revenueTrend === "down"
+                ? "abaixo"
+                : "na média"}{" "}
+            do normal, despesas{" "}
+            {expenseTrend === "up" ? "acima" : expenseTrend === "down" ? "abaixo" : "na média"}{" "}
+            do normal — os dois pesaram igual nessa sugestão.
           </p>
         ) : (
           <p className="mt-2 text-xs text-[#5B647E]">
