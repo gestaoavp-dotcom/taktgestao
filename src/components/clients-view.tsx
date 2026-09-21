@@ -234,7 +234,7 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
               <div className="flex gap-3">
                 <div className="flex flex-1 flex-col gap-1.5">
                   <label htmlFor="cnpj" className="text-sm font-semibold text-navy">
-                    CNPJ
+                    CNPJ Principal
                   </label>
                   <input
                     id="cnpj"
@@ -258,6 +258,41 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
                   />
                 </div>
               </div>
+
+              <div className="flex gap-3">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor="monthly_fee" className="text-sm font-semibold text-navy">
+                    Valor acordado (R$)
+                  </label>
+                  <input
+                    id="monthly_fee"
+                    name="monthly_fee"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0,00"
+                    className={INPUT_CLASS}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor="payment_day" className="text-sm font-semibold text-navy">
+                    Vencimento acordado (dia)
+                  </label>
+                  <input
+                    id="payment_day"
+                    name="payment_day"
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="10"
+                    className={INPUT_CLASS}
+                  />
+                </div>
+              </div>
+              <p className="-mt-2 text-xs text-[#94A0BD]">
+                Preenchido só pelo time. O cliente, quando tiver acesso, só vai
+                visualizar esse valor — a edição continua sendo nossa.
+              </p>
 
               <div className="flex flex-col gap-1.5">
                 <span className="text-sm font-semibold text-navy">Marketplaces geridos</span>

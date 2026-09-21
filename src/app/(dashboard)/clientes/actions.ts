@@ -5,6 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 
 export type CreateClientState = { ok: true; id: string } | { error: string } | null;
 
+function toNumber(value: FormDataEntryValue | null) {
+  if (!value) return null;
+  const n = Number(String(value).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+
 export async function createClientRecord(
   _prevState: CreateClientState,
   formData: FormData,
@@ -17,6 +23,8 @@ export async function createClientRecord(
   const cnpj = ((formData.get("cnpj") as string) || "").trim();
   const label = ((formData.get("label") as string) || "").trim() || null;
   const marketplaces = formData.getAll("marketplaces") as string[];
+  const monthly_fee = toNumber(formData.get("monthly_fee"));
+  const payment_day = toNumber(formData.get("payment_day"));
 
   const { data, error } = await supabase
     .from("clients")
@@ -42,6 +50,8 @@ export async function createClientRecord(
         client_id: data.id,
         cnpj,
         label,
+        monthly_fee,
+        payment_day,
         created_by: auth.user?.id,
       })
       .select("id")
