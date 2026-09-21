@@ -19,6 +19,9 @@ export type ClientAccount = {
   marketplace: string;
   store_name: string;
   cnpj: string | null;
+  monthly_fee: number | null;
+  payment_day: number | null;
+  payment_method: string | null;
   created_at: string;
 };
 

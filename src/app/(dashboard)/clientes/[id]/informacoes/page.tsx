@@ -36,7 +36,7 @@ export default async function ClienteInformacoesPage({
       <ClientContactCard client={client} />
 
       <div className="grid grid-cols-3 gap-5">
-        <ClientBillingCard client={client} />
+        <ClientBillingCard clientId={id} accounts={accounts ?? []} />
         <div className="col-span-2">
           <ClientAccountsCard clientId={id} accounts={accounts ?? []} />
         </div>

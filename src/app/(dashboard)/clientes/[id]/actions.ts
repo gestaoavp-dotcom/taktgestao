@@ -19,17 +19,18 @@ export async function updateBilling(
   const clientId = formData.get("client_id") as string;
 
   const { error } = await supabase
-    .from("clients")
+    .from("client_accounts")
     .update({
       monthly_fee: toNumber(formData.get("monthly_fee")),
       payment_day: toNumber(formData.get("payment_day")),
       payment_method: (formData.get("payment_method") as string) || null,
     })
-    .eq("id", clientId);
+    .eq("id", formData.get("account_id") as string);
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}/informacoes`);
+  revalidatePath("/financas");
   return { ok: true };
 }
 

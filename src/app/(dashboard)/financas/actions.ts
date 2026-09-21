@@ -10,13 +10,14 @@ export async function markPaid(formData: FormData) {
   await supabase.from("client_payments").upsert(
     {
       client_id: formData.get("client_id") as string,
+      account_id: formData.get("account_id") as string,
       reference_month: formData.get("reference_month") as string,
       amount: Number(formData.get("amount")),
       due_date: formData.get("due_date") as string,
       paid_on: new Date().toISOString().slice(0, 10),
       created_by: auth.user?.id,
     },
-    { onConflict: "client_id,reference_month" },
+    { onConflict: "account_id,reference_month" },
   );
 
   revalidatePath("/financas");
@@ -28,7 +29,7 @@ export async function unmarkPaid(formData: FormData) {
   await supabase
     .from("client_payments")
     .delete()
-    .eq("client_id", formData.get("client_id") as string)
+    .eq("account_id", formData.get("account_id") as string)
     .eq("reference_month", formData.get("reference_month") as string);
 
   revalidatePath("/financas");
