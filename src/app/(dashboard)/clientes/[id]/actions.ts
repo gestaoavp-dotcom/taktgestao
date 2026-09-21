@@ -71,7 +71,7 @@ export async function deleteCnpj(formData: FormData) {
   revalidatePath("/financas");
 }
 
-export async function updateContact(
+export async function updateClient(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
@@ -81,6 +81,9 @@ export async function updateContact(
   const { error } = await supabase
     .from("clients")
     .update({
+      name: formData.get("name") as string,
+      store_name: (formData.get("store_name") as string) || null,
+      marketplaces: formData.getAll("marketplaces") as string[],
       contact_email: (formData.get("contact_email") as string) || null,
       contact_phone: (formData.get("contact_phone") as string) || null,
     })
@@ -88,7 +91,9 @@ export async function updateContact(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/clientes/${clientId}/informacoes`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
+  revalidatePath("/clientes");
+  revalidatePath("/financas");
   return { ok: true };
 }
 
@@ -110,7 +115,8 @@ export async function addAccount(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
+  revalidatePath("/financas");
   return { ok: true };
 }
 

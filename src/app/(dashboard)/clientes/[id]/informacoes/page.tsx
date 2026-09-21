@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Client, ClientAccount, ClientCnpj, ClientFile } from "@/lib/types";
-import { ClientContactCard } from "@/components/client-contact-card";
+import { ClientRegistrationCard } from "@/components/client-registration-card";
 import { ClientBillingCard } from "@/components/client-billing-card";
 import { ClientAccountsCard } from "@/components/client-accounts-card";
 import { ClientFilesCard } from "@/components/client-files-card";
@@ -40,7 +40,7 @@ export default async function ClienteInformacoesPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <ClientContactCard client={client} />
+      <ClientRegistrationCard client={client} />
 
       <div className="grid grid-cols-2 gap-5">
         <ClientBillingCard
