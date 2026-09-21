@@ -1,12 +1,13 @@
 "use client";
 
-import { useActionState, useRef } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useActionState, useRef, useState } from "react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { DateField } from "@/components/date-field";
 import {
   addExpense,
   deleteExpense,
   toggleExpenseStatus,
+  updateExpense,
 } from "@/app/(dashboard)/financas/despesas/actions";
 
 export type Expense = {
@@ -33,6 +34,70 @@ function formatDate(date: string | null) {
   return `${d}/${m}/${y}`;
 }
 
+function EditExpenseForm({ expense, onDone }: { expense: Expense; onDone: () => void }) {
+  const [state, formAction, pending] = useActionState(
+    async (prevState: Parameters<typeof updateExpense>[0], formData: FormData) => {
+      const result = await updateExpense(prevState, formData);
+      if (result && "ok" in result) onDone();
+      return result;
+    },
+    null,
+  );
+
+  return (
+    <td colSpan={5} className="px-5 py-3">
+      <form action={formAction} className="flex flex-col gap-2">
+        <input type="hidden" name="id" value={expense.id} />
+        <div className="grid grid-cols-4 gap-2">
+          <input
+            name="description"
+            required
+            defaultValue={expense.description}
+            className={`col-span-2 ${INPUT_CLASS}`}
+          />
+          <input
+            name="amount"
+            type="number"
+            step="0.01"
+            min="0"
+            required
+            defaultValue={expense.amount}
+            className={INPUT_CLASS}
+          />
+          <DateField
+            name="due_date"
+            defaultValue={expense.due_date}
+            className={`flex items-center justify-between ${INPUT_CLASS}`}
+          />
+        </div>
+
+        {state && "error" in state && (
+          <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={pending}
+            aria-label="Salvar"
+            className="rounded p-1.5 text-green-600 hover:bg-green-50 disabled:opacity-60"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onDone}
+            aria-label="Cancelar"
+            className="rounded p-1.5 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </form>
+    </td>
+  );
+}
+
 export function ExpensesView({
   expenses,
   today,
@@ -41,6 +106,7 @@ export function ExpensesView({
   today: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [state, formAction, pending] = useActionState(
     async (prevState: Parameters<typeof addExpense>[0], formData: FormData) => {
@@ -108,6 +174,17 @@ export function ExpensesView({
           </thead>
           <tbody>
             {expenses.map((expense) => {
+              if (editingId === expense.id) {
+                return (
+                  <tr key={expense.id} className="border-t border-navy/[.06]">
+                    <EditExpenseForm
+                      expense={expense}
+                      onDone={() => setEditingId(null)}
+                    />
+                  </tr>
+                );
+              }
+
               const overdue =
                 expense.status === "pending" && expense.due_date && expense.due_date < today;
 
@@ -145,16 +222,26 @@ export function ExpensesView({
                     </form>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <form action={deleteExpense}>
-                      <input type="hidden" name="id" value={expense.id} />
+                    <div className="inline-flex items-center gap-1">
                       <button
-                        type="submit"
-                        aria-label={`Excluir ${expense.description}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                        type="button"
+                        onClick={() => setEditingId(expense.id)}
+                        aria-label={`Editar ${expense.description}`}
+                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-brand-gray hover:text-navy focus:opacity-100 group-hover:opacity-100"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </button>
-                    </form>
+                      <form action={deleteExpense}>
+                        <input type="hidden" name="id" value={expense.id} />
+                        <button
+                          type="submit"
+                          aria-label={`Excluir ${expense.description}`}
+                          className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </form>
+                    </div>
                   </td>
                 </tr>
               );

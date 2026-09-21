@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import type { TaxSettings } from "@/lib/types";
 import { ExpensesView, type Expense } from "@/components/expenses-view";
+import { TaxSummaryCard, type TaxNote } from "@/components/tax-summary-card";
 
 const MONTH_NAMES = [
   "janeiro",
@@ -17,6 +19,14 @@ const MONTH_NAMES = [
   "novembro",
   "dezembro",
 ];
+
+type PaymentRow = {
+  id: string;
+  amount: number;
+  paid_on: string;
+  clients: { name: string } | null;
+  client_cnpjs: { label: string | null; cnpj: string } | null;
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -49,14 +59,23 @@ export default async function DespesasPage({
 
   const supabase = await createClient();
 
-  const { data: expenses } = await supabase
-    .from("finance_entries")
-    .select("id, description, amount, due_date, status")
-    .eq("type", "expense")
-    .gte("due_date", monthStart)
-    .lt("due_date", monthEnd)
-    .order("due_date")
-    .returns<Expense[]>();
+  const [{ data: expenses }, { data: taxSettings }, { data: payments }] = await Promise.all([
+    supabase
+      .from("finance_entries")
+      .select("id, description, amount, due_date, status")
+      .eq("type", "expense")
+      .gte("due_date", monthStart)
+      .lt("due_date", monthEnd)
+      .order("due_date")
+      .returns<Expense[]>(),
+    supabase.from("tax_settings").select("*").limit(1).maybeSingle<TaxSettings>(),
+    supabase
+      .from("client_payments")
+      .select("id, amount, paid_on, clients(name), client_cnpjs(label, cnpj)")
+      .eq("reference_month", monthStart)
+      .order("paid_on")
+      .returns<PaymentRow[]>(),
+  ]);
 
   const rows = expenses ?? [];
   const total = rows.reduce((sum, e) => sum + Number(e.amount), 0);
@@ -66,6 +85,22 @@ export default async function DespesasPage({
   const overdue = rows
     .filter((e) => e.status === "pending" && e.due_date && e.due_date < today)
     .reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const taxNotes: TaxNote[] = (payments ?? []).map((p) => ({
+    id: p.id,
+    clientName: p.clients?.name ?? "—",
+    cnpjLabel: p.client_cnpjs?.label ?? null,
+    cnpj: p.client_cnpjs?.cnpj ?? null,
+    amount: Number(p.amount),
+    paidOn: p.paid_on,
+  }));
+
+  const taxDescription = taxSettings
+    ? `Imposto sobre faturamento (${taxSettings.rate_percent}%)`
+    : null;
+  const taxAlreadyLogged = taxDescription
+    ? rows.some((e) => e.description === taxDescription)
+    : false;
 
   return (
     <div>
@@ -105,6 +140,15 @@ export default async function DespesasPage({
           <p className="text-2xl font-bold text-red-700">{formatCurrency(overdue)}</p>
         </div>
       </div>
+
+      {taxSettings && (
+        <TaxSummaryCard
+          settings={taxSettings}
+          notes={taxNotes}
+          alreadyLogged={taxAlreadyLogged}
+          today={today}
+        />
+      )}
 
       <ExpensesView expenses={rows} today={today} />
     </div>

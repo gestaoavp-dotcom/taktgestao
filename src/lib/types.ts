@@ -209,6 +209,12 @@ export type ClientLink = {
   created_at: string;
 };
 
+export type TaxSettings = {
+  id: string;
+  rate_percent: number;
+  updated_at: string;
+};
+
 export type Task = {
   id: string;
   title: string;
