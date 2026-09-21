@@ -24,7 +24,6 @@ export type Charge = {
 export type ClientRow = {
   id: string;
   name: string;
-  storeName: string | null;
   charges: Charge[];
   total: number;
 };
@@ -97,9 +96,6 @@ export function ReceivablesTable({
                     >
                       {client.name}
                     </Link>
-                    {client.storeName && (
-                      <p className="text-xs text-[#94A0BD]">{client.storeName}</p>
-                    )}
                   </td>
                   <td className="px-5 py-3 text-[#5B647E]">
                     {client.charges.length} {client.charges.length === 1 ? "CNPJ" : "CNPJs"}

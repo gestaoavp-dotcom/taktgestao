@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client, SalesReport } from "@/lib/types";
+import type { SalesReport } from "@/lib/types";
+import { distinctMarketplaces } from "@/lib/marketplaces";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesReportsCard } from "@/components/sales-reports-card";
 
@@ -11,12 +12,8 @@ export default async function ImportarVendasPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: reports }, { data: orderRows }] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("marketplaces")
-      .eq("id", id)
-      .maybeSingle<Pick<Client, "marketplaces">>(),
+  const [{ data: accounts }, { data: reports }, { data: orderRows }] = await Promise.all([
+    supabase.from("client_accounts").select("marketplace").eq("client_id", id),
     supabase
       .from("sales_reports")
       .select("*")
@@ -40,7 +37,7 @@ export default async function ImportarVendasPage({
       <VendasSubTabs clientId={id} />
       <SalesReportsCard
         clientId={id}
-        clientMarketplaces={client?.marketplaces ?? []}
+        clientMarketplaces={distinctMarketplaces(accounts ?? [])}
         reports={reports ?? []}
         orderCounts={orderCounts}
       />

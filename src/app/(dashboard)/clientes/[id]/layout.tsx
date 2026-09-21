@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { Client, ClientAccount } from "@/lib/types";
+import type { ClientAccount } from "@/lib/types";
 import { MARKETPLACES } from "@/lib/marketplaces";
 import { ClientTabs } from "@/components/client-tabs";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
@@ -18,7 +18,11 @@ export default async function ClientLayout({
   const supabase = await createClient();
 
   const [{ data: client }, { data: accounts }] = await Promise.all([
-    supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+    supabase
+      .from("clients")
+      .select("id, name")
+      .eq("id", id)
+      .maybeSingle<{ id: string; name: string }>(),
     supabase
       .from("client_accounts")
       .select("*")
@@ -42,7 +46,6 @@ export default async function ClientLayout({
   for (const [name, marketplaces] of stores) {
     stores.set(name, [...marketplaces].sort((a, b) => order.indexOf(a) - order.indexOf(b)));
   }
-  if (!stores.size && client.store_name) stores.set(client.store_name, client.marketplaces);
 
   return (
     <div>

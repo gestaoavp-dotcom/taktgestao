@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import type { Client } from "@/lib/types";
-import { MARKETPLACES } from "@/lib/marketplaces";
 import { updateClient } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
@@ -26,7 +25,11 @@ export function ClientRegistrationCard({ client }: { client: Client }) {
 
   return (
     <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-4 font-bold text-navy">Cadastro</h2>
+      <h2 className="mb-1 font-bold text-navy">Cadastro</h2>
+      <p className="mb-4 text-xs text-[#94A0BD]">
+        Loja, CNPJ e marketplaces ficam no card Financeiro e em Contas gerenciadas,
+        abaixo — aqui é só a identificação do cliente.
+      </p>
 
       <form action={formAction} className="flex flex-col gap-4">
         <input type="hidden" name="client_id" value={client.id} />
@@ -37,18 +40,6 @@ export function ClientRegistrationCard({ client }: { client: Client }) {
             <input name="name" required defaultValue={client.name} className={INPUT_CLASS} />
           </label>
 
-          <label className="flex min-w-[220px] flex-1 flex-col gap-1.5">
-            <span className={FIELD_LABEL}>Loja</span>
-            <input
-              name="store_name"
-              defaultValue={client.store_name ?? ""}
-              placeholder="Nome da loja nos marketplaces"
-              className={INPUT_CLASS}
-            />
-          </label>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
           <label className="flex min-w-[220px] flex-1 flex-col gap-1.5">
             <span className={FIELD_LABEL}>E-mail</span>
             <input
@@ -73,26 +64,6 @@ export function ClientRegistrationCard({ client }: { client: Client }) {
             />
           </label>
         </div>
-
-        <fieldset>
-          <legend className={`mb-1.5 ${FIELD_LABEL}`}>Marketplaces</legend>
-          <div className="flex flex-wrap gap-2">
-            {MARKETPLACES.map((m) => (
-              <label key={m.value} className="cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="marketplaces"
-                  value={m.value}
-                  defaultChecked={client.marketplaces.includes(m.value)}
-                  className="peer sr-only"
-                />
-                <span className="block rounded-full border border-navy/10 px-3 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray peer-checked:border-blue peer-checked:bg-blue peer-checked:text-white peer-checked:hover:bg-[#1e4ed8] peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40">
-                  {m.label}
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
 
         <div className="flex items-center gap-3">
           <button

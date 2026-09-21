@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { Client, ClientAccount } from "@/lib/types";
-import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import type { ClientAccount } from "@/lib/types";
+import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
 import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
 import { getOrdersSummary } from "@/lib/orders-summary";
 import { AreaChart } from "@/components/area-chart";
@@ -32,7 +32,7 @@ export default async function ClienteDashboardPage({
   const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
 
   const [{ data: client }, { data: accounts }, sales, { data: allChanges }] = await Promise.all([
-    supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+    supabase.from("clients").select("id").eq("id", id).maybeSingle<{ id: string }>(),
     supabase
       .from("client_accounts")
       .select("*")
@@ -130,7 +130,10 @@ export default async function ClienteDashboardPage({
         </div>
       </div>
 
-      <ChangesActivityCard changes={allChanges ?? []} clientMarketplaces={client.marketplaces} />
+      <ChangesActivityCard
+        changes={allChanges ?? []}
+        clientMarketplaces={distinctMarketplaces(accounts ?? [])}
+      />
     </div>
   );
 }

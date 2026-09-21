@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client, SalesOrder } from "@/lib/types";
+import type { SalesOrder } from "@/lib/types";
+import { distinctMarketplaces } from "@/lib/marketplaces";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesOrdersTable } from "@/components/sales-orders-table";
 
@@ -38,12 +39,8 @@ export default async function PedidosPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, orders] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("marketplaces")
-      .eq("id", id)
-      .maybeSingle<Pick<Client, "marketplaces">>(),
+  const [{ data: accounts }, orders] = await Promise.all([
+    supabase.from("client_accounts").select("marketplace").eq("client_id", id),
     fetchOrders(supabase, id),
   ]);
 
@@ -53,7 +50,7 @@ export default async function PedidosPage({
       <SalesOrdersTable
         clientId={id}
         orders={orders}
-        clientMarketplaces={client?.marketplaces ?? []}
+        clientMarketplaces={distinctMarketplaces(accounts ?? [])}
       />
     </div>
   );

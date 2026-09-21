@@ -2,14 +2,24 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { Folder, Phone, Plus, Search, Store, Trash2, X } from "lucide-react";
-import type { Client } from "@/lib/types";
-import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { useRouter } from "next/navigation";
+import { Folder, Phone, Plus, Search, Trash2, X } from "lucide-react";
+import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import {
   createClientRecord,
   deleteClientRecord,
   type CreateClientState,
 } from "@/app/(dashboard)/clientes/actions";
+
+export type ClientSummary = {
+  id: string;
+  name: string;
+  contactPhone: string | null;
+  cnpjCount: number;
+  storeCount: number;
+  marketplaces: string[];
+  searchText: string;
+};
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
@@ -25,7 +35,8 @@ function formatPhone(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
-export function ClientsView({ clients }: { clients: Client[] }) {
+export function ClientsView({ clients }: { clients: ClientSummary[] }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [phone, setPhone] = useState("");
@@ -35,6 +46,9 @@ export function ClientsView({ clients }: { clients: Client[] }) {
       if (result && "ok" in result) {
         setModalOpen(false);
         setPhone("");
+        // A client is just a name at birth now — the CNPJ, its lojas and the
+        // mensalidade all live in Informações, so that is where this goes next.
+        router.push(`/clientes/${result.id}/informacoes`);
       }
       return result;
     },
@@ -51,17 +65,7 @@ export function ClientsView({ clients }: { clients: Client[] }) {
   }, [modalOpen]);
 
   const term = query.trim().toLowerCase();
-  const visible = term
-    ? clients.filter((client) =>
-        [
-          client.name,
-          client.store_name,
-          ...client.marketplaces.map((m) => MARKETPLACE_LABEL[m] ?? m),
-        ]
-          .filter(Boolean)
-          .some((field) => field!.toLowerCase().includes(term)),
-      )
-    : clients;
+  const visible = term ? clients.filter((client) => client.searchText.includes(term)) : clients;
 
   return (
     <div>
@@ -75,7 +79,7 @@ export function ClientsView({ clients }: { clients: Client[] }) {
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar cliente..."
+              placeholder="Buscar cliente, CNPJ, loja..."
               aria-label="Buscar cliente"
               className={`${INPUT_CLASS} pl-9`}
             />
@@ -125,11 +129,14 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 <h2 className="truncate font-bold text-navy" title={client.name}>
                   {client.name}
                 </h2>
-                {client.store_name && (
-                  <p className="mt-0.5 flex items-center gap-1.5 truncate text-sm text-[#5B647E]">
-                    <Store className="h-3.5 w-3.5 flex-shrink-0 text-[#94A0BD]" />
-                    {client.store_name}
+
+                {client.cnpjCount > 0 ? (
+                  <p className="mt-0.5 text-sm text-[#5B647E]">
+                    {client.storeCount} {client.storeCount === 1 ? "loja" : "lojas"} em{" "}
+                    {client.cnpjCount} {client.cnpjCount === 1 ? "CNPJ" : "CNPJs"}
                   </p>
+                ) : (
+                  <p className="mt-0.5 text-sm text-[#94A0BD]">Nenhum CNPJ cadastrado</p>
                 )}
 
                 {client.marketplaces.length > 0 && (
@@ -146,10 +153,10 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 )}
 
                 <div className="mt-4 border-t border-navy/[.06] pt-3 text-xs text-[#5B647E]">
-                  {client.contact_phone ? (
+                  {client.contactPhone ? (
                     <p className="flex items-center gap-1.5">
                       <Phone className="h-3.5 w-3.5 flex-shrink-0 text-[#94A0BD]" />
-                      {client.contact_phone}
+                      {client.contactPhone}
                     </p>
                   ) : (
                     <p className="text-[#94A0BD]">Sem telefone cadastrado</p>
@@ -183,7 +190,7 @@ export function ClientsView({ clients }: { clients: Client[] }) {
             aria-labelledby="novo-cliente-titulo"
             className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
           >
-            <div className="mb-5 flex items-center justify-between">
+            <div className="mb-1 flex items-center justify-between">
               <h2 id="novo-cliente-titulo" className="text-lg font-bold text-navy">
                 Novo cliente
               </h2>
@@ -196,6 +203,10 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
+            <p className="mb-5 text-xs text-[#94A0BD]">
+              CNPJ, loja, marketplaces e mensalidade são cadastrados depois, na aba
+              Informações do cliente.
+            </p>
 
             <form action={formAction} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
@@ -204,37 +215,6 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                 </label>
                 <input id="name" name="name" required autoFocus className={INPUT_CLASS} />
               </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="store_name" className="text-sm font-semibold text-navy">
-                  Loja
-                </label>
-                <input
-                  id="store_name"
-                  name="store_name"
-                  placeholder="Nome da loja nos marketplaces"
-                  className={INPUT_CLASS}
-                />
-              </div>
-
-              <fieldset className="flex flex-col gap-2">
-                <legend className="mb-1 text-sm font-semibold text-navy">Marketplaces</legend>
-                <div className="flex flex-wrap gap-2">
-                  {MARKETPLACES.map((m) => (
-                    <label key={m.value} className="cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="marketplaces"
-                        value={m.value}
-                        className="peer sr-only"
-                      />
-                      <span className="block rounded-full border border-navy/10 px-3 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray peer-checked:border-blue peer-checked:bg-blue peer-checked:text-white peer-checked:hover:bg-[#1e4ed8] peer-focus-visible:ring-2 peer-focus-visible:ring-blue/40">
-                        {m.label}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
 
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="contact_phone" className="text-sm font-semibold text-navy">
@@ -271,7 +251,7 @@ export function ClientsView({ clients }: { clients: Client[] }) {
                   disabled={pending}
                   className="rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8] disabled:opacity-60"
                 >
-                  {pending ? "Salvando..." : "Salvar cliente"}
+                  {pending ? "Salvando..." : "Salvar e continuar"}
                 </button>
               </div>
             </form>

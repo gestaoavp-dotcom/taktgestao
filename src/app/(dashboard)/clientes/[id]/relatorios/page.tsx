@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Client } from "@/lib/types";
+import { distinctMarketplaces } from "@/lib/marketplaces";
 import { buildMonthlyReport, REPORT_SECTIONS, type ReportSection } from "@/lib/report";
 import { ReportOptions } from "@/components/report-options";
 import { MonthlyReportView } from "@/components/monthly-report";
@@ -22,8 +23,9 @@ export default async function ClienteRelatoriosPage({
   const { mes, plataforma, secoes, gerar } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: months }] = await Promise.all([
+  const [{ data: client }, { data: accounts }, { data: months }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+    supabase.from("client_accounts").select("marketplace").eq("client_id", id),
     supabase
       .from("sales_reports")
       .select("report_month")
@@ -58,7 +60,7 @@ export default async function ClienteRelatoriosPage({
         marketplace={marketplace}
         sections={sections}
         availableMonths={availableMonths}
-        clientMarketplaces={client.marketplaces}
+        clientMarketplaces={distinctMarketplaces(accounts ?? [])}
         generated={generated}
       />
 

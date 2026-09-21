@@ -107,8 +107,6 @@ export async function updateClient(
     .from("clients")
     .update({
       name: formData.get("name") as string,
-      store_name: (formData.get("store_name") as string) || null,
-      marketplaces: formData.getAll("marketplaces") as string[],
       contact_email: (formData.get("contact_email") as string) || null,
       contact_phone: (formData.get("contact_phone") as string) || null,
     })

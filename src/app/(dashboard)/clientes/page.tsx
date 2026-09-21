@@ -1,14 +1,60 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client } from "@/lib/types";
-import { ClientsView } from "@/components/clients-view";
+import type { ClientAccount, ClientCnpj } from "@/lib/types";
+import { distinctMarketplaces } from "@/lib/marketplaces";
+import { ClientsView, type ClientSummary } from "@/components/clients-view";
 
 export default async function ClientesPage() {
   const supabase = await createClient();
-  const { data: clients } = await supabase
-    .from("clients")
-    .select("*")
-    .order("name")
-    .returns<Client[]>();
 
-  return <ClientsView clients={clients ?? []} />;
+  const [{ data: clients }, { data: cnpjs }, { data: accounts }] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, name, contact_phone")
+      .order("name")
+      .returns<{ id: string; name: string; contact_phone: string | null }[]>(),
+    supabase.from("client_cnpjs").select("*").returns<ClientCnpj[]>(),
+    supabase.from("client_accounts").select("*").returns<ClientAccount[]>(),
+  ]);
+
+  const cnpjsByClient = new Map<string, ClientCnpj[]>();
+  for (const cnpj of cnpjs ?? []) {
+    cnpjsByClient.set(cnpj.client_id, [...(cnpjsByClient.get(cnpj.client_id) ?? []), cnpj]);
+  }
+
+  const accountsByClient = new Map<string, ClientAccount[]>();
+  for (const account of accounts ?? []) {
+    accountsByClient.set(account.client_id, [
+      ...(accountsByClient.get(account.client_id) ?? []),
+      account,
+    ]);
+  }
+
+  // The CNPJ commands what the client is: this list is built from the real
+  // stores and CNPJs, not from anything typed once at creation and left to
+  // go stale.
+  const summaries: ClientSummary[] = (clients ?? []).map((client) => {
+    const clientCnpjs = cnpjsByClient.get(client.id) ?? [];
+    const clientAccounts = accountsByClient.get(client.id) ?? [];
+    const marketplaces = distinctMarketplaces(clientAccounts);
+
+    return {
+      id: client.id,
+      name: client.name,
+      contactPhone: client.contact_phone,
+      cnpjCount: clientCnpjs.length,
+      storeCount: clientAccounts.length,
+      marketplaces,
+      searchText: [
+        client.name,
+        client.contact_phone,
+        ...clientCnpjs.flatMap((c) => [c.label, c.cnpj]),
+        ...clientAccounts.map((a) => a.store_name),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase(),
+    };
+  });
+
+  return <ClientsView clients={summaries} />;
 }

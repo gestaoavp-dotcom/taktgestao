@@ -12,7 +12,6 @@ import {
 type ClientRecord = {
   id: string;
   name: string;
-  store_name: string | null;
 };
 
 type Payment = {
@@ -83,7 +82,7 @@ export default async function FinancasPage({
   ] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, name, store_name")
+      .select("id, name")
       .order("name")
       .returns<ClientRecord[]>(),
     supabase
@@ -149,7 +148,6 @@ export default async function FinancasPage({
     return {
       id: client.id,
       name: client.name,
-      storeName: client.store_name,
       charges,
       total: charges.reduce((sum, c) => sum + Number(c.fee ?? 0), 0),
     };

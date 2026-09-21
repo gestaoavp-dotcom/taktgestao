@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client, SalesTraffic } from "@/lib/types";
+import type { SalesTraffic } from "@/lib/types";
+import { distinctMarketplaces } from "@/lib/marketplaces";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesTrafficTable } from "@/components/sales-traffic-table";
 
@@ -7,12 +8,8 @@ export default async function TrafegoPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: products }] = await Promise.all([
-    supabase
-      .from("clients")
-      .select("marketplaces")
-      .eq("id", id)
-      .maybeSingle<Pick<Client, "marketplaces">>(),
+  const [{ data: accounts }, { data: products }] = await Promise.all([
+    supabase.from("client_accounts").select("marketplace").eq("client_id", id),
     supabase
       .from("sales_traffic")
       .select("*")
@@ -24,7 +21,10 @@ export default async function TrafegoPage({ params }: { params: Promise<{ id: st
   return (
     <div>
       <VendasSubTabs clientId={id} />
-      <SalesTrafficTable products={products ?? []} clientMarketplaces={client?.marketplaces ?? []} />
+      <SalesTrafficTable
+        products={products ?? []}
+        clientMarketplaces={distinctMarketplaces(accounts ?? [])}
+      />
     </div>
   );
 }
