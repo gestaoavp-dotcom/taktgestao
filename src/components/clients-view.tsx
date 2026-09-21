@@ -4,7 +4,8 @@ import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Folder, Phone, Plus, Search, Trash2, X } from "lucide-react";
-import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { formatCnpj, formatPhone } from "@/lib/masks";
 import {
   createClientRecord,
   deleteClientRecord,
@@ -24,30 +25,28 @@ export type ClientSummary = {
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
-function formatPhone(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (!digits) return "";
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
-
 export function ClientsView({ clients }: { clients: ClientSummary[] }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [phone, setPhone] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [marketplaces, setMarketplaces] = useState<string[]>([]);
+
+  function resetModalFields() {
+    setPhone("");
+    setCnpj("");
+    setMarketplaces([]);
+  }
+
   const [state, formAction, pending] = useActionState(
     async (prevState: CreateClientState, formData: FormData) => {
       const result = await createClientRecord(prevState, formData);
       if (result && "ok" in result) {
         setModalOpen(false);
-        setPhone("");
-        // A client is just a name at birth now — the CNPJ, its lojas and the
-        // mensalidade all live in Informações, so that is where this goes next.
+        resetModalFields();
+        // Mensalidade, dia de vencimento e forma de pagamento continuam em
+        // Informações — só o pré-cadastro (CNPJ + lojas) mora no modal.
         router.push(`/clientes/${result.id}/informacoes`);
       }
       return result;
@@ -88,7 +87,7 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
           <button
             type="button"
             onClick={() => {
-              setPhone("");
+              resetModalFields();
               setModalOpen(true);
             }}
             className="flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
@@ -204,8 +203,8 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
               </button>
             </div>
             <p className="mb-5 text-xs text-[#94A0BD]">
-              CNPJ, loja, marketplaces e mensalidade são cadastrados depois, na aba
-              Informações do cliente.
+              Este é o pré-cadastro feito por nós: CNPJ e lojas geridas já ficam
+              registrados aqui. A mensalidade é definida depois, na aba Informações.
             </p>
 
             <form action={formAction} className="flex flex-col gap-4">
@@ -230,6 +229,69 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
                   placeholder="(11) 90000-0000"
                   className={INPUT_CLASS}
                 />
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor="cnpj" className="text-sm font-semibold text-navy">
+                    CNPJ
+                  </label>
+                  <input
+                    id="cnpj"
+                    name="cnpj"
+                    inputMode="numeric"
+                    value={cnpj}
+                    onChange={(e) => setCnpj(formatCnpj(e.target.value))}
+                    placeholder="00.000.000/0000-00"
+                    className={INPUT_CLASS}
+                  />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor="label" className="text-sm font-semibold text-navy">
+                    Loja / apelido
+                  </label>
+                  <input
+                    id="label"
+                    name="label"
+                    placeholder="Opcional"
+                    className={INPUT_CLASS}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold text-navy">Marketplaces geridos</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {MARKETPLACES.map((m) => {
+                    const checked = marketplaces.includes(m.value);
+                    return (
+                      <label
+                        key={m.value}
+                        className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                          checked
+                            ? "border-blue bg-blue/10 text-blue"
+                            : "border-navy/10 text-[#5B647E] hover:border-blue/40"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          name="marketplaces"
+                          value={m.value}
+                          checked={checked}
+                          onChange={(e) => {
+                            setMarketplaces((prev) =>
+                              e.target.checked
+                                ? [...prev, m.value]
+                                : prev.filter((v) => v !== m.value),
+                            );
+                          }}
+                          className="sr-only"
+                        />
+                        {m.label}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               {state && "error" in state && (

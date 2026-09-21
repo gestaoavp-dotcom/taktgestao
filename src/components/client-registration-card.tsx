@@ -2,23 +2,13 @@
 
 import { useActionState } from "react";
 import type { Client } from "@/lib/types";
+import { formatPhone } from "@/lib/masks";
 import { updateClient } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
 const FIELD_LABEL = "text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]";
-
-function formatPhone(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 11);
-  if (!digits) return "";
-  if (digits.length <= 2) return `(${digits}`;
-  if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-  if (digits.length <= 10) {
-    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-  }
-  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-}
 
 export function ClientRegistrationCard({ client }: { client: Client }) {
   const [state, formAction, pending] = useActionState(updateClient, null);

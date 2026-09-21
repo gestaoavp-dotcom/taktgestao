@@ -5,23 +5,13 @@ import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import { MARKETPLACES } from "@/lib/marketplaces";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
+import { formatCnpj } from "@/lib/masks";
 import { addAccount, deleteAccount, updateAccount } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
 const CNPJ_LIST_ID = "cnpjs-do-cliente";
-
-function formatCnpj(value: string) {
-  const digits = value.replace(/\D/g, "").slice(0, 14);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
-  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
-  if (digits.length <= 12) {
-    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
-  }
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
-}
 
 /** Typed freely so a new CNPJ can be entered, with the known ones as suggestions. */
 function CnpjField({ defaultValue }: { defaultValue?: string }) {
