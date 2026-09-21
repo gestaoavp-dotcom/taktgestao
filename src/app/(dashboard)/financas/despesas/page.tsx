@@ -62,7 +62,7 @@ export default async function DespesasPage({
   const [{ data: expenses }, { data: taxSettings }, { data: payments }] = await Promise.all([
     supabase
       .from("finance_entries")
-      .select("id, description, amount, due_date, status")
+      .select("id, description, amount, due_date, status, category")
       .eq("type", "expense")
       .gte("due_date", monthStart)
       .lt("due_date", monthEnd)
@@ -84,6 +84,12 @@ export default async function DespesasPage({
     .reduce((sum, e) => sum + Number(e.amount), 0);
   const overdue = rows
     .filter((e) => e.status === "pending" && e.due_date && e.due_date < today)
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const fixedTotal = rows
+    .filter((e) => e.category === "fixed")
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const variableTotal = rows
+    .filter((e) => e.category === "variable")
     .reduce((sum, e) => sum + Number(e.amount), 0);
 
   const taxNotes: TaxNote[] = (payments ?? []).map((p) => ({
@@ -138,6 +144,19 @@ export default async function DespesasPage({
         <div className="rounded-lg bg-white p-5 shadow-sm">
           <p className="text-sm text-[#5B647E]">Atrasado</p>
           <p className="text-2xl font-bold text-red-700">{formatCurrency(overdue)}</p>
+        </div>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-4">
+        <div className="rounded-lg bg-white p-5 shadow-sm">
+          <p className="text-sm text-[#5B647E]">Despesas fixas</p>
+          <p className="text-2xl font-bold text-navy">{formatCurrency(fixedTotal)}</p>
+          <p className="mt-1 text-xs text-[#94A0BD]">Impostos, assinaturas e outros custos recorrentes</p>
+        </div>
+        <div className="rounded-lg bg-white p-5 shadow-sm">
+          <p className="text-sm text-[#5B647E]">Despesas variáveis</p>
+          <p className="text-2xl font-bold text-navy">{formatCurrency(variableTotal)}</p>
+          <p className="mt-1 text-xs text-[#94A0BD]">Imprevistos, eventos e investimentos pontuais</p>
         </div>
       </div>
 

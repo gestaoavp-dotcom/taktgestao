@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const TABS = [
+  { href: "/financas/resumo", label: "Resumo" },
   { href: "/financas", label: "Contas a receber" },
-  { href: "/financas/despesas", label: "Despesas" },
+  { href: "/financas/despesas", label: "Contas a pagar" },
 ];
 
 export function FinancasTabs() {

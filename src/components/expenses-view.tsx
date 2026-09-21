@@ -16,10 +16,16 @@ export type Expense = {
   amount: number;
   due_date: string | null;
   status: "pending" | "paid";
+  category: "fixed" | "variable";
 };
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+
+const CATEGORY_LABEL: Record<Expense["category"], string> = {
+  fixed: "Fixa",
+  variable: "Variável",
+};
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -45,10 +51,10 @@ function EditExpenseForm({ expense, onDone }: { expense: Expense; onDone: () => 
   );
 
   return (
-    <td colSpan={5} className="px-5 py-3">
+    <td colSpan={6} className="px-5 py-3">
       <form action={formAction} className="flex flex-col gap-2">
         <input type="hidden" name="id" value={expense.id} />
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <input
             name="description"
             required
@@ -69,6 +75,10 @@ function EditExpenseForm({ expense, onDone }: { expense: Expense; onDone: () => 
             defaultValue={expense.due_date}
             className={`flex items-center justify-between ${INPUT_CLASS}`}
           />
+          <select name="category" defaultValue={expense.category} className={INPUT_CLASS}>
+            <option value="fixed">Fixa</option>
+            <option value="variable">Variável</option>
+          </select>
         </div>
 
         {state && "error" in state && (
@@ -122,7 +132,7 @@ export function ExpensesView({
       <form
         ref={formRef}
         action={formAction}
-        className="mb-5 grid grid-cols-4 gap-2 rounded-lg bg-white p-5 shadow-sm"
+        className="mb-5 grid grid-cols-5 gap-2 rounded-lg bg-white p-5 shadow-sm"
       >
         <input
           name="description"
@@ -144,9 +154,13 @@ export function ExpensesView({
           defaultValue={today}
           className={`flex items-center justify-between ${INPUT_CLASS}`}
         />
+        <select name="category" defaultValue="variable" className={INPUT_CLASS}>
+          <option value="fixed">Fixa</option>
+          <option value="variable">Variável</option>
+        </select>
 
         {state && "error" in state && (
-          <p className="col-span-4 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p className="col-span-5 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
             {state.error}
           </p>
         )}
@@ -154,7 +168,7 @@ export function ExpensesView({
         <button
           type="submit"
           disabled={pending}
-          className="col-span-4 flex items-center justify-center gap-2 rounded-lg bg-navy py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+          className="col-span-5 flex items-center justify-center gap-2 rounded-lg bg-navy py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />
           {pending ? "Adicionando..." : "Adicionar despesa"}
@@ -166,6 +180,7 @@ export function ExpensesView({
           <thead className="bg-brand-gray">
             <tr>
               <th className="px-5 py-2.5 font-semibold text-navy">Despesa</th>
+              <th className="px-5 py-2.5 font-semibold text-navy">Tipo</th>
               <th className="px-5 py-2.5 font-semibold text-navy">Valor</th>
               <th className="px-5 py-2.5 font-semibold text-navy">Vencimento</th>
               <th className="px-5 py-2.5 font-semibold text-navy">Status</th>
@@ -191,6 +206,17 @@ export function ExpensesView({
               return (
                 <tr key={expense.id} className="group border-t border-navy/[.06]">
                   <td className="px-5 py-3 text-navy">{expense.description}</td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        expense.category === "fixed"
+                          ? "bg-navy/10 text-navy"
+                          : "bg-yellow/20 text-[#8a6a12]"
+                      }`}
+                    >
+                      {CATEGORY_LABEL[expense.category]}
+                    </span>
+                  </td>
                   <td className="px-5 py-3 font-semibold text-navy">
                     {formatCurrency(Number(expense.amount))}
                   </td>
@@ -248,7 +274,7 @@ export function ExpensesView({
             })}
             {!expenses.length && (
               <tr>
-                <td colSpan={5} className="px-5 py-10 text-center text-[#94A0BD]">
+                <td colSpan={6} className="px-5 py-10 text-center text-[#94A0BD]">
                   Nenhuma despesa lançada neste mês.
                 </td>
               </tr>

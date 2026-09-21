@@ -5,6 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export type ExpenseState = { ok: true } | { error: string } | null;
 
+function categoryOf(formData: FormData) {
+  return formData.get("category") === "fixed" ? "fixed" : "variable";
+}
+
 export async function addExpense(
   _prevState: ExpenseState,
   formData: FormData,
@@ -17,6 +21,7 @@ export async function addExpense(
     description: formData.get("description") as string,
     amount: Number(String(formData.get("amount")).replace(",", ".")),
     due_date: (formData.get("due_date") as string) || null,
+    category: categoryOf(formData),
     status: "pending",
     created_by: auth.user?.id,
   });
@@ -24,6 +29,7 @@ export async function addExpense(
   if (error) return { error: error.message };
 
   revalidatePath("/financas/despesas");
+  revalidatePath("/financas/resumo");
   return { ok: true };
 }
 
@@ -39,12 +45,14 @@ export async function updateExpense(
       description: formData.get("description") as string,
       amount: Number(String(formData.get("amount")).replace(",", ".")),
       due_date: (formData.get("due_date") as string) || null,
+      category: categoryOf(formData),
     })
     .eq("id", formData.get("id") as string);
 
   if (error) return { error: error.message };
 
   revalidatePath("/financas/despesas");
+  revalidatePath("/financas/resumo");
   return { ok: true };
 }
 
@@ -99,9 +107,11 @@ export async function logTaxExpense(formData: FormData) {
     description: formData.get("description") as string,
     amount: Number(formData.get("amount")),
     due_date: (formData.get("due_date") as string) || null,
+    category: "fixed",
     status: "pending",
     created_by: auth.user?.id,
   });
 
   revalidatePath("/financas/despesas");
+  revalidatePath("/financas/resumo");
 }
