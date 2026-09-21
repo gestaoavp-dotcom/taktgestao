@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client, ClientAccount, ClientFile } from "@/lib/types";
+import type { Client, ClientAccount, ClientCnpj, ClientFile } from "@/lib/types";
 import { ClientContactCard } from "@/components/client-contact-card";
 import { ClientBillingCard } from "@/components/client-billing-card";
 import { ClientAccountsCard } from "@/components/client-accounts-card";
@@ -13,21 +13,28 @@ export default async function ClienteInformacoesPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: accounts }, { data: files }] = await Promise.all([
-    supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
-    supabase
-      .from("client_accounts")
-      .select("*")
-      .eq("client_id", id)
-      .order("created_at")
-      .returns<ClientAccount[]>(),
-    supabase
-      .from("client_files")
-      .select("*")
-      .eq("client_id", id)
-      .order("created_at", { ascending: false })
-      .returns<ClientFile[]>(),
-  ]);
+  const [{ data: client }, { data: accounts }, { data: cnpjs }, { data: files }] =
+    await Promise.all([
+      supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+      supabase
+        .from("client_accounts")
+        .select("*")
+        .eq("client_id", id)
+        .order("created_at")
+        .returns<ClientAccount[]>(),
+      supabase
+        .from("client_cnpjs")
+        .select("*")
+        .eq("client_id", id)
+        .order("created_at")
+        .returns<ClientCnpj[]>(),
+      supabase
+        .from("client_files")
+        .select("*")
+        .eq("client_id", id)
+        .order("created_at", { ascending: false })
+        .returns<ClientFile[]>(),
+    ]);
 
   if (!client) return null;
 
@@ -35,11 +42,17 @@ export default async function ClienteInformacoesPage({
     <div className="flex flex-col gap-5">
       <ClientContactCard client={client} />
 
-      <div className="grid grid-cols-3 gap-5">
-        <ClientBillingCard clientId={id} accounts={accounts ?? []} />
-        <div className="col-span-2">
-          <ClientAccountsCard clientId={id} accounts={accounts ?? []} />
-        </div>
+      <div className="grid grid-cols-2 gap-5">
+        <ClientBillingCard
+          clientId={id}
+          cnpjs={cnpjs ?? []}
+          accounts={accounts ?? []}
+        />
+        <ClientAccountsCard
+          clientId={id}
+          accounts={accounts ?? []}
+          cnpjs={cnpjs ?? []}
+        />
       </div>
 
       <ClientFilesCard clientId={id} files={files ?? []} />

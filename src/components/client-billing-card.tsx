@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
-import type { ClientAccount } from "@/lib/types";
+import { useActionState, useRef, useState } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { updateBilling } from "@/app/(dashboard)/clientes/[id]/actions";
+import { addCnpj, deleteCnpj, updateBilling } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
@@ -17,26 +18,60 @@ function formatCurrency(value: number) {
   }).format(value);
 }
 
-function AccountBilling({
+export function formatCnpj(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+  if (digits.length <= 12) {
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  }
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+}
+
+function CnpjBilling({
   clientId,
-  account,
+  cnpj,
+  stores,
 }: {
   clientId: string;
-  account: ClientAccount;
+  cnpj: ClientCnpj;
+  stores: ClientAccount[];
 }) {
   const [state, formAction, pending] = useActionState(updateBilling, null);
 
   return (
-    <form action={formAction} className="border-t border-navy/[.06] pt-4 first:border-0 first:pt-0">
+    <form action={formAction} className="rounded-lg border border-navy/10 p-4">
       <input type="hidden" name="client_id" value={clientId} />
-      <input type="hidden" name="account_id" value={account.id} />
+      <input type="hidden" name="cnpj_id" value={cnpj.id} />
 
-      <div className="mb-3">
-        <p className="text-sm font-semibold text-navy">{account.store_name}</p>
-        <p className="text-xs text-[#94A0BD]">
-          {MARKETPLACE_LABEL[account.marketplace] ?? account.marketplace}
-          {account.cnpj ? ` · ${account.cnpj}` : ""}
-        </p>
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="grid flex-1 grid-cols-2 gap-2">
+          <input
+            name="cnpj"
+            required
+            defaultValue={cnpj.cnpj}
+            inputMode="numeric"
+            onChange={(e) => {
+              e.target.value = formatCnpj(e.target.value);
+            }}
+            className={INPUT_CLASS}
+          />
+          <input
+            name="label"
+            defaultValue={cnpj.label ?? ""}
+            placeholder="Apelido (opcional)"
+            className={INPUT_CLASS}
+          />
+        </div>
+        <button
+          type="submit"
+          formAction={deleteCnpj}
+          aria-label={`Excluir CNPJ ${cnpj.cnpj}`}
+          className="mt-1 rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-red-50 hover:text-red-600"
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -47,7 +82,7 @@ function AccountBilling({
             type="number"
             step="0.01"
             min="0"
-            defaultValue={account.monthly_fee ?? ""}
+            defaultValue={cnpj.monthly_fee ?? ""}
             placeholder="0,00"
             className={INPUT_CLASS}
           />
@@ -59,7 +94,7 @@ function AccountBilling({
             type="number"
             min="1"
             max="31"
-            defaultValue={account.payment_day ?? ""}
+            defaultValue={cnpj.payment_day ?? ""}
             placeholder="10"
             className={INPUT_CLASS}
           />
@@ -68,7 +103,7 @@ function AccountBilling({
           <label className="text-xs font-semibold text-[#5B647E]">Forma de pagamento</label>
           <select
             name="payment_method"
-            defaultValue={account.payment_method ?? ""}
+            defaultValue={cnpj.payment_method ?? ""}
             className={INPUT_CLASS}
           >
             <option value="">Não definida</option>
@@ -81,7 +116,19 @@ function AccountBilling({
         </div>
       </div>
 
-      <div className="mt-2 flex items-center gap-3">
+      {stores.length > 0 && (
+        <p className="mt-3 text-xs text-[#94A0BD]">
+          Lojas neste CNPJ:{" "}
+          {stores
+            .map(
+              (s) =>
+                `${s.store_name} (${MARKETPLACE_LABEL[s.marketplace] ?? s.marketplace})`,
+            )
+            .join(" · ")}
+        </p>
+      )}
+
+      <div className="mt-3 flex items-center gap-3">
         <button
           type="submit"
           disabled={pending}
@@ -102,16 +149,33 @@ function AccountBilling({
 
 export function ClientBillingCard({
   clientId,
+  cnpjs,
   accounts,
 }: {
   clientId: string;
+  cnpjs: ClientCnpj[];
   accounts: ClientAccount[];
 }) {
-  const total = accounts.reduce((sum, a) => sum + Number(a.monthly_fee ?? 0), 0);
+  const [adding, setAdding] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const [state, formAction, pending] = useActionState(
+    async (prevState: Parameters<typeof addCnpj>[0], formData: FormData) => {
+      const result = await addCnpj(prevState, formData);
+      if (result && "ok" in result) {
+        formRef.current?.reset();
+        setAdding(false);
+      }
+      return result;
+    },
+    null,
+  );
+
+  const total = cnpjs.reduce((sum, c) => sum + Number(c.monthly_fee ?? 0), 0);
 
   return (
     <section className="rounded-lg bg-white p-5 shadow-sm">
-      <div className="mb-4 flex items-baseline justify-between">
+      <div className="mb-1 flex items-baseline justify-between">
         <h2 className="font-bold text-navy">Financeiro</h2>
         {total > 0 && (
           <span className="text-sm text-[#5B647E]">
@@ -119,18 +183,99 @@ export function ClientBillingCard({
           </span>
         )}
       </div>
+      <p className="mb-4 text-xs text-[#94A0BD]">
+        A mensalidade é por CNPJ. Um CNPJ pode ter várias lojas, em quantos marketplaces
+        for.
+      </p>
 
-      {accounts.length > 0 ? (
-        <div className="flex flex-col gap-4">
-          {accounts.map((account) => (
-            <AccountBilling key={account.id} clientId={clientId} account={account} />
-          ))}
-        </div>
+      <div className="flex flex-col gap-3">
+        {cnpjs.map((cnpj) => (
+          <CnpjBilling
+            key={cnpj.id}
+            clientId={clientId}
+            cnpj={cnpj}
+            stores={accounts.filter((a) => a.cnpj_id === cnpj.id)}
+          />
+        ))}
+      </div>
+
+      {adding ? (
+        <form
+          ref={formRef}
+          action={formAction}
+          className="mt-3 rounded-lg border border-navy/10 p-4"
+        >
+          <input type="hidden" name="client_id" value={clientId} />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              name="cnpj"
+              required
+              placeholder="CNPJ"
+              inputMode="numeric"
+              onChange={(e) => {
+                e.target.value = formatCnpj(e.target.value);
+              }}
+              className={INPUT_CLASS}
+            />
+            <input name="label" placeholder="Apelido (opcional)" className={INPUT_CLASS} />
+            <input
+              name="monthly_fee"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="Mensalidade (R$)"
+              className={INPUT_CLASS}
+            />
+            <input
+              name="payment_day"
+              type="number"
+              min="1"
+              max="31"
+              placeholder="Dia de vencimento"
+              className={INPUT_CLASS}
+            />
+            <select name="payment_method" defaultValue="" className={`col-span-2 ${INPUT_CLASS}`}>
+              <option value="">Forma de pagamento</option>
+              {PAYMENT_METHODS.map((method) => (
+                <option key={method} value={method}>
+                  {method}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {state && "error" in state && (
+            <p className="mt-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+              {state.error}
+            </p>
+          )}
+
+          <div className="mt-3 flex gap-2">
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-lg bg-navy px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+            >
+              {pending ? "Salvando..." : "Salvar CNPJ"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdding(false)}
+              className="rounded-lg border border-navy/10 px-4 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
       ) : (
-        <p className="text-sm text-[#94A0BD]">
-          A mensalidade é cobrada por CNPJ. Cadastre as lojas em Contas gerenciadas para
-          definir o valor de cada uma.
-        </p>
+        <button
+          type="button"
+          onClick={() => setAdding(true)}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-navy/20 py-2.5 text-sm font-semibold text-[#5B647E] transition-colors hover:border-blue hover:text-blue"
+        >
+          <Plus className="h-4 w-4" />
+          Adicionar CNPJ
+        </button>
       )}
     </section>
   );

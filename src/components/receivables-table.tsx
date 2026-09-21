@@ -9,10 +9,11 @@ import { markPaid, unmarkPaid } from "@/app/(dashboard)/financas/actions";
 export type ChargeStatus = "paid" | "pending" | "overdue" | "unset";
 
 export type Charge = {
-  accountId: string;
-  storeName: string;
-  marketplace: string;
-  cnpj: string | null;
+  cnpjId: string;
+  cnpj: string;
+  label: string | null;
+  /** Stores under this CNPJ, as "Loja (Marketplace)". */
+  stores: { name: string; marketplace: string }[];
   fee: number | null;
   paymentMethod: string | null;
   dueDate: string | null;
@@ -48,7 +49,7 @@ function formatDate(date: string | null) {
   return `${d}/${m}/${y}`;
 }
 
-/** One badge per status present among the stores, with how many are in it. */
+/** One badge per status present among the CNPJs, with how many are in it. */
 function summaryOf(charges: Charge[]) {
   const order: ChargeStatus[] = ["overdue", "pending", "paid", "unset"];
   return order
@@ -76,7 +77,7 @@ export function ReceivablesTable({
         <thead className="bg-brand-gray">
           <tr>
             <th className="px-5 py-2.5 font-semibold text-navy">Cliente</th>
-            <th className="px-5 py-2.5 font-semibold text-navy">Lojas</th>
+            <th className="px-5 py-2.5 font-semibold text-navy">CNPJs</th>
             <th className="px-5 py-2.5 font-semibold text-navy">Total mensal</th>
             <th className="px-5 py-2.5 font-semibold text-navy">Situação</th>
             <th className="px-5 py-2.5" />
@@ -101,8 +102,7 @@ export function ReceivablesTable({
                     )}
                   </td>
                   <td className="px-5 py-3 text-[#5B647E]">
-                    {client.charges.length}{" "}
-                    {client.charges.length === 1 ? "loja" : "lojas"}
+                    {client.charges.length} {client.charges.length === 1 ? "CNPJ" : "CNPJs"}
                   </td>
                   <td className="px-5 py-3 font-semibold text-navy">
                     {client.total > 0 ? formatCurrency(client.total) : "—"}
@@ -139,7 +139,7 @@ export function ReceivablesTable({
                         href={`/clientes/${client.id}/informacoes`}
                         className="text-xs font-semibold text-blue hover:underline"
                       >
-                        Cadastrar loja
+                        Cadastrar CNPJ
                       </Link>
                     )}
                   </td>
@@ -147,21 +147,31 @@ export function ReceivablesTable({
 
                 {isOpen &&
                   client.charges.map((charge) => (
-                    <tr key={charge.accountId} className="border-t border-navy/[.04] bg-brand-gray/30">
+                    <tr
+                      key={charge.cnpjId}
+                      className="border-t border-navy/[.04] bg-brand-gray/30"
+                    >
                       <td className="py-2.5 pl-10 pr-5">
-                        <p className="text-sm text-navy">{charge.storeName}</p>
-                        <p className="text-xs text-[#94A0BD]">
-                          {MARKETPLACE_LABEL[charge.marketplace] ?? charge.marketplace}
-                          {charge.cnpj ? ` · ${charge.cnpj}` : ""}
-                        </p>
+                        <p className="text-sm text-navy">{charge.label ?? charge.cnpj}</p>
+                        {charge.label && (
+                          <p className="text-xs text-[#94A0BD]">{charge.cnpj}</p>
+                        )}
                       </td>
                       <td className="px-5 py-2.5 text-xs text-[#5B647E]">
-                        {charge.paymentMethod ?? "—"}
+                        {charge.stores.length
+                          ? charge.stores
+                              .map(
+                                (s) =>
+                                  `${s.name} (${MARKETPLACE_LABEL[s.marketplace] ?? s.marketplace})`,
+                              )
+                              .join(" · ")
+                          : "Nenhuma loja vinculada"}
                       </td>
                       <td className="px-5 py-2.5 text-navy">
                         {charge.fee ? formatCurrency(Number(charge.fee)) : "—"}
                         <p className="text-xs text-[#94A0BD]">
                           vence {formatDate(charge.dueDate)}
+                          {charge.paymentMethod ? ` · ${charge.paymentMethod}` : ""}
                         </p>
                       </td>
                       <td className="px-5 py-2.5">
@@ -187,7 +197,7 @@ export function ReceivablesTable({
                         )}
                         {charge.status === "paid" && (
                           <form action={unmarkPaid}>
-                            <input type="hidden" name="account_id" value={charge.accountId} />
+                            <input type="hidden" name="cnpj_id" value={charge.cnpjId} />
                             <input
                               type="hidden"
                               name="reference_month"
@@ -204,7 +214,7 @@ export function ReceivablesTable({
                         {(charge.status === "pending" || charge.status === "overdue") && (
                           <form action={markPaid}>
                             <input type="hidden" name="client_id" value={client.id} />
-                            <input type="hidden" name="account_id" value={charge.accountId} />
+                            <input type="hidden" name="cnpj_id" value={charge.cnpjId} />
                             <input
                               type="hidden"
                               name="reference_month"

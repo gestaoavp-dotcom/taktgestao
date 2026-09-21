@@ -19,6 +19,16 @@ export type ClientAccount = {
   marketplace: string;
   store_name: string;
   cnpj: string | null;
+  cnpj_id: string | null;
+  created_at: string;
+};
+
+/** The billing unit: one CNPJ, which may hold several stores. */
+export type ClientCnpj = {
+  id: string;
+  client_id: string;
+  cnpj: string;
+  label: string | null;
   monthly_fee: number | null;
   payment_day: number | null;
   payment_method: string | null;

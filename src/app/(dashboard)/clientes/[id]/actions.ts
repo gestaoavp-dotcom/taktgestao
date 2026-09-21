@@ -11,6 +11,31 @@ function toNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(n) ? n : null;
 }
 
+export async function addCnpj(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const clientId = formData.get("client_id") as string;
+
+  const { error } = await supabase.from("client_cnpjs").insert({
+    client_id: clientId,
+    cnpj: formData.get("cnpj") as string,
+    label: (formData.get("label") as string) || null,
+    monthly_fee: toNumber(formData.get("monthly_fee")),
+    payment_day: toNumber(formData.get("payment_day")),
+    payment_method: (formData.get("payment_method") as string) || null,
+    created_by: auth.user?.id,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}/informacoes`);
+  revalidatePath("/financas");
+  return { ok: true };
+}
+
 export async function updateBilling(
   _prevState: ActionState,
   formData: FormData,
@@ -19,19 +44,31 @@ export async function updateBilling(
   const clientId = formData.get("client_id") as string;
 
   const { error } = await supabase
-    .from("client_accounts")
+    .from("client_cnpjs")
     .update({
+      cnpj: formData.get("cnpj") as string,
+      label: (formData.get("label") as string) || null,
       monthly_fee: toNumber(formData.get("monthly_fee")),
       payment_day: toNumber(formData.get("payment_day")),
       payment_method: (formData.get("payment_method") as string) || null,
     })
-    .eq("id", formData.get("account_id") as string);
+    .eq("id", formData.get("cnpj_id") as string);
 
   if (error) return { error: error.message };
 
   revalidatePath(`/clientes/${clientId}/informacoes`);
   revalidatePath("/financas");
   return { ok: true };
+}
+
+export async function deleteCnpj(formData: FormData) {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+
+  await supabase.from("client_cnpjs").delete().eq("id", formData.get("cnpj_id") as string);
+
+  revalidatePath(`/clientes/${clientId}/informacoes`);
+  revalidatePath("/financas");
 }
 
 export async function updateContact(
@@ -67,7 +104,7 @@ export async function addAccount(
     client_id: clientId,
     marketplace: formData.get("marketplace") as string,
     store_name: formData.get("store_name") as string,
-    cnpj: (formData.get("cnpj") as string) || null,
+    cnpj_id: (formData.get("cnpj_id") as string) || null,
     created_by: auth.user?.id,
   });
 
@@ -88,7 +125,7 @@ export async function updateAccount(
     .from("client_accounts")
     .update({
       store_name: formData.get("store_name") as string,
-      cnpj: (formData.get("cnpj") as string) || null,
+      cnpj_id: (formData.get("cnpj_id") as string) || null,
     })
     .eq("id", formData.get("id") as string);
 

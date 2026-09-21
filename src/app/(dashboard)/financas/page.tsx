@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { ClientAccount } from "@/lib/types";
+import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import {
   ReceivablesTable,
   type Charge,
@@ -16,7 +16,7 @@ type ClientRecord = {
 };
 
 type Payment = {
-  account_id: string;
+  cnpj_id: string;
   amount: number;
   paid_on: string;
 };
@@ -74,52 +74,72 @@ export default async function FinancasPage({
 
   const supabase = await createClient();
 
-  const [{ data: clients }, { data: accounts }, { data: monthPayments }, { data: allPayments }] =
-    await Promise.all([
-      supabase
-        .from("clients")
-        .select("id, name, store_name")
-        .order("name")
-        .returns<ClientRecord[]>(),
-      supabase
-        .from("client_accounts")
-        .select("*")
-        .order("created_at")
-        .returns<ClientAccount[]>(),
-      supabase
-        .from("client_payments")
-        .select("account_id, amount, paid_on")
-        .eq("reference_month", referenceMonth)
-        .returns<Payment[]>(),
-      supabase.from("client_payments").select("amount").returns<{ amount: number }[]>(),
-    ]);
+  const [
+    { data: clients },
+    { data: cnpjs },
+    { data: accounts },
+    { data: monthPayments },
+    { data: allPayments },
+  ] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("id, name, store_name")
+      .order("name")
+      .returns<ClientRecord[]>(),
+    supabase
+      .from("client_cnpjs")
+      .select("*")
+      .order("created_at")
+      .returns<ClientCnpj[]>(),
+    supabase
+      .from("client_accounts")
+      .select("*")
+      .order("created_at")
+      .returns<ClientAccount[]>(),
+    supabase
+      .from("client_payments")
+      .select("cnpj_id, amount, paid_on")
+      .eq("reference_month", referenceMonth)
+      .returns<Payment[]>(),
+    supabase.from("client_payments").select("amount").returns<{ amount: number }[]>(),
+  ]);
 
-  const paidByAccount = new Map((monthPayments ?? []).map((p) => [p.account_id, p]));
+  const paidByCnpj = new Map((monthPayments ?? []).map((p) => [p.cnpj_id, p]));
 
-  const accountsByClient = new Map<string, ClientAccount[]>();
+  const cnpjsByClient = new Map<string, ClientCnpj[]>();
+  for (const cnpj of cnpjs ?? []) {
+    cnpjsByClient.set(cnpj.client_id, [...(cnpjsByClient.get(cnpj.client_id) ?? []), cnpj]);
+  }
+
+  const storesByCnpj = new Map<string, ClientAccount[]>();
   for (const account of accounts ?? []) {
-    const list = accountsByClient.get(account.client_id) ?? [];
-    list.push(account);
-    accountsByClient.set(account.client_id, list);
+    if (!account.cnpj_id) continue;
+    storesByCnpj.set(account.cnpj_id, [
+      ...(storesByCnpj.get(account.cnpj_id) ?? []),
+      account,
+    ]);
   }
 
   const rows: ClientRow[] = (clients ?? []).map((client) => {
-    const charges: Charge[] = (accountsByClient.get(client.id) ?? []).map((account) => {
-      const payment = paidByAccount.get(account.id);
-      const dueDate = account.payment_day ? dueDateFor(month, account.payment_day) : null;
+    const charges: Charge[] = (cnpjsByClient.get(client.id) ?? []).map((cnpj) => {
+      const payment = paidByCnpj.get(cnpj.id);
+      const dueDate = cnpj.payment_day ? dueDateFor(month, cnpj.payment_day) : null;
 
       let status: ChargeStatus = "pending";
-      if (!account.monthly_fee) status = "unset";
+      if (!cnpj.monthly_fee) status = "unset";
       else if (payment) status = "paid";
       else if (dueDate && dueDate < today) status = "overdue";
 
       return {
-        accountId: account.id,
-        storeName: account.store_name,
-        marketplace: account.marketplace,
-        cnpj: account.cnpj,
-        fee: account.monthly_fee,
-        paymentMethod: account.payment_method,
+        cnpjId: cnpj.id,
+        cnpj: cnpj.cnpj,
+        label: cnpj.label,
+        stores: (storesByCnpj.get(cnpj.id) ?? []).map((a) => ({
+          name: a.store_name,
+          marketplace: a.marketplace,
+        })),
+        fee: cnpj.monthly_fee,
+        paymentMethod: cnpj.payment_method,
         dueDate,
         paidOn: payment?.paid_on ?? null,
         status,
@@ -145,7 +165,7 @@ export default async function FinancasPage({
 
   const received = (monthPayments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
   const consolidated = (allPayments ?? []).reduce((sum, p) => sum + Number(p.amount), 0);
-  const plural = (n: number) => (n === 1 ? "loja" : "lojas");
+  const plural = (n: number) => (n === 1 ? "CNPJ" : "CNPJs");
 
   return (
     <div>
