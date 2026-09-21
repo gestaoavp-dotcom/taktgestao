@@ -130,9 +130,7 @@ export default async function FinancasPage({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-navy">Finanças</h1>
-
+      <div className="mb-6 flex items-center justify-end">
         <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
           <Link
             href={`/financas?mes=${shiftMonth(month, -1)}`}
