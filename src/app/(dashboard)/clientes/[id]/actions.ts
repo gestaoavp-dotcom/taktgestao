@@ -18,100 +18,45 @@ export async function addCnpj(
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const clientId = formData.get("client_id") as string;
-  const label = (formData.get("label") as string) || null;
-  const cnpjNumber = formData.get("cnpj") as string;
 
-  const { data: created, error } = await supabase
-    .from("client_cnpjs")
-    .insert({
-      client_id: clientId,
-      cnpj: cnpjNumber,
-      label,
-      monthly_fee: toNumber(formData.get("monthly_fee")),
-      payment_day: toNumber(formData.get("payment_day")),
-      payment_method: (formData.get("payment_method") as string) || null,
-      created_by: auth.user?.id,
-    })
-    .select("id")
-    .single<{ id: string }>();
+  const { error } = await supabase.from("client_cnpjs").insert({
+    client_id: clientId,
+    cnpj: formData.get("cnpj") as string,
+    label: (formData.get("label") as string) || null,
+    monthly_fee: toNumber(formData.get("monthly_fee")),
+    payment_day: toNumber(formData.get("payment_day")),
+    payment_method: (formData.get("payment_method") as string) || null,
+    created_by: auth.user?.id,
+  });
 
   if (error) return { error: error.message };
 
-  // The marketplaces picked for a CNPJ are its stores.
-  const marketplaces = formData.getAll("marketplaces") as string[];
-  if (marketplaces.length) {
-    const { error: storeError } = await supabase.from("client_accounts").insert(
-      marketplaces.map((marketplace) => ({
-        client_id: clientId,
-        cnpj_id: created.id,
-        marketplace,
-        store_name: label || cnpjNumber,
-        created_by: auth.user?.id,
-      })),
-    );
-    if (storeError) return { error: storeError.message };
-  }
-
-  revalidatePath(`/clientes/${clientId}`, "layout");
+  revalidatePath(`/clientes/${clientId}/informacoes`);
   revalidatePath("/financas");
   return { ok: true };
 }
 
-export async function updateCnpj(
+export async function updateBilling(
   _prevState: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
   const clientId = formData.get("client_id") as string;
-  const cnpjId = formData.get("cnpj_id") as string;
-  const label = (formData.get("label") as string) || null;
-  const cnpjNumber = formData.get("cnpj") as string;
 
   const { error } = await supabase
     .from("client_cnpjs")
     .update({
-      cnpj: cnpjNumber,
-      label,
+      cnpj: formData.get("cnpj") as string,
+      label: (formData.get("label") as string) || null,
       monthly_fee: toNumber(formData.get("monthly_fee")),
       payment_day: toNumber(formData.get("payment_day")),
       payment_method: (formData.get("payment_method") as string) || null,
     })
-    .eq("id", cnpjId);
+    .eq("id", formData.get("cnpj_id") as string);
 
   if (error) return { error: error.message };
 
-  // Bring the stores in line with the marketplaces now selected: add the new
-  // ones, drop the ones unticked, and leave the rest with the name they have.
-  const wanted = new Set(formData.getAll("marketplaces") as string[]);
-  const { data: existing } = await supabase
-    .from("client_accounts")
-    .select("id, marketplace")
-    .eq("cnpj_id", cnpjId)
-    .returns<{ id: string; marketplace: string }[]>();
-
-  const current = existing ?? [];
-  const toRemove = current.filter((a) => !wanted.has(a.marketplace)).map((a) => a.id);
-  const toAdd = Array.from(wanted).filter(
-    (marketplace) => !current.some((a) => a.marketplace === marketplace),
-  );
-
-  if (toRemove.length) {
-    await supabase.from("client_accounts").delete().in("id", toRemove);
-  }
-  if (toAdd.length) {
-    await supabase.from("client_accounts").insert(
-      toAdd.map((marketplace) => ({
-        client_id: clientId,
-        cnpj_id: cnpjId,
-        marketplace,
-        store_name: label || cnpjNumber,
-        created_by: auth.user?.id,
-      })),
-    );
-  }
-
-  revalidatePath(`/clientes/${clientId}`, "layout");
+  revalidatePath(`/clientes/${clientId}/informacoes`);
   revalidatePath("/financas");
   return { ok: true };
 }
@@ -122,7 +67,7 @@ export async function deleteCnpj(formData: FormData) {
 
   await supabase.from("client_cnpjs").delete().eq("id", formData.get("cnpj_id") as string);
 
-  revalidatePath(`/clientes/${clientId}`, "layout");
+  revalidatePath(`/clientes/${clientId}/informacoes`);
   revalidatePath("/financas");
 }
 
@@ -147,6 +92,28 @@ export async function updateContact(
   return { ok: true };
 }
 
+export async function addAccount(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  const clientId = formData.get("client_id") as string;
+
+  const { error } = await supabase.from("client_accounts").insert({
+    client_id: clientId,
+    marketplace: formData.get("marketplace") as string,
+    store_name: formData.get("store_name") as string,
+    cnpj_id: (formData.get("cnpj_id") as string) || null,
+    created_by: auth.user?.id,
+  });
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}`);
+  return { ok: true };
+}
+
 export async function updateAccount(
   _prevState: ActionState,
   formData: FormData,
@@ -166,6 +133,15 @@ export async function updateAccount(
 
   revalidatePath(`/clientes/${clientId}`);
   return { ok: true };
+}
+
+export async function deleteAccount(formData: FormData) {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+
+  await supabase.from("client_accounts").delete().eq("id", formData.get("id") as string);
+
+  revalidatePath(`/clientes/${clientId}`);
 }
 
 export async function addUpdate(
