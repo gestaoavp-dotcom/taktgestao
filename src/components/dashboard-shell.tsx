@@ -4,12 +4,15 @@ import { useState } from "react";
 import { Logo } from "@/components/logo";
 import { NavLinks } from "@/components/nav-links";
 import { Header } from "@/components/header";
+import type { NotificationItem } from "@/lib/notifications";
 
 export function DashboardShell({
   email,
+  notifications,
   children,
 }: {
   email?: string;
+  notifications: NotificationItem[];
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -32,7 +35,11 @@ export function DashboardShell({
       {/* min-w-0 keeps wide tables scrolling inside their own box instead of
           stretching the page sideways when the sidebar is open. */}
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <Header email={email} onToggleSidebar={() => setCollapsed((c) => !c)} />
+        <Header
+          email={email}
+          notifications={notifications}
+          onToggleSidebar={() => setCollapsed((c) => !c)}
+        />
         <main className="flex-1 p-8">{children}</main>
       </div>
     </div>
