@@ -41,22 +41,47 @@ export async function updateBilling(
   formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
   const clientId = formData.get("client_id") as string;
+  const cnpjId = formData.get("cnpj_id") as string;
+  const newFee = toNumber(formData.get("monthly_fee"));
+
+  const { data: before } = await supabase
+    .from("client_cnpjs")
+    .select("monthly_fee")
+    .eq("id", cnpjId)
+    .maybeSingle<{ monthly_fee: number | null }>();
 
   const { error } = await supabase
     .from("client_cnpjs")
     .update({
       cnpj: formData.get("cnpj") as string,
       label: (formData.get("label") as string) || null,
-      monthly_fee: toNumber(formData.get("monthly_fee")),
+      monthly_fee: newFee,
       payment_day: toNumber(formData.get("payment_day")),
       payment_method: (formData.get("payment_method") as string) || null,
     })
-    .eq("id", formData.get("cnpj_id") as string);
+    .eq("id", cnpjId);
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/clientes/${clientId}/informacoes`);
+  // A changed fee is logged on its own, so a reajuste can always be traced
+  // back even though the card only ever shows the current value.
+  const oldFee = before?.monthly_fee ?? null;
+  const changed = Number(oldFee ?? 0) !== Number(newFee ?? 0);
+  if (changed && newFee !== null) {
+    await supabase.from("client_fee_changes").insert({
+      client_id: clientId,
+      cnpj_id: cnpjId,
+      effective_on: (formData.get("effective_on") as string) || undefined,
+      previous_amount: oldFee,
+      amount: newFee,
+      note: (formData.get("fee_note") as string) || null,
+      created_by: auth.user?.id,
+    });
+  }
+
+  revalidatePath(`/clientes/${clientId}`, "layout");
   revalidatePath("/financas");
   return { ok: true };
 }

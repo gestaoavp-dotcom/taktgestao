@@ -1,5 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Client, ClientAccount, ClientCnpj, ClientFile } from "@/lib/types";
+import type {
+  Client,
+  ClientAccount,
+  ClientCnpj,
+  ClientFeeChange,
+  ClientFile,
+} from "@/lib/types";
 import { ClientRegistrationCard } from "@/components/client-registration-card";
 import { ClientBillingCard } from "@/components/client-billing-card";
 import { ClientAccountsCard } from "@/components/client-accounts-card";
@@ -13,28 +19,39 @@ export default async function ClienteInformacoesPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: accounts }, { data: cnpjs }, { data: files }] =
-    await Promise.all([
-      supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
-      supabase
-        .from("client_accounts")
-        .select("*")
-        .eq("client_id", id)
-        .order("created_at")
-        .returns<ClientAccount[]>(),
-      supabase
-        .from("client_cnpjs")
-        .select("*")
-        .eq("client_id", id)
-        .order("created_at")
-        .returns<ClientCnpj[]>(),
-      supabase
-        .from("client_files")
-        .select("*")
-        .eq("client_id", id)
-        .order("created_at", { ascending: false })
-        .returns<ClientFile[]>(),
-    ]);
+  const [
+    { data: client },
+    { data: accounts },
+    { data: cnpjs },
+    { data: feeChanges },
+    { data: files },
+  ] = await Promise.all([
+    supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
+    supabase
+      .from("client_accounts")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at")
+      .returns<ClientAccount[]>(),
+    supabase
+      .from("client_cnpjs")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at")
+      .returns<ClientCnpj[]>(),
+    supabase
+      .from("client_fee_changes")
+      .select("*")
+      .eq("client_id", id)
+      .order("effective_on", { ascending: false })
+      .returns<ClientFeeChange[]>(),
+    supabase
+      .from("client_files")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false })
+      .returns<ClientFile[]>(),
+  ]);
 
   if (!client) return null;
 
@@ -47,6 +64,7 @@ export default async function ClienteInformacoesPage({
           clientId={id}
           cnpjs={cnpjs ?? []}
           accounts={accounts ?? []}
+          feeChanges={feeChanges ?? []}
         />
         <ClientAccountsCard
           clientId={id}

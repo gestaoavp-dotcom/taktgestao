@@ -23,6 +23,18 @@ export type ClientAccount = {
   created_at: string;
 };
 
+/** A reajuste: what a CNPJ paid before, what it pays now, and why. */
+export type ClientFeeChange = {
+  id: string;
+  client_id: string;
+  cnpj_id: string;
+  effective_on: string;
+  previous_amount: number | null;
+  amount: number;
+  note: string | null;
+  created_at: string;
+};
+
 /** The billing unit: one CNPJ, which may hold several stores. */
 export type ClientCnpj = {
   id: string;
