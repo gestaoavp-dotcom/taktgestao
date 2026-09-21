@@ -33,12 +33,12 @@ const MONTH_SHORT = [
   "Dez",
 ];
 
-const WINDOW = 6;
+const MONTH_WINDOW = 6;
 
 // The tax-log button in Despesas writes the expense with this exact prefix
 // (see tax-summary-card.tsx), so a logged tax entry can be told apart from
 // an ordinary fixed expense and left out of "Despesas fixas" here — the
-// Impostos line already accounts for it, computed fresh off this month's
+// Impostos line already accounts for it, computed fresh off the period's
 // recebido instead of depending on whether anyone clicked "Lançar".
 const TAX_DESCRIPTION_PREFIX = "Imposto sobre faturamento (";
 
@@ -68,6 +68,10 @@ function shiftMonth(month: string, delta: number) {
   return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7);
 }
 
+function yearMonthKeys(year: number) {
+  return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
+}
+
 type PaymentRow = { amount: number; reference_month: string };
 type ExpenseRow = {
   amount: number;
@@ -87,20 +91,63 @@ type MonthMargin = {
   marginPct: number;
 };
 
-export default async function MargemPage({
+function computeMonth(
+  key: string,
+  payments: PaymentRow[],
+  expenses: ExpenseRow[],
+  rate: number,
+): MonthMargin {
+  const monthPayments = payments.filter((p) => p.reference_month.slice(0, 7) === key);
+  const recebido = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const imposto = monthPayments.reduce(
+    (sum, p) => sum + Math.round(Number(p.amount) * rate * 100) / 100,
+    0,
+  );
+
+  const monthExpenses = expenses.filter((e) => (e.due_date ?? "").slice(0, 7) === key);
+  const fixas = monthExpenses
+    .filter((e) => e.category === "fixed" && !e.description.startsWith(TAX_DESCRIPTION_PREFIX))
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const variaveis = monthExpenses
+    .filter((e) => e.category !== "fixed")
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const resultado = recebido - imposto - fixas - variaveis;
+  const marginPct = recebido > 0 ? (resultado / recebido) * 100 : 0;
+
+  return { key, label: monthShort(key), recebido, imposto, fixas, variaveis, resultado, marginPct };
+}
+
+function aggregate(months: MonthMargin[]): Omit<MonthMargin, "key" | "label"> {
+  const recebido = months.reduce((sum, m) => sum + m.recebido, 0);
+  const imposto = months.reduce((sum, m) => sum + m.imposto, 0);
+  const fixas = months.reduce((sum, m) => sum + m.fixas, 0);
+  const variaveis = months.reduce((sum, m) => sum + m.variaveis, 0);
+  const resultado = recebido - imposto - fixas - variaveis;
+  const marginPct = recebido > 0 ? (resultado / recebido) * 100 : 0;
+  return { recebido, imposto, fixas, variaveis, resultado, marginPct };
+}
+
+export default async function DrePage({
   searchParams,
 }: {
-  searchParams: Promise<{ mes?: string }>;
+  searchParams: Promise<{ mes?: string; ano?: string; visao?: string }>;
 }) {
-  const { mes } = await searchParams;
+  const { mes, ano, visao } = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
-  const anchor = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : today.slice(0, 7);
+  const view = visao === "anual" ? "anual" : "mensal";
 
-  const monthKeys: string[] = [];
-  for (let i = WINDOW - 1; i >= 0; i--) monthKeys.push(shiftMonth(anchor, -i));
+  const anchor = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : today.slice(0, 7);
+  const year = ano && /^\d{4}$/.test(ano) ? Number(ano) : Number(today.slice(0, 4));
+
+  const monthKeys = view === "anual" ? yearMonthKeys(year) : [];
+  if (view === "mensal") {
+    for (let i = MONTH_WINDOW - 1; i >= 0; i--) monthKeys.push(shiftMonth(anchor, -i));
+  }
 
   const rangeStart = `${monthKeys[0]}-01`;
-  const rangeEnd = `${shiftMonth(anchor, 1)}-01`;
+  const rangeEndMonth = view === "anual" ? `${year + 1}-01` : shiftMonth(anchor, 1);
+  const rangeEnd = `${rangeEndMonth}-01`;
 
   const supabase = await createClient();
 
@@ -122,57 +169,63 @@ export default async function MargemPage({
   ]);
 
   const rate = taxSettings ? Number(taxSettings.rate_percent) / 100 : 0;
+  const months = monthKeys.map((key) => computeMonth(key, payments ?? [], expenses ?? [], rate));
 
-  const months: MonthMargin[] = monthKeys.map((key) => {
-    const monthPayments = (payments ?? []).filter((p) => p.reference_month.slice(0, 7) === key);
-    const recebido = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
-    const imposto = monthPayments.reduce(
-      (sum, p) => sum + Math.round(Number(p.amount) * rate * 100) / 100,
-      0,
-    );
+  const current = view === "anual" ? { ...aggregate(months) } : months[months.length - 1];
+  const periodLabel = view === "anual" ? `o ano de ${year}` : monthLabel(anchor);
+  const resultLabel = view === "anual" ? "Resultado do ano" : "Resultado do mês";
+  const trendLabel = view === "anual" ? `Margem mês a mês em ${year}` : "Margem nos últimos 6 meses";
 
-    const monthExpenses = (expenses ?? []).filter((e) => (e.due_date ?? "").slice(0, 7) === key);
-    const fixas = monthExpenses
-      .filter((e) => e.category === "fixed" && !e.description.startsWith(TAX_DESCRIPTION_PREFIX))
-      .reduce((sum, e) => sum + Number(e.amount), 0);
-    const variaveis = monthExpenses
-      .filter((e) => e.category !== "fixed")
-      .reduce((sum, e) => sum + Number(e.amount), 0);
-
-    const resultado = recebido - imposto - fixas - variaveis;
-    const marginPct = recebido > 0 ? (resultado / recebido) * 100 : 0;
-
-    return {
-      key,
-      label: monthShort(key),
-      recebido,
-      imposto,
-      fixas,
-      variaveis,
-      resultado,
-      marginPct,
-    };
-  });
-
-  const current = months[months.length - 1];
+  const monthlyToggleHref =
+    year === Number(today.slice(0, 4))
+      ? `/financas/dre?visao=mensal&mes=${today.slice(0, 7)}`
+      : `/financas/dre?visao=mensal&mes=${year}-12`;
+  const annualToggleHref = `/financas/dre?visao=anual&ano=${anchor.slice(0, 4)}`;
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-end">
+      <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
+        <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm">
+          <Link
+            href={monthlyToggleHref}
+            className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
+              view === "mensal" ? "bg-blue text-white" : "text-[#5B647E] hover:bg-brand-gray"
+            }`}
+          >
+            Mensal
+          </Link>
+          <Link
+            href={annualToggleHref}
+            className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
+              view === "anual" ? "bg-blue text-white" : "text-[#5B647E] hover:bg-brand-gray"
+            }`}
+          >
+            Anual
+          </Link>
+        </div>
+
         <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
           <Link
-            href={`/financas/margem?mes=${shiftMonth(anchor, -1)}`}
-            aria-label="Mês anterior"
+            href={
+              view === "anual"
+                ? `/financas/dre?visao=anual&ano=${year - 1}`
+                : `/financas/dre?visao=mensal&mes=${shiftMonth(anchor, -1)}`
+            }
+            aria-label={view === "anual" ? "Ano anterior" : "Mês anterior"}
             className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
           <span className="min-w-[150px] text-center text-sm font-semibold text-navy">
-            {monthLabel(anchor)}
+            {view === "anual" ? year : monthLabel(anchor)}
           </span>
           <Link
-            href={`/financas/margem?mes=${shiftMonth(anchor, 1)}`}
-            aria-label="Próximo mês"
+            href={
+              view === "anual"
+                ? `/financas/dre?visao=anual&ano=${year + 1}`
+                : `/financas/dre?visao=mensal&mes=${shiftMonth(anchor, 1)}`
+            }
+            aria-label={view === "anual" ? "Próximo ano" : "Próximo mês"}
             className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
           >
             <ChevronRight className="h-4 w-4" />
@@ -181,9 +234,9 @@ export default async function MargemPage({
       </div>
 
       <div className="rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Resultado do mês</h2>
+        <h2 className="mb-1 font-bold text-navy">{resultLabel}</h2>
         <p className="mb-4 text-xs text-[#94A0BD]">
-          Receita, impostos e despesas de {monthLabel(anchor)}, na ponta do lápis.
+          Receita, impostos e despesas de {periodLabel}, na ponta do lápis.
         </p>
 
         <div className="divide-y divide-navy/[.06]">
@@ -232,7 +285,7 @@ export default async function MargemPage({
       </div>
 
       <div className="mt-6 rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Margem nos últimos 6 meses</h2>
+        <h2 className="mb-1 font-bold text-navy">{trendLabel}</h2>
         <p className="mb-4 text-xs text-[#94A0BD]">
           Resultado líquido sobre a receita bruta, mês a mês.
         </p>

@@ -7,7 +7,7 @@ const TABS = [
   { href: "/financas/resumo", label: "Resumo" },
   { href: "/financas", label: "Contas a receber" },
   { href: "/financas/despesas", label: "Contas a pagar" },
-  { href: "/financas/margem", label: "Margem" },
+  { href: "/financas/dre", label: "DRE Detalhada" },
 ];
 
 export function FinancasTabs() {
