@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import { Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import { MARKETPLACES } from "@/lib/marketplaces";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
@@ -10,38 +10,45 @@ import { addAccount, deleteAccount, updateAccount } from "@/app/(dashboard)/clie
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
-function cnpjLabel(cnpj: ClientCnpj) {
-  return cnpj.label ? `${cnpj.label} · ${cnpj.cnpj}` : cnpj.cnpj;
+const CNPJ_LIST_ID = "cnpjs-do-cliente";
+
+function formatCnpj(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+  if (digits.length <= 12) {
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+  }
+  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-function CnpjSelect({
-  cnpjs,
-  defaultValue,
-}: {
-  cnpjs: ClientCnpj[];
-  defaultValue?: string | null;
-}) {
+/** Typed freely so a new CNPJ can be entered, with the known ones as suggestions. */
+function CnpjField({ defaultValue }: { defaultValue?: string }) {
   return (
-    <select name="cnpj_id" defaultValue={defaultValue ?? ""} className={INPUT_CLASS}>
-      <option value="">Sem CNPJ</option>
-      {cnpjs.map((cnpj) => (
-        <option key={cnpj.id} value={cnpj.id}>
-          {cnpjLabel(cnpj)}
-        </option>
-      ))}
-    </select>
+    <input
+      name="cnpj"
+      list={CNPJ_LIST_ID}
+      inputMode="numeric"
+      defaultValue={defaultValue ?? ""}
+      placeholder="CNPJ"
+      onChange={(e) => {
+        e.target.value = formatCnpj(e.target.value);
+      }}
+      className={INPUT_CLASS}
+    />
   );
 }
 
 function EditAccountForm({
   clientId,
   account,
-  cnpjs,
+  cnpjNumber,
   onDone,
 }: {
   clientId: string;
   account: ClientAccount;
-  cnpjs: ClientCnpj[];
+  cnpjNumber?: string;
   onDone: () => void;
 }) {
   const [state, formAction, pending] = useActionState(
@@ -65,7 +72,7 @@ function EditAccountForm({
           placeholder="Nome da loja"
           className={INPUT_CLASS}
         />
-        <CnpjSelect cnpjs={cnpjs} defaultValue={account.cnpj_id} />
+        <CnpjField defaultValue={cnpjNumber} />
         <button
           type="submit"
           disabled={pending}
@@ -103,32 +110,16 @@ export function ClientAccountsCard({
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const cnpjById = new Map(cnpjs.map((c) => [c.id, c]));
+  const linkedCnpjs = new Set(
+    accounts.map((a) => a.cnpj_id).filter((id): id is string => !!id),
+  );
 
-  // One line per CNPJ: the same company often sells on several marketplaces
-  // with more than one store, and what matters here is where each CNPJ
-  // operates. Stores with no CNPJ yet are listed on their own.
-  const groups = Array.from(
-    accounts.reduce((map, account) => {
-      const key = account.cnpj_id ?? `loja:${account.store_name}`;
-      const entry = map.get(key) ?? {
-        key,
-        cnpj: account.cnpj_id ? (cnpjById.get(account.cnpj_id) ?? null) : null,
-        stores: [] as string[],
-        marketplaces: [] as string[],
-      };
-      if (!entry.stores.includes(account.store_name)) entry.stores.push(account.store_name);
-      if (!entry.marketplaces.includes(account.marketplace)) {
-        entry.marketplaces.push(account.marketplace);
-      }
-      return map.set(key, entry);
-    }, new Map<string, { key: string; cnpj: ClientCnpj | null; stores: string[]; marketplaces: string[] }>()),
-  ).map(([, group]) => ({
-    ...group,
-    marketplaces: group.marketplaces.sort(
-      (a, b) =>
-        MARKETPLACES.findIndex((m) => m.value === a) - MARKETPLACES.findIndex((m) => m.value === b),
-    ),
-  }));
+  const sorted = [...accounts].sort(
+    (a, b) =>
+      MARKETPLACES.findIndex((m) => m.value === a.marketplace) -
+        MARKETPLACES.findIndex((m) => m.value === b.marketplace) ||
+      a.store_name.localeCompare(b.store_name),
+  );
 
   const [state, formAction, pending] = useActionState(
     async (prevState: Parameters<typeof addAccount>[0], formData: FormData) => {
@@ -143,41 +134,30 @@ export function ClientAccountsCard({
     <section className="rounded-lg bg-white p-5 shadow-sm">
       <h2 className="mb-1 font-bold text-navy">Contas gerenciadas</h2>
       <p className="mb-4 text-xs text-[#94A0BD]">
-        {accounts.length} {accounts.length === 1 ? "conta" : "contas"} em {groups.length}{" "}
-        {groups.length === 1 ? "CNPJ" : "CNPJs"}
+        {accounts.length} {accounts.length === 1 ? "conta" : "contas"} em {linkedCnpjs.size}{" "}
+        {linkedCnpjs.size === 1 ? "CNPJ" : "CNPJs"}. Lojas podem compartilhar o mesmo CNPJ —
+        digite o mesmo número para vinculá-las.
       </p>
 
-      {groups.length > 0 && (
-        <ul className="mb-5 flex flex-col gap-2">
-          {groups.map((group) => (
-            <li key={group.key} className="rounded-lg border border-navy/[.08] px-3 py-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-sm font-semibold text-navy">{group.stores.join(" · ")}</p>
-                  <p className="text-xs text-[#94A0BD]">
-                    {group.cnpj ? cnpjLabel(group.cnpj) : "Sem CNPJ cadastrado"}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {group.marketplaces.map((m) => (
-                    <MarketplaceBadge key={m} marketplace={m} />
-                  ))}
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      <datalist id={CNPJ_LIST_ID}>
+        {cnpjs.map((cnpj) => (
+          <option key={cnpj.id} value={cnpj.cnpj}>
+            {cnpj.label ?? cnpj.cnpj}
+          </option>
+        ))}
+      </datalist>
 
-      {accounts.length > 0 && (
-        <ul className="mb-5 divide-y divide-navy/[.06] border-t border-navy/[.06] pt-1">
-          {accounts.map((account) =>
+      {sorted.length > 0 && (
+        <ul className="mb-4 divide-y divide-navy/[.06] border-t border-navy/[.06]">
+          {sorted.map((account) =>
             editingId === account.id ? (
               <li key={account.id} className="flex items-center gap-3">
                 <EditAccountForm
                   clientId={clientId}
                   account={account}
-                  cnpjs={cnpjs}
+                  cnpjNumber={
+                    account.cnpj_id ? cnpjById.get(account.cnpj_id)?.cnpj : undefined
+                  }
                   onDone={() => setEditingId(null)}
                 />
               </li>
@@ -185,7 +165,9 @@ export function ClientAccountsCard({
               <li key={account.id} className="group flex items-center gap-3 py-2.5">
                 <MarketplaceBadge marketplace={account.marketplace} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-navy">{account.store_name}</p>
+                  <p className="truncate text-sm font-semibold text-navy">
+                    {account.store_name}
+                  </p>
                   <p className="text-xs text-[#94A0BD]">
                     {account.cnpj_id
                       ? (cnpjById.get(account.cnpj_id)?.cnpj ?? "CNPJ removido")
@@ -230,13 +212,7 @@ export function ClientAccountsCard({
           ))}
         </select>
         <input name="store_name" required placeholder="Nome da loja" className={INPUT_CLASS} />
-        <CnpjSelect cnpjs={cnpjs} />
-
-        {!cnpjs.length && (
-          <p className="col-span-3 text-xs text-[#94A0BD]">
-            Cadastre um CNPJ no card Financeiro para poder vincular a loja a ele.
-          </p>
-        )}
+        <CnpjField />
 
         {state && "error" in state && (
           <p className="col-span-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">

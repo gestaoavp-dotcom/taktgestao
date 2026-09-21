@@ -97,6 +97,41 @@ export async function updateClient(
   return { ok: true };
 }
 
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Stores can share a CNPJ, so a typed number resolves to the client's existing
+ * record when there is one and creates it otherwise. Comparison is on digits
+ * only, so the same CNPJ typed with or without punctuation still matches.
+ */
+async function resolveCnpjId(
+  supabase: Supabase,
+  clientId: string,
+  raw: string,
+  userId?: string,
+): Promise<{ id: string | null } | { error: string }> {
+  const digits = raw.replace(/D/g, "");
+  if (!digits) return { id: null };
+
+  const { data: existing } = await supabase
+    .from("client_cnpjs")
+    .select("id, cnpj")
+    .eq("client_id", clientId)
+    .returns<{ id: string; cnpj: string }[]>();
+
+  const match = (existing ?? []).find((c) => c.cnpj.replace(/D/g, "") === digits);
+  if (match) return { id: match.id };
+
+  const { data: created, error } = await supabase
+    .from("client_cnpjs")
+    .insert({ client_id: clientId, cnpj: raw, created_by: userId })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error) return { error: error.message };
+  return { id: created.id };
+}
+
 export async function addAccount(
   _prevState: ActionState,
   formData: FormData,
@@ -105,11 +140,19 @@ export async function addAccount(
   const { data: auth } = await supabase.auth.getUser();
   const clientId = formData.get("client_id") as string;
 
+  const resolved = await resolveCnpjId(
+    supabase,
+    clientId,
+    (formData.get("cnpj") as string) ?? "",
+    auth.user?.id,
+  );
+  if ("error" in resolved) return { error: resolved.error };
+
   const { error } = await supabase.from("client_accounts").insert({
     client_id: clientId,
     marketplace: formData.get("marketplace") as string,
     store_name: formData.get("store_name") as string,
-    cnpj_id: (formData.get("cnpj_id") as string) || null,
+    cnpj_id: resolved.id,
     created_by: auth.user?.id,
   });
 
@@ -125,19 +168,29 @@ export async function updateAccount(
   formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
   const clientId = formData.get("client_id") as string;
+
+  const resolved = await resolveCnpjId(
+    supabase,
+    clientId,
+    (formData.get("cnpj") as string) ?? "",
+    auth.user?.id,
+  );
+  if ("error" in resolved) return { error: resolved.error };
 
   const { error } = await supabase
     .from("client_accounts")
     .update({
       store_name: formData.get("store_name") as string,
-      cnpj_id: (formData.get("cnpj_id") as string) || null,
+      cnpj_id: resolved.id,
     })
     .eq("id", formData.get("id") as string);
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/clientes/${clientId}`);
+  revalidatePath(`/clientes/${clientId}`, "layout");
+  revalidatePath("/financas");
   return { ok: true };
 }
 
