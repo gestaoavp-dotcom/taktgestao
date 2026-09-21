@@ -2,7 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import type { ClientAccount, ClientCnpj, ClientFeeChange } from "@/lib/types";
+import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import { DateField } from "@/components/date-field";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { addCnpj, deleteCnpj, updateBilling } from "@/app/(dashboard)/clientes/[id]/actions";
@@ -30,21 +30,14 @@ export function formatCnpj(value: string) {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-function formatDate(date: string) {
-  const [y, m, d] = date.split("-");
-  return `${d}/${m}/${y}`;
-}
-
 function CnpjBilling({
   clientId,
   cnpj,
   stores,
-  feeChanges,
 }: {
   clientId: string;
   cnpj: ClientCnpj;
   stores: ClientAccount[];
-  feeChanges: ClientFeeChange[];
 }) {
   const [state, formAction, pending] = useActionState(updateBilling, null);
   const [fee, setFee] = useState(cnpj.monthly_fee?.toString() ?? "");
@@ -151,29 +144,6 @@ function CnpjBilling({
         </div>
       )}
 
-      {feeChanges.length > 0 && (
-        <details className="mt-3">
-          <summary className="cursor-pointer text-xs font-semibold text-[#5B647E] hover:text-navy">
-            Histórico de reajustes ({feeChanges.length})
-          </summary>
-          <ul className="mt-2 flex flex-col gap-1.5 border-l-2 border-navy/10 pl-3">
-            {feeChanges.map((change) => (
-              <li key={change.id} className="text-xs">
-                <span className="font-semibold text-navy">
-                  {formatDate(change.effective_on)}
-                </span>{" "}
-                <span className="text-[#5B647E]">
-                  {change.previous_amount !== null
-                    ? `${formatCurrency(Number(change.previous_amount))} → ${formatCurrency(Number(change.amount))}`
-                    : formatCurrency(Number(change.amount))}
-                </span>
-                {change.note && <p className="text-[#94A0BD]">{change.note}</p>}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
       {stores.length > 0 && (
         <p className="mt-3 text-xs text-[#94A0BD]">
           Lojas neste CNPJ:{" "}
@@ -209,12 +179,10 @@ export function ClientBillingCard({
   clientId,
   cnpjs,
   accounts,
-  feeChanges,
 }: {
   clientId: string;
   cnpjs: ClientCnpj[];
   accounts: ClientAccount[];
-  feeChanges: ClientFeeChange[];
 }) {
   const [adding, setAdding] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -255,7 +223,6 @@ export function ClientBillingCard({
             clientId={clientId}
             cnpj={cnpj}
             stores={accounts.filter((a) => a.cnpj_id === cnpj.id)}
-            feeChanges={feeChanges.filter((f) => f.cnpj_id === cnpj.id)}
           />
         ))}
       </div>

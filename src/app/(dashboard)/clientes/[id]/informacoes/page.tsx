@@ -10,6 +10,7 @@ import { ClientRegistrationCard } from "@/components/client-registration-card";
 import { ClientBillingCard } from "@/components/client-billing-card";
 import { ClientAccountsCard } from "@/components/client-accounts-card";
 import { ClientFilesCard } from "@/components/client-files-card";
+import { ClientFeeHistoryCard } from "@/components/client-fee-history-card";
 
 export default async function ClienteInformacoesPage({
   params,
@@ -64,7 +65,6 @@ export default async function ClienteInformacoesPage({
           clientId={id}
           cnpjs={cnpjs ?? []}
           accounts={accounts ?? []}
-          feeChanges={feeChanges ?? []}
         />
         <ClientAccountsCard
           clientId={id}
@@ -74,6 +74,8 @@ export default async function ClienteInformacoesPage({
       </div>
 
       <ClientFilesCard clientId={id} files={files ?? []} />
+
+      <ClientFeeHistoryCard cnpjs={cnpjs ?? []} feeChanges={feeChanges ?? []} />
     </div>
   );
 }
