@@ -20,7 +20,9 @@ export function ClientTabs({ clientId }: { clientId: string }) {
     <nav className="flex gap-1 border-b border-navy/[.08]">
       {TABS.map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
-        const isActive = pathname === href;
+        // Sub-pages keep their tab lit — but the dashboard's own href is a
+        // prefix of every other one, so it has to match exactly.
+        const isActive = tab.segment ? pathname.startsWith(href) : pathname === href;
 
         return (
           <Link

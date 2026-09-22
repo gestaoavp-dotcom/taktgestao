@@ -225,3 +225,22 @@ export type Task = {
   due_date: string | null;
   created_at: string;
 };
+
+/**
+ * One marketplace login. The encrypted password is deliberately absent: the
+ * listing never selects it, and `has_password` (generated in Postgres) is what
+ * says whether one exists.
+ */
+export type ClientCredential = {
+  id: string;
+  client_id: string;
+  marketplace: string | null;
+  store_name: string;
+  label: string | null;
+  login: string | null;
+  url: string | null;
+  notes: string | null;
+  has_password: boolean;
+  created_at: string;
+  updated_at: string;
+};

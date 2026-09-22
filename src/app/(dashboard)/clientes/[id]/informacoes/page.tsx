@@ -6,6 +6,7 @@ import type {
   ClientFeeChange,
   ClientFile,
 } from "@/lib/types";
+import { InformacoesSubTabs } from "@/components/informacoes-sub-tabs";
 import { ClientRegistrationCard } from "@/components/client-registration-card";
 import { ClientBillingCard } from "@/components/client-billing-card";
 import { ClientAccountsCard } from "@/components/client-accounts-card";
@@ -57,25 +58,29 @@ export default async function ClienteInformacoesPage({
   if (!client) return null;
 
   return (
-    <div className="flex flex-col gap-5">
-      <ClientRegistrationCard client={client} />
+    <div>
+      <InformacoesSubTabs clientId={id} />
 
-      <div className="grid grid-cols-2 gap-5">
-        <ClientBillingCard
-          clientId={id}
-          cnpjs={cnpjs ?? []}
-          accounts={accounts ?? []}
-        />
-        <ClientAccountsCard
-          clientId={id}
-          accounts={accounts ?? []}
-          cnpjs={cnpjs ?? []}
-        />
+      <div className="flex flex-col gap-5">
+        <ClientRegistrationCard client={client} />
+
+        <div className="grid grid-cols-2 gap-5">
+          <ClientBillingCard
+            clientId={id}
+            cnpjs={cnpjs ?? []}
+            accounts={accounts ?? []}
+          />
+          <ClientAccountsCard
+            clientId={id}
+            accounts={accounts ?? []}
+            cnpjs={cnpjs ?? []}
+          />
+        </div>
+
+        <ClientFilesCard clientId={id} files={files ?? []} />
+
+        <ClientFeeHistoryCard cnpjs={cnpjs ?? []} feeChanges={feeChanges ?? []} />
       </div>
-
-      <ClientFilesCard clientId={id} files={files ?? []} />
-
-      <ClientFeeHistoryCard cnpjs={cnpjs ?? []} feeChanges={feeChanges ?? []} />
     </div>
   );
 }
