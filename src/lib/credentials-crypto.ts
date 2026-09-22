@@ -12,6 +12,22 @@ import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
 const VERSION = "v1";
 
+/**
+ * Takes the key as a person would paste it.
+ *
+ * A dashboard field is filled by hand, and the three things that reliably come
+ * along — the variable name from a copied `NAME=value` line, quotes from a
+ * shell, a trailing newline — are unambiguous and worth simply accepting. The
+ * alternative is a deploy that looks configured and refuses every password.
+ */
+function normaliseKey(raw: string) {
+  return raw
+    .trim()
+    .replace(/^CREDENTIALS_KEY\s*=\s*/i, "")
+    .replace(/^["']|["']$/g, "")
+    .trim();
+}
+
 function secretKey() {
   const raw = process.env.CREDENTIALS_KEY;
   if (!raw) {
@@ -21,7 +37,7 @@ function secretKey() {
     );
   }
 
-  const bytes = Buffer.from(raw, "base64");
+  const bytes = Buffer.from(normaliseKey(raw), "base64");
   if (bytes.length !== 32) {
     throw new Error(
       `CREDENTIALS_KEY inválida: deu ${bytes.length} bytes, precisa de 32. ` +
@@ -77,7 +93,7 @@ export function keyStatus(): { ok: true } | { ok: false; reason: string } {
     };
   }
 
-  const bytes = Buffer.from(raw, "base64").length;
+  const bytes = Buffer.from(normaliseKey(raw), "base64").length;
   if (bytes !== 32) {
     return {
       ok: false,
