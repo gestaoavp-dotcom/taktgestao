@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ClientCredential } from "@/lib/types";
 import { InformacoesSubTabs } from "@/components/informacoes-sub-tabs";
 import { ClientCredentialsCard } from "@/components/client-credentials-card";
+import { keyStatus } from "@/lib/credentials-crypto";
 
 export default async function ClienteAcessosPage({
   params,
@@ -22,9 +23,20 @@ export default async function ClienteAcessosPage({
     .order("store_name")
     .returns<ClientCredential[]>();
 
+  // Checked here, in the running server, so a misconfigured deploy announces
+  // itself on arrival rather than when someone tries to save a password.
+  const key = keyStatus();
+
   return (
     <div>
       <InformacoesSubTabs clientId={id} />
+
+      {!key.ok && (
+        <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+          <strong className="font-bold">Senhas não podem ser salvas neste deploy.</strong>{" "}
+          {key.reason}
+        </p>
+      )}
       <ClientCredentialsCard clientId={id} credentials={credentials ?? []} />
     </div>
   );

@@ -60,3 +60,33 @@ export function decryptSecret(stored: string): string {
     decipher.final(),
   ]).toString("utf8");
 }
+
+/**
+ * What the running server makes of the key, without throwing and without
+ * revealing it. Lets a page say "the deploy has no key" instead of leaving
+ * that to be discovered when someone tries to save.
+ */
+export function keyStatus(): { ok: true } | { ok: false; reason: string } {
+  const raw = process.env.CREDENTIALS_KEY;
+  if (!raw) {
+    return {
+      ok: false,
+      reason:
+        "A CREDENTIALS_KEY não chegou neste deploy. Confira se a variável existe no " +
+        "ambiente certo na Vercel e refaça o deploy — a Vercel só lê variáveis ao construir.",
+    };
+  }
+
+  const bytes = Buffer.from(raw, "base64").length;
+  if (bytes !== 32) {
+    return {
+      ok: false,
+      reason:
+        `A CREDENTIALS_KEY deste deploy tem ${bytes} bytes e precisa de 32. ` +
+        'O valor na Vercel deve ser só a chave — sem "CREDENTIALS_KEY=" na frente, ' +
+        "sem aspas e sem espaço ou quebra de linha.",
+    };
+  }
+
+  return { ok: true };
+}
