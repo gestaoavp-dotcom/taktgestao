@@ -34,6 +34,17 @@ export async function saveCredential(
 
   const password = String(formData.get("password") ?? "");
 
+  // A missing or malformed key must reach the form as a message. Left to
+  // throw, it takes the whole page down and says nothing useful.
+  let cipher: string | null = null;
+  if (password) {
+    try {
+      cipher = encryptSecret(password);
+    } catch (e) {
+      return { error: (e as Error).message };
+    }
+  }
+
   const fields = {
     client_id: clientId,
     marketplace: text(formData, "marketplace"),
@@ -43,7 +54,7 @@ export async function saveCredential(
     url: text(formData, "url"),
     notes: text(formData, "notes"),
     updated_at: new Date().toISOString(),
-    ...(password ? { password_cipher: encryptSecret(password) } : {}),
+    ...(cipher ? { password_cipher: cipher } : {}),
   };
 
   const { error } = id
@@ -86,7 +97,10 @@ export async function revealCredential(
 
   try {
     return { password: decryptSecret(data.password_cipher) };
-  } catch {
+  } catch (e) {
+    if ((e as Error).message.includes("CREDENTIALS_KEY")) {
+      return { error: (e as Error).message };
+    }
     // Either the key changed or the row was altered outside the app. Say so
     // rather than showing whatever the bytes happen to decode to.
     return {

@@ -23,7 +23,11 @@ function secretKey() {
 
   const bytes = Buffer.from(raw, "base64");
   if (bytes.length !== 32) {
-    throw new Error("CREDENTIALS_KEY precisa ser 32 bytes em base64.");
+    throw new Error(
+      `CREDENTIALS_KEY inválida: deu ${bytes.length} bytes, precisa de 32. ` +
+        "Confira se o valor na Vercel é só a chave, sem o \"CREDENTIALS_KEY=\" " +
+        "na frente e sem espaço ou quebra de linha no fim.",
+    );
   }
   return bytes;
 }
