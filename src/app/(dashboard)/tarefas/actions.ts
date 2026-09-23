@@ -8,12 +8,14 @@ export async function createTask(formData: FormData) {
   const { data: auth } = await supabase.auth.getUser();
 
   const title = formData.get("title") as string;
+  const description = (formData.get("description") as string) || null;
   const client_id = (formData.get("client_id") as string) || null;
   const priority = formData.get("priority") as string;
   const due_date = (formData.get("due_date") as string) || null;
 
   await supabase.from("tasks").insert({
     title,
+    description,
     client_id,
     priority,
     due_date,

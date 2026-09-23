@@ -73,6 +73,12 @@ export default async function TarefasPage() {
           name="due_date"
           className="col-span-2 flex w-full items-center justify-between rounded border border-navy/10 bg-transparent px-3 py-2 text-sm outline-none focus:border-blue"
         />
+        <textarea
+          name="description"
+          placeholder="Observação (opcional)"
+          rows={2}
+          className="col-span-2 resize-none rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue"
+        />
         <button
           type="submit"
           className="col-span-2 mt-1 h-10 rounded bg-navy text-sm font-medium text-white transition-colors hover:bg-[#0d1a38]"
@@ -96,7 +102,12 @@ export default async function TarefasPage() {
           <tbody>
             {tasks?.map((task) => (
               <tr key={task.id} className="border-t border-navy/[.08]">
-                <td className="px-4 py-2 text-navy">{task.title}</td>
+                <td className="px-4 py-2 text-navy">
+                  {task.title}
+                  {task.description && (
+                    <p className="mt-0.5 text-xs text-[#94A0BD]">{task.description}</p>
+                  )}
+                </td>
                 <td className="px-4 py-2 text-[#5B647E]">{task.clients?.name ?? "—"}</td>
                 <td className="px-4 py-2">
                   <span
