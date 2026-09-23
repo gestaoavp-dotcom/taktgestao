@@ -294,3 +294,55 @@ export async function importSalesProducts(input: {
   revalidatePath(`/clientes/${input.clientId}/vendas/produtos`);
   return { ok: true };
 }
+
+/**
+ * Saves the seller's own costs on a product line.
+ *
+ * A cost belongs to the product, not to the month: typing it once fills every
+ * month of the same SKU. The tax rate is one number for the whole client, so it
+ * lands on every product row at once — both mirroring the Pedidos tab, where
+ * the team already learned this behaviour.
+ */
+export async function updateProductCosts(
+  _prevState: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const supabase = await createClient();
+  const clientId = formData.get("client_id") as string;
+  const id = formData.get("id") as string;
+
+  function toNumberOrNull(value: FormDataEntryValue | null) {
+    if (value === null || value === "") return null;
+    const n = Number(String(value).replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  const unitCost = toNumberOrNull(formData.get("unit_cost"));
+  const extraCosts = toNumberOrNull(formData.get("extra_costs"));
+  const taxPercent = toNumberOrNull(formData.get("tax_percent"));
+
+  const { data: row } = await supabase
+    .from("sales_products")
+    .select("sku")
+    .eq("id", id)
+    .maybeSingle<{ sku: string | null }>();
+
+  if (row?.sku) {
+    await supabase
+      .from("sales_products")
+      .update({ unit_cost: unitCost })
+      .eq("client_id", clientId)
+      .eq("sku", row.sku);
+  } else {
+    await supabase.from("sales_products").update({ unit_cost: unitCost }).eq("id", id);
+  }
+
+  await supabase.from("sales_products").update({ extra_costs: extraCosts }).eq("id", id);
+  await supabase
+    .from("sales_products")
+    .update({ tax_percent: taxPercent })
+    .eq("client_id", clientId);
+
+  revalidatePath(`/clientes/${clientId}/vendas/produtos`);
+  return { ok: true };
+}

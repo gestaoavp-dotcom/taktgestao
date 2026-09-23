@@ -268,6 +268,9 @@ export type SalesProduct = {
   units_net: number;
   average_price: number;
   costs: Record<string, number>;
+  unit_cost: number | null;
+  extra_costs: number | null;
+  tax_percent: number | null;
   is_total: boolean;
   raw: Record<string, unknown> | null;
   created_at: string;

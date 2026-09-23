@@ -22,7 +22,7 @@ export default async function ProdutosPage({
   return (
     <div>
       <VendasSubTabs clientId={id} />
-      <SalesProductsTable products={products ?? []} />
+      <SalesProductsTable clientId={id} products={products ?? []} />
     </div>
   );
 }
