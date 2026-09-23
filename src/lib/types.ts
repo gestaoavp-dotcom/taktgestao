@@ -205,14 +205,6 @@ export type SalesTraffic = {
   created_at: string;
 };
 
-export type ClientLink = {
-  id: string;
-  client_id: string;
-  label: string;
-  url: string;
-  created_at: string;
-};
-
 export type TaxSettings = {
   id: string;
   rate_percent: number;

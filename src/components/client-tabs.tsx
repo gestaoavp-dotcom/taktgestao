@@ -7,7 +7,6 @@ const TABS = [
   { segment: "", label: "Dashboard" },
   { segment: "vendas", label: "Dados" },
   { segment: "controle", label: "Controle" },
-  { segment: "links", label: "Links" },
   { segment: "relatorios", label: "Relatórios" },
   { segment: "informacoes", label: "Informações" },
 ];

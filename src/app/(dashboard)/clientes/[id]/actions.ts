@@ -378,35 +378,7 @@ export async function deleteChange(formData: FormData) {
   revalidatePath(`/clientes/${clientId}/controle`);
 }
 
-export async function addLink(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  const clientId = formData.get("client_id") as string;
 
-  const { error } = await supabase.from("client_links").insert({
-    client_id: clientId,
-    label: formData.get("label") as string,
-    url: formData.get("url") as string,
-    created_by: auth.user?.id,
-  });
-
-  if (error) return { error: error.message };
-
-  revalidatePath(`/clientes/${clientId}/links`);
-  return { ok: true };
-}
-
-export async function deleteLink(formData: FormData) {
-  const supabase = await createClient();
-  const clientId = formData.get("client_id") as string;
-
-  await supabase.from("client_links").delete().eq("id", formData.get("id") as string);
-
-  revalidatePath(`/clientes/${clientId}/links`);
-}
 
 export async function getFileUrl(path: string) {
   const supabase = await createClient();
