@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Download, FileSpreadsheet, RefreshCw, Trash2, Upload } from "lucide-react";
-import type { SalesReport, SalesReportKind } from "@/lib/types";
+import type { ClientAccount, SalesReport, SalesReportKind } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { createClient } from "@/lib/supabase/client";
 import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
@@ -52,6 +52,11 @@ const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
   },
 ];
 
+/** Unique per upload, so replacing a file never collides with the old one. */
+function storagePath(clientId: string, marketplace: string, name: string) {
+  return `sales-reports/${clientId}/${marketplace}/${Date.now()}-${name.replace(/[^\w.\-]/g, "_")}`;
+}
+
 const MONTHS = [
   "Janeiro",
   "Fevereiro",
@@ -94,18 +99,25 @@ function monthLabel(reportMonth: string | null) {
 
 export function SalesReportsCard({
   clientId,
-  clientMarketplaces,
+  accounts,
   reports,
   orderCounts,
 }: {
   clientId: string;
-  clientMarketplaces: string[];
+  accounts: ClientAccount[];
   reports: SalesReport[];
   orderCounts: Record<string, number>;
 }) {
   const now = new Date();
   const [kind, setKind] = useState<SalesReportKind>("pedidos");
-  const [marketplace, setMarketplace] = useState<string>(clientMarketplaces[0] ?? "mercado_livre");
+  const clientMarketplaces = useMemo(
+    () => [...new Set(accounts.map((a) => a.marketplace))],
+    [accounts],
+  );
+  const [marketplace, setMarketplace] = useState<string>(
+    accounts[0]?.marketplace ?? "mercado_livre",
+  );
+  const [accountId, setAccountId] = useState<string>("");
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const inputRef = useRef<HTMLInputElement>(null);
@@ -113,6 +125,11 @@ export function SalesReportsCard({
   const [replacingId, setReplacingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A client can sell on the same marketplace under more than one store, and
+  // each exports its own file. Asking which only makes sense when there are two.
+  const stores = accounts.filter((a) => a.marketplace === marketplace);
+  const store = stores.find((a) => a.id === accountId) ?? (stores.length === 1 ? stores[0] : null);
 
   // Reports uploaded before the kind column existed are order reports.
   const visible = reports.filter(
@@ -137,9 +154,10 @@ export function SalesReportsCard({
     const reportKind = replaceReport?.kind ?? kind;
     const reportMarketplace = replaceReport?.marketplace ?? marketplace;
     const reportMonth = replaceReport?.report_month ?? `${year}-${String(month).padStart(2, "0")}-01`;
+    const reportAccountId = replaceReport?.account_id ?? store?.id ?? null;
 
     const supabase = createClient();
-    const path = `sales-reports/${clientId}/${reportMarketplace}/${Date.now()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+    const path = storagePath(clientId, reportMarketplace, file.name);
 
     const { error: uploadError } = await supabase.storage.from("client-files").upload(path, file);
     if (uploadError) {
@@ -156,6 +174,7 @@ export function SalesReportsCard({
       clientId,
       kind: reportKind,
       marketplace: reportMarketplace,
+      accountId: reportAccountId,
       reportMonth,
       name: file.name,
       path,
@@ -184,6 +203,7 @@ export function SalesReportsCard({
             clientId,
             reportId: registered.id,
             marketplace: reportMarketplace,
+            accountId: reportAccountId,
             reportMonth,
             ads: parseShopeeAds(rows),
           });
@@ -199,6 +219,7 @@ export function SalesReportsCard({
             clientId,
             reportId: registered.id,
             marketplace: reportMarketplace,
+            accountId: reportAccountId,
             reportMonth,
             products: parseShopeeTraffic(rows),
           });
@@ -218,6 +239,7 @@ export function SalesReportsCard({
             clientId,
             reportId: registered.id,
             marketplace: reportMarketplace,
+            accountId: reportAccountId,
             reportMonth,
             products: parseAmazonProducts(rows),
           });
@@ -236,6 +258,7 @@ export function SalesReportsCard({
             clientId,
             reportId: registered.id,
             marketplace: reportMarketplace,
+            accountId: reportAccountId,
             reportMonth,
             orders: parseMercadoLivreOrders(rows),
           });
@@ -250,6 +273,7 @@ export function SalesReportsCard({
             clientId,
             reportId: registered.id,
             marketplace: reportMarketplace,
+            accountId: reportAccountId,
             reportMonth,
             orders: parseShopeeOrders(rows),
           });
@@ -316,12 +340,15 @@ export function SalesReportsCard({
           : " — a leitura automática desse tipo ainda não está pronta: o arquivo fica salvo, mas os dados não são extraídos."}
       </p>
 
-      <div className="mb-4 flex flex-wrap gap-1.5">
+      <div className="mb-3 flex flex-wrap gap-1.5">
         {clientMarketplaces.map((m) => (
           <button
             key={m}
             type="button"
-            onClick={() => setMarketplace(m)}
+            onClick={() => {
+              setMarketplace(m);
+              setAccountId("");
+            }}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               marketplace === m
                 ? "bg-navy text-white"
@@ -332,6 +359,33 @@ export function SalesReportsCard({
           </button>
         ))}
       </div>
+
+      {stores.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            Loja
+          </span>
+          {stores.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => setAccountId(a.id)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                accountId === a.id
+                  ? "bg-blue text-white"
+                  : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+              }`}
+            >
+              {a.store_name}
+            </button>
+          ))}
+          {!accountId && (
+            <span className="text-[11px] text-[#c2410c]">
+              escolha de qual loja é esse arquivo
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <select

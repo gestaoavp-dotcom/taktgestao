@@ -100,6 +100,7 @@ export type SalesReportKind = "pedidos" | "trafego" | "ads" | "produtos";
 export type SalesReport = {
   id: string;
   client_id: string;
+  account_id: string | null;
   kind: SalesReportKind;
   marketplace: string;
   report_month: string | null;
@@ -116,6 +117,7 @@ export type SalesOrder = {
   sales_report_id: string;
   marketplace: string;
   report_month: string;
+  account_id: string | null;
   order_id: string;
   status: string | null;
   refund_status: string | null;
@@ -256,6 +258,7 @@ export type SalesProduct = {
   sales_report_id: string;
   marketplace: string;
   report_month: string;
+  account_id: string | null;
   external_id: string | null;
   sku: string | null;
   product_name: string | null;

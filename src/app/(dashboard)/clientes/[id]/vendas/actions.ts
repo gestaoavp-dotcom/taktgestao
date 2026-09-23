@@ -16,6 +16,7 @@ export async function registerSalesReport(input: {
   clientId: string;
   kind: SalesReportKind;
   marketplace: string;
+  accountId: string | null;
   reportMonth: string;
   name: string;
   path: string;
@@ -30,6 +31,7 @@ export async function registerSalesReport(input: {
       client_id: input.clientId,
       kind: input.kind,
       marketplace: input.marketplace,
+      account_id: input.accountId,
       report_month: input.reportMonth,
       name: input.name,
       path: input.path,
@@ -49,6 +51,7 @@ export async function importSalesOrders(input: {
   clientId: string;
   reportId: string;
   marketplace: string;
+  accountId: string | null;
   reportMonth: string;
   orders: (ParsedShopeeOrder | ParsedMercadoLivreOrder)[];
 }): Promise<ActionState> {
@@ -71,6 +74,7 @@ export async function importSalesOrders(input: {
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
+    account_id: input.accountId,
     report_month: input.reportMonth,
     ...o,
     cost: o.sku ? costBySku.get(o.sku) ?? null : null,
@@ -97,6 +101,7 @@ export async function importSalesAds(input: {
   clientId: string;
   reportId: string;
   marketplace: string;
+  accountId: string | null;
   reportMonth: string;
   ads: ParsedShopeeAd[];
 }): Promise<ActionState> {
@@ -106,6 +111,7 @@ export async function importSalesAds(input: {
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
+    account_id: input.accountId,
     report_month: input.reportMonth,
     ...a,
   }));
@@ -130,6 +136,7 @@ export async function importSalesTraffic(input: {
   clientId: string;
   reportId: string;
   marketplace: string;
+  accountId: string | null;
   reportMonth: string;
   products: ParsedShopeeTraffic[];
 }): Promise<ActionState> {
@@ -150,6 +157,7 @@ export async function importSalesTraffic(input: {
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
+    account_id: input.accountId,
     report_month: input.reportMonth,
     ...p,
     unit_cost: p.sku ? costBySku.get(p.sku) ?? null : null,
@@ -274,6 +282,7 @@ export async function importSalesProducts(input: {
   clientId: string;
   reportId: string;
   marketplace: string;
+  accountId: string | null;
   reportMonth: string;
   products: ParsedAmazonProduct[];
 }): Promise<ActionState> {
@@ -294,6 +303,7 @@ export async function importSalesProducts(input: {
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
+    account_id: input.accountId,
     report_month: input.reportMonth,
     ...p,
     unit_cost: p.sku ? costBySku.get(p.sku) ?? null : null,

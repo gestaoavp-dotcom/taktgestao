@@ -28,6 +28,7 @@ export function productsFromOrders(orders: SalesOrder[]): DerivedProduct[] {
   type Bucket = {
     key: string;
     marketplace: string;
+    account_id: string | null;
     report_month: string;
     sku: string | null;
     names: Map<string, number>;
@@ -52,11 +53,14 @@ export function productsFromOrders(orders: SalesOrder[]): DerivedProduct[] {
     // Grouping by name when there is no SKU keeps unrelated products apart;
     // without it every SKU-less line of a marketplace would pile into one row.
     const identity = order.sku ?? `nome:${order.product_name ?? "—"}`;
-    const key = `${order.marketplace}|${order.report_month}|${identity}`;
+    // Grouped by store as well: the same product sold by two accounts on the
+    // same marketplace is two lines, which is the whole point of recording it.
+    const key = `${order.marketplace}|${order.account_id ?? "-"}|${order.report_month}|${identity}`;
 
     const bucket = buckets.get(key) ?? {
       key,
       marketplace: order.marketplace,
+      account_id: order.account_id,
       report_month: order.report_month,
       sku: order.sku,
       names: new Map<string, number>(),
@@ -96,6 +100,7 @@ export function productsFromOrders(orders: SalesOrder[]): DerivedProduct[] {
       client_id: b.client_id,
       sales_report_id: "",
       marketplace: b.marketplace,
+      account_id: b.account_id,
       report_month: b.report_month,
       external_id: null,
       sku: b.sku,
