@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, CheckSquare, Wallet, TrendingUp } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  CheckSquare,
+  Wallet,
+  TrendingUp,
+  Settings,
+} from "lucide-react";
 
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -12,34 +19,41 @@ const LINKS = [
   { href: "/vendas", label: "Vendas", icon: TrendingUp },
 ];
 
+/** Shown apart from the rest: it is about the system, not about the work. */
+const SETTINGS = { href: "/configuracoes", label: "Configurações", icon: Settings };
+
 export function NavLinks() {
   const pathname = usePathname();
 
+  const render = (link: { href: string; label: string; icon: typeof LayoutDashboard }) => {
+    const isActive =
+      link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+    const Icon = link.icon;
+
+    return (
+      <Link
+        key={link.href}
+        href={link.href}
+        className={`relative flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+          isActive ? "bg-blue text-white" : "text-[#5B647E] hover:bg-brand-gray/60"
+        }`}
+      >
+        {isActive && (
+          <span className="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r bg-blue" />
+        )}
+        <Icon className="h-[18px] w-[18px]" />
+        {link.label}
+      </Link>
+    );
+  };
+
   return (
     <nav className="flex flex-col gap-1">
-      {LINKS.map((link) => {
-        const isActive =
-          link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
-        const Icon = link.icon;
+      {LINKS.map(render)}
 
-        return (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`relative flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-              isActive
-                ? "bg-blue text-white"
-                : "text-[#5B647E] hover:bg-brand-gray/60"
-            }`}
-          >
-            {isActive && (
-              <span className="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r bg-blue" />
-            )}
-            <Icon className="h-[18px] w-[18px]" />
-            {link.label}
-          </Link>
-        );
-      })}
+      <div className="my-2 border-t border-navy/[.08]" />
+      {render(SETTINGS)}
     </nav>
   );
 }
+
