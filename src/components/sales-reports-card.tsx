@@ -14,6 +14,10 @@ import {
 } from "@/lib/parsers/mercado-livre-orders";
 import { parseAmazonProducts } from "@/lib/parsers/amazon-products";
 import {
+  MERCADO_LIVRE_ADS_SHEET,
+  parseMercadoLivreAds,
+} from "@/lib/parsers/mercado-livre-ads";
+import {
   deleteSalesReport,
   deleteSalesReportById,
   getSalesReportUrl,
@@ -76,7 +80,7 @@ const MONTHS = [
 const READABLE: Record<SalesReportKind, string[]> = {
   pedidos: ["shopee", "mercado_livre"],
   produtos: ["amazon"],
-  ads: ["shopee"],
+  ads: ["shopee", "mercado_livre"],
   trafego: ["shopee"],
 };
 
@@ -191,7 +195,35 @@ export function SalesReportsCard({
       try {
         const XLSX = await import("xlsx");
 
-        if (reportKind === "ads") {
+        if (reportKind === "ads" && reportMarketplace === "mercado_livre") {
+          // Its figures live on a named sheet, behind two of help text, and the
+          // headers carry line breaks — so the rows come back raw.
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const sheet = workbook.Sheets[MERCADO_LIVRE_ADS_SHEET];
+          if (!sheet) {
+            await markSalesReportError(registered.id, clientId);
+            setError(
+              `Esse arquivo não tem a aba "${MERCADO_LIVRE_ADS_SHEET}". Exporte o relatório de campanhas em Publicidade.`,
+            );
+            setUploading(false);
+            return;
+          }
+          const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+            header: 1,
+            blankrows: false,
+          });
+
+          const result = await importSalesAds({
+            clientId,
+            reportId: registered.id,
+            marketplace: reportMarketplace,
+            accountId: reportAccountId,
+            reportMonth,
+            ads: parseMercadoLivreAds(rows),
+          });
+          if (result && "error" in result) setError(result.error);
+        } else if (reportKind === "ads") {
           // The ads export is a CSV with a preamble, and its day-first dates
           // must not be reinterpreted, hence raw.
           const text = stripAdsPreamble(await file.text());

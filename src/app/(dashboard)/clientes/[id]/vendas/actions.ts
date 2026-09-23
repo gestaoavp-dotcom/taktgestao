@@ -6,6 +6,7 @@ import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
 import type { ParsedMercadoLivreOrder } from "@/lib/parsers/mercado-livre-orders";
 import type { ParsedAmazonProduct } from "@/lib/parsers/amazon-products";
 import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
+import type { ParsedMercadoLivreAd } from "@/lib/parsers/mercado-livre-ads";
 import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import type { SalesReportKind } from "@/lib/types";
 import { knownCosts, knownTax } from "@/lib/product-costs";
@@ -103,7 +104,7 @@ export async function importSalesAds(input: {
   marketplace: string;
   accountId: string | null;
   reportMonth: string;
-  ads: ParsedShopeeAd[];
+  ads: (ParsedShopeeAd | ParsedMercadoLivreAd)[];
 }): Promise<ActionState> {
   const supabase = await createClient();
 

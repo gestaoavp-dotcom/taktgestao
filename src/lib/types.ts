@@ -143,6 +143,7 @@ export type SalesOrder = {
 
 export type SalesAd = {
   id: string;
+  account_id: string | null;
   client_id: string;
   sales_report_id: string;
   marketplace: string;
@@ -171,6 +172,7 @@ export type SalesAd = {
 
 export type SalesTraffic = {
   id: string;
+  account_id: string | null;
   client_id: string;
   sales_report_id: string;
   marketplace: string;

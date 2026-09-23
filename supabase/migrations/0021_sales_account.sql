@@ -15,5 +15,11 @@ alter table public.sales_orders
 alter table public.sales_products
   add column if not exists account_id uuid references public.client_accounts(id) on delete set null;
 
+alter table public.sales_ads
+  add column if not exists account_id uuid references public.client_accounts(id) on delete set null;
+
+alter table public.sales_traffic
+  add column if not exists account_id uuid references public.client_accounts(id) on delete set null;
+
 create index if not exists sales_orders_account_idx on public.sales_orders(account_id);
 create index if not exists sales_products_account_idx on public.sales_products(account_id);
