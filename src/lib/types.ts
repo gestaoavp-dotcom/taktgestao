@@ -95,7 +95,7 @@ export type ClientChange = {
   created_at: string;
 };
 
-export type SalesReportKind = "pedidos" | "trafego" | "ads";
+export type SalesReportKind = "pedidos" | "trafego" | "ads" | "produtos";
 
 export type SalesReport = {
   id: string;
@@ -243,4 +243,32 @@ export type ClientCredential = {
   has_password: boolean;
   created_at: string;
   updated_at: string;
+};
+
+/**
+ * A month's result for one listing, from a marketplace that settles by product
+ * instead of by order. `costs` keeps each charge with its own sign, so
+ * net_sales minus their sum is net_revenue.
+ */
+export type SalesProduct = {
+  id: string;
+  client_id: string;
+  sales_report_id: string;
+  marketplace: string;
+  report_month: string;
+  external_id: string | null;
+  sku: string | null;
+  product_name: string | null;
+  brand: string | null;
+  gross_sales: number;
+  net_sales: number;
+  net_revenue: number;
+  units_sold: number;
+  units_refunded: number;
+  units_net: number;
+  average_price: number;
+  costs: Record<string, number>;
+  is_total: boolean;
+  raw: Record<string, unknown> | null;
+  created_at: string;
 };

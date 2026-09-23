@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
 import type { ParsedMercadoLivreOrder } from "@/lib/parsers/mercado-livre-orders";
+import type { ParsedAmazonProduct } from "@/lib/parsers/amazon-products";
 import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
 import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import type { SalesReportKind } from "@/lib/types";
@@ -258,5 +259,38 @@ export async function updateOrderCosts(
   if (taxError) return { error: taxError.message };
 
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
+  return { ok: true };
+}
+
+export async function importSalesProducts(input: {
+  clientId: string;
+  reportId: string;
+  marketplace: string;
+  reportMonth: string;
+  products: ParsedAmazonProduct[];
+}): Promise<ActionState> {
+  const supabase = await createClient();
+
+  const rows = input.products.map((p) => ({
+    client_id: input.clientId,
+    sales_report_id: input.reportId,
+    marketplace: input.marketplace,
+    report_month: input.reportMonth,
+    ...p,
+  }));
+
+  if (rows.length) {
+    const { error } = await supabase.from("sales_products").insert(rows);
+    if (error) return { error: error.message };
+  }
+
+  const { error: statusError } = await supabase
+    .from("sales_reports")
+    .update({ status: "processado" })
+    .eq("id", input.reportId);
+  if (statusError) return { error: statusError.message };
+
+  revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
+  revalidatePath(`/clientes/${input.clientId}/vendas/produtos`);
   return { ok: true };
 }

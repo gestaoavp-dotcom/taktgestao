@@ -11,6 +11,7 @@ export function VendasSubTabs({ clientId }: { clientId: string }) {
     { href: base, label: "Visão geral" },
     { href: `${base}/importar`, label: "Importar documentos" },
     { href: `${base}/pedidos`, label: "Pedidos" },
+    { href: `${base}/produtos`, label: "Produtos" },
     { href: `${base}/ads`, label: "Ads" },
     { href: `${base}/trafego`, label: "Tráfego" },
   ];

@@ -12,11 +12,13 @@ import {
   MERCADO_LIVRE_HEADER_ROW,
   parseMercadoLivreOrders,
 } from "@/lib/parsers/mercado-livre-orders";
+import { parseAmazonProducts } from "@/lib/parsers/amazon-products";
 import {
   deleteSalesReport,
   deleteSalesReportById,
   getSalesReportUrl,
   importSalesAds,
+  importSalesProducts,
   importSalesTraffic,
   importSalesOrders,
   markSalesReportError,
@@ -43,6 +45,11 @@ const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
   },
   { value: "trafego", label: "Tráfego", hint: "visitas, visualizações e conversão das páginas" },
   { value: "ads", label: "Ads", hint: "campanhas: investimento, cliques e vendas por anúncio" },
+  {
+    value: "produtos",
+    label: "Produtos",
+    hint: "relatório de negócios: resultado do mês por produto, com tarifas e logística",
+  },
 ];
 
 const MONTHS = [
@@ -63,6 +70,7 @@ const MONTHS = [
 /** Marketplaces whose report we know how to read, per kind of report. */
 const READABLE: Record<SalesReportKind, string[]> = {
   pedidos: ["shopee", "mercado_livre"],
+  produtos: ["amazon"],
   ads: ["shopee"],
   trafego: ["shopee"],
 };
@@ -193,6 +201,25 @@ export function SalesReportsCard({
             marketplace: reportMarketplace,
             reportMonth,
             products: parseShopeeTraffic(rows),
+          });
+          if (result && "error" in result) setError(result.error);
+        } else if (reportKind === "produtos") {
+          // Two rows of headers that must be read together, so the sheet comes
+          // back as raw rows rather than objects.
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+            header: 1,
+            blankrows: false,
+          });
+
+          const result = await importSalesProducts({
+            clientId,
+            reportId: registered.id,
+            marketplace: reportMarketplace,
+            reportMonth,
+            products: parseAmazonProducts(rows),
           });
           if (result && "error" in result) setError(result.error);
         } else if (reportMarketplace === "mercado_livre") {
