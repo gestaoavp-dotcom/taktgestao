@@ -219,6 +219,8 @@ export type Task = {
   status: "todo" | "in_progress" | "done";
   priority: "low" | "medium" | "high";
   due_date: string | null;
+  assigned_to: string | null;
+  created_by: string | null;
   created_at: string;
 };
 
@@ -270,5 +272,17 @@ export type SalesProduct = {
   tax_percent: number | null;
   is_total: boolean;
   raw: Record<string, unknown> | null;
+  created_at: string;
+};
+
+/** A login, and how far it reaches. */
+export type ProfileRole = "dono" | "operador" | "cliente";
+
+export type Profile = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  role: ProfileRole;
+  client_id: string | null;
   created_at: string;
 };

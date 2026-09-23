@@ -6,20 +6,19 @@ import { createClient } from "@/lib/supabase/server";
 export async function createTask(formData: FormData) {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-
-  const title = formData.get("title") as string;
-  const description = (formData.get("description") as string) || null;
-  const client_id = (formData.get("client_id") as string) || null;
-  const priority = formData.get("priority") as string;
-  const due_date = (formData.get("due_date") as string) || null;
+  if (!auth.user) return;
 
   await supabase.from("tasks").insert({
-    title,
-    description,
-    client_id,
-    priority,
-    due_date,
-    created_by: auth.user?.id,
+    title: formData.get("title") as string,
+    description: (formData.get("description") as string) || null,
+    client_id: (formData.get("client_id") as string) || null,
+    priority: formData.get("priority") as string,
+    due_date: (formData.get("due_date") as string) || null,
+    status: (formData.get("status") as string) || "todo",
+    // A task with no owner is a task nobody picks up, so it starts with
+    // whoever wrote it unless they chose someone else.
+    assigned_to: (formData.get("assigned_to") as string) || auth.user.id,
+    created_by: auth.user.id,
   });
 
   revalidatePath("/tarefas");
@@ -27,19 +26,42 @@ export async function createTask(formData: FormData) {
 
 export async function updateTaskStatus(formData: FormData) {
   const supabase = await createClient();
-  const id = formData.get("id") as string;
-  const status = formData.get("status") as string;
 
+  await supabase
+    .from("tasks")
+    .update({ status: formData.get("status") as string })
+    .eq("id", formData.get("id") as string);
+
+  revalidatePath("/tarefas");
+}
+
+/** Used by the board when a card is dropped in another column. */
+export async function moveTask(id: string, status: string) {
+  const supabase = await createClient();
   await supabase.from("tasks").update({ status }).eq("id", id);
+  revalidatePath("/tarefas");
+}
+
+export async function updateTask(formData: FormData) {
+  const supabase = await createClient();
+
+  await supabase
+    .from("tasks")
+    .update({
+      title: formData.get("title") as string,
+      description: (formData.get("description") as string) || null,
+      client_id: (formData.get("client_id") as string) || null,
+      priority: formData.get("priority") as string,
+      due_date: (formData.get("due_date") as string) || null,
+      assigned_to: (formData.get("assigned_to") as string) || null,
+    })
+    .eq("id", formData.get("id") as string);
 
   revalidatePath("/tarefas");
 }
 
 export async function deleteTask(formData: FormData) {
   const supabase = await createClient();
-  const id = formData.get("id") as string;
-
-  await supabase.from("tasks").delete().eq("id", id);
-
+  await supabase.from("tasks").delete().eq("id", formData.get("id") as string);
   revalidatePath("/tarefas");
 }
