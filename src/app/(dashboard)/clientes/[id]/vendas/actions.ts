@@ -11,6 +11,39 @@ import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import type { SalesReportKind } from "@/lib/types";
 import { knownCosts, knownTax } from "@/lib/product-costs";
 
+/**
+ * Records a cost edit, when it actually changed something.
+ *
+ * Kept apart from the update so a failure here never blocks the edit: losing a
+ * line of history is bad, refusing the work because of it is worse.
+ */
+async function noteCostChange(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  input: {
+    clientId: string;
+    sku: string | null;
+    productName: string | null;
+    effectiveMonth: string;
+    previous: number | null;
+    next: number | null;
+  },
+) {
+  if (!input.sku) return;
+  if (Number(input.previous ?? NaN) === Number(input.next ?? NaN)) return;
+  if (input.previous == null && input.next == null) return;
+
+  const { data: auth } = await supabase.auth.getUser();
+  await supabase.from("product_cost_changes").insert({
+    client_id: input.clientId,
+    sku: input.sku,
+    product_name: input.productName,
+    effective_month: input.effectiveMonth,
+    previous_cost: input.previous,
+    new_cost: input.next,
+    changed_by: auth.user?.id,
+  });
+}
+
 type ActionState = { ok: true } | { error: string } | null;
 
 export async function registerSalesReport(input: {
@@ -237,6 +270,17 @@ export async function updateOrderCosts(
   const cost = toNumberOrNull(formData.get("cost"));
   const taxPercent = toNumberOrNull(formData.get("tax_percent"));
 
+  const { data: before } = await supabase
+    .from("sales_orders")
+    .select("cost, sku, product_name, report_month")
+    .eq("id", id)
+    .maybeSingle<{
+      cost: number | null;
+      sku: string | null;
+      product_name: string | null;
+      report_month: string;
+    }>();
+
   const { data: updated, error } = await supabase
     .from("sales_orders")
     .update({
@@ -274,6 +318,15 @@ export async function updateOrderCosts(
     .neq("id", id);
 
   if (taxError) return { error: taxError.message };
+
+  await noteCostChange(supabase, {
+    clientId,
+    sku: before?.sku ?? null,
+    productName: before?.product_name ?? null,
+    effectiveMonth: before?.report_month ?? updated.report_month,
+    previous: before?.cost ?? null,
+    next: cost,
+  });
 
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
   return { ok: true };
@@ -355,9 +408,14 @@ export async function updateProductCosts(
 
   const { data: row } = await supabase
     .from("sales_products")
-    .select("sku, report_month")
+    .select("sku, product_name, report_month, unit_cost")
     .eq("id", id)
-    .maybeSingle<{ sku: string | null; report_month: string }>();
+    .maybeSingle<{
+      sku: string | null;
+      product_name: string | null;
+      report_month: string;
+      unit_cost: number | null;
+    }>();
 
   if (row?.sku) {
     await supabase
@@ -376,6 +434,15 @@ export async function updateProductCosts(
     .update({ tax_percent: taxPercent })
     .eq("client_id", clientId)
     .gte("report_month", row?.report_month ?? "1900-01-01");
+
+  await noteCostChange(supabase, {
+    clientId,
+    sku: row?.sku ?? null,
+    productName: row?.product_name ?? null,
+    effectiveMonth: row?.report_month ?? new Date().toISOString().slice(0, 10),
+    previous: row?.unit_cost ?? null,
+    next: unitCost,
+  });
 
   revalidatePath(`/clientes/${clientId}/vendas/produtos`);
   return { ok: true };

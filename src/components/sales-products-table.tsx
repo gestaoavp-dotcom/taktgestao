@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { SalesProduct } from "@/lib/types";
+import type { ProductCostChange, SalesProduct } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
 import { formatCurrency } from "@/lib/sales-summary";
@@ -38,9 +38,50 @@ function monthLabel(reportMonth: string) {
   return `${MONTHS[m - 1]} de ${y}`;
 }
 
+function CostHistory({ changes }: { changes: ProductCostChange[] }) {
+  if (!changes.length) return null;
+
+  const monthLabelOf = (iso: string) => {
+    const [y, m] = iso.split("-").map(Number);
+    return `${MONTHS[m - 1]}/${String(y).slice(2)}`;
+  };
+
+  return (
+    <div className="mt-4 border-t border-navy/[.06] pt-3">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#94A0BD]">
+        Histórico de custo ({changes.length})
+      </p>
+      <ul className="flex flex-col gap-1 text-xs">
+        {changes.map((c) => (
+          <li key={c.id} className="flex items-center justify-between gap-3">
+            <span className="text-[#5B647E]">
+              {new Date(c.changed_at).toLocaleDateString("pt-BR")} · vale de{" "}
+              {monthLabelOf(c.effective_month)} em diante
+            </span>
+            <span className="whitespace-nowrap">
+              {c.previous_cost != null ? (
+                <span className="text-[#94A0BD] line-through">
+                  {formatCurrency(Number(c.previous_cost))}
+                </span>
+              ) : (
+                <span className="text-[#94A0BD]">sem custo</span>
+              )}
+              <span className="mx-1.5 text-[#94A0BD]">→</span>
+              <span className="font-semibold text-navy">
+                {c.new_cost != null ? formatCurrency(Number(c.new_cost)) : "sem custo"}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function ProductRow({
   clientId,
   product,
+  costChanges,
   cost,
   onCostChange,
   tax,
@@ -48,6 +89,7 @@ function ProductRow({
 }: {
   clientId: string;
   product: SalesProduct;
+  costChanges: ProductCostChange[];
   cost: string;
   onCostChange: (value: string) => void;
   tax: string;
@@ -241,6 +283,7 @@ function ProductRow({
                 <span>{formatCurrency(product.gross_sales)}</span>
               </li>
             </ul>
+            <CostHistory changes={costChanges} />
           </td>
         </tr>
       )}
@@ -251,9 +294,11 @@ function ProductRow({
 export function SalesProductsTable({
   clientId,
   products,
+  costChanges,
 }: {
   clientId: string;
   products: SalesProduct[];
+  costChanges: ProductCostChange[];
 }) {
   // One cost per SKU and one tax rate per client, both shared across the table
   // so typing in any row updates every row it applies to at once.
@@ -415,6 +460,7 @@ export function SalesProductsTable({
                 key={product.id}
                 clientId={clientId}
                 product={product}
+                costChanges={costChanges.filter((c) => product.sku && c.sku === product.sku)}
                 cost={costOf(product)}
                 onCostChange={(value) => setCostOf(product, value)}
                 tax={tax}

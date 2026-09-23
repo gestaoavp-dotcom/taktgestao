@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { SalesOrder, SalesProduct } from "@/lib/types";
+import type { ProductCostChange, SalesOrder, SalesProduct } from "@/lib/types";
 import { productsFromOrders } from "@/lib/products-from-orders";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesProductsTable } from "@/components/sales-products-table";
@@ -36,13 +36,19 @@ export default async function ProdutosPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: reported }, orders] = await Promise.all([
+  const [{ data: reported }, orders, { data: costChanges }] = await Promise.all([
     supabase
       .from("sales_products")
       .select("*")
       .eq("client_id", id)
       .returns<SalesProduct[]>(),
     fetchOrders(supabase, id),
+    supabase
+      .from("product_cost_changes")
+      .select("*")
+      .eq("client_id", id)
+      .order("changed_at", { ascending: false })
+      .returns<ProductCostChange[]>(),
   ]);
 
   // Folded here rather than in the browser: a few dozen products cross the
@@ -58,7 +64,11 @@ export default async function ProdutosPage({
   return (
     <div>
       <VendasSubTabs clientId={id} />
-      <SalesProductsTable clientId={id} products={products} />
+      <SalesProductsTable
+        clientId={id}
+        products={products}
+        costChanges={costChanges ?? []}
+      />
     </div>
   );
 }

@@ -286,3 +286,16 @@ export type Profile = {
   client_id: string | null;
   created_at: string;
 };
+
+/** One edit to what a product costs, kept so the history can be read back. */
+export type ProductCostChange = {
+  id: string;
+  client_id: string;
+  sku: string;
+  product_name: string | null;
+  effective_month: string;
+  previous_cost: number | null;
+  new_cost: number | null;
+  changed_by: string | null;
+  changed_at: string;
+};
