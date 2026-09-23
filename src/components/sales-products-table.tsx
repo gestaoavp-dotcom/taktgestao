@@ -4,11 +4,20 @@ import { useActionState, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesProduct } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { MarketplaceBadge } from "@/components/marketplace-badge";
 import { formatCurrency } from "@/lib/sales-summary";
 import { updateProductCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const CELL_INPUT_CLASS =
   "w-16 rounded border border-navy/10 bg-white px-1.5 py-1 text-right text-xs text-navy outline-none focus:border-blue";
+
+/**
+ * Rows folded from the Pedidos tab carry no row of their own, so their cost
+ * lives on the orders and is typed there.
+ */
+function isDerived(product: SalesProduct) {
+  return product.id.startsWith("derivado:");
+}
 
 /** Per unit, so a cost can be compared with what the product brought in. */
 function perUnit(value: number, units: number) {
@@ -73,13 +82,16 @@ function ProductRow({
             <ChevronRight className="h-4 w-4 text-[#94A0BD]" />
           )}
         </td>
-        <td className="max-w-[320px] px-4 py-2">
+        <td className="px-2 py-2">
+          <MarketplaceBadge marketplace={product.marketplace} />
+        </td>
+        <td className="max-w-[300px] px-4 py-2">
           <p className="truncate text-navy" title={product.product_name ?? undefined}>
             {product.product_name ?? "—"}
           </p>
-          <p className="font-mono text-[11px] text-[#94A0BD]">
-            {product.external_id ?? "—"}
-            {product.sku && ` · ${product.sku}`}
+          <p className="truncate font-mono text-[11px] text-[#94A0BD]">
+            {product.external_id ?? product.sku ?? "—"}
+            {product.external_id && product.sku && ` · ${product.sku}`}
           </p>
         </td>
         <td className="whitespace-nowrap px-4 py-2 text-center text-[#5B647E]">
@@ -102,6 +114,22 @@ function ProductRow({
           </span>
         </td>
         <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+          {isDerived(product) ? (
+            <div
+              className="flex items-center gap-1 text-xs text-[#94A0BD]"
+              title="Esse custo vem dos pedidos — edite na aba Pedidos"
+            >
+              <span className="w-16 rounded border border-transparent bg-brand-gray/60 px-1.5 py-1 text-right">
+                {product.unit_cost != null ? formatCurrency(Number(product.unit_cost)) : "—"}
+              </span>
+              <span className="w-16 rounded border border-transparent bg-brand-gray/60 px-1.5 py-1 text-right">
+                {product.extra_costs ? formatCurrency(Number(product.extra_costs)) : "—"}
+              </span>
+              <span className="w-16 rounded border border-transparent bg-brand-gray/60 px-1.5 py-1 text-right">
+                {tax || "—"}
+              </span>
+            </div>
+          ) : (
           <form
             action={formAction}
             onBlur={(e) => e.currentTarget.requestSubmit()}
@@ -139,6 +167,7 @@ function ProductRow({
               className={CELL_INPUT_CLASS}
             />
           </form>
+          )}
         </td>
         <td
           className={`whitespace-nowrap px-4 py-2 text-right font-bold ${
@@ -155,7 +184,7 @@ function ProductRow({
       {open && (
         <tr className="border-t border-navy/[.04] bg-brand-gray/20">
           <td />
-          <td colSpan={6} className="px-4 py-3">
+          <td colSpan={7} className="px-4 py-3">
             <ul className="flex max-w-lg flex-col gap-1 text-sm">
               <li className="flex justify-between border-b border-navy/[.06] py-1">
                 <span className="text-[#5B647E]">Vendas líquidas</span>
@@ -254,8 +283,18 @@ export function SalesProductsTable({
     [products],
   );
   const [month, setMonth] = useState<string>("all");
+  const [marketplace, setMarketplace] = useState<string>("all");
 
-  const scoped = products.filter((p) => month === "all" || p.report_month === month);
+  const marketplaces = useMemo(
+    () => [...new Set(products.map((p) => p.marketplace))].sort(),
+    [products],
+  );
+
+  const scoped = products.filter(
+    (p) =>
+      (month === "all" || p.report_month === month) &&
+      (marketplace === "all" || p.marketplace === marketplace),
+  );
   const rows = scoped.filter((p) => !p.is_total);
   const totals = scoped.filter((p) => p.is_total);
 
@@ -291,6 +330,19 @@ export function SalesProductsTable({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+        <select
+          value={marketplace}
+          onChange={(e) => setMarketplace(e.target.value)}
+          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+        >
+          <option value="all">Todos os marketplaces</option>
+          {marketplaces.map((m) => (
+            <option key={m} value={m}>
+              {MARKETPLACE_LABEL[m] ?? m}
+            </option>
+          ))}
+        </select>
         <select
           value={month}
           onChange={(e) => setMonth(e.target.value)}
@@ -303,6 +355,7 @@ export function SalesProductsTable({
             </option>
           ))}
         </select>
+        </div>
 
         <div className="flex items-stretch gap-2">
           <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
@@ -347,6 +400,7 @@ export function SalesProductsTable({
           <thead className="bg-brand-gray">
             <tr>
               <th className="px-2 py-2" />
+              <th className="px-2 py-2 font-semibold text-navy">Canal</th>
               <th className="px-4 py-2 font-semibold text-navy">Produto</th>
               <th className="px-4 py-2 text-center font-semibold text-navy">Unid.</th>
               <th className="px-4 py-2 text-right font-semibold text-navy">Vendas líquidas</th>
@@ -373,7 +427,7 @@ export function SalesProductsTable({
 
       {unassigned !== 0 && (
         <p className="mt-3 rounded-lg bg-yellow/10 px-4 py-2.5 text-xs text-[#5B647E]">
-          A {MARKETPLACE_LABEL[scoped[0].marketplace] ?? scoped[0].marketplace} informa{" "}
+          A {MARKETPLACE_LABEL[totals[0].marketplace] ?? totals[0].marketplace} informa{" "}
           <strong className="text-navy">{formatCurrency(reported)}</strong> de receita líquida no
           período — <strong className="text-navy">{formatCurrency(unassigned)}</strong> a mais que a
           soma dos produtos. É o que ela cobra ou credita da conta inteira, sem atribuir a nenhum
