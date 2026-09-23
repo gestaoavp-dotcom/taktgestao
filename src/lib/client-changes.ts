@@ -1,11 +1,8 @@
 import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import type { ClientAccount, ClientChangeCategory, ClientChangeStatus } from "@/lib/types";
 
-export const CHANGE_CHANNELS = [
-  ...MARKETPLACES,
-  { value: "site_proprio", label: "Site próprio" },
-  { value: "outro", label: "Outro" },
-] as const;
+/** A change is logged against a marketplace the client actually sells on. */
+export const CHANGE_CHANNELS = [...MARKETPLACES] as const;
 
 export const CHANGE_CHANNEL_LABEL: Record<string, string> = Object.fromEntries(
   CHANGE_CHANNELS.map((c) => [c.value, c.label]),
@@ -45,10 +42,12 @@ export const CHANGE_STATUS_BADGE: Record<ClientChangeStatus, string> = {
 };
 
 /**
- * One entry per channel a change can be logged against: a specific store
- * when the client has one or more accounts for that marketplace (so two
- * Mercado Livre stores never get lumped together), otherwise the generic
- * marketplace itself.
+ * One entry per channel a change can be logged against: a specific store when
+ * the client has an account for that marketplace — so two Mercado Livre stores
+ * never get lumped together — otherwise the marketplace itself.
+ *
+ * Only marketplaces the client actually sells on appear. An option nobody can
+ * use is a tab nobody clicks.
  */
 export type ChangeChannelOption = {
   key: string;
@@ -75,11 +74,7 @@ export function buildChannelOptions(
           accountId: account.id,
         });
       }
-    } else if (
-      clientMarketplaces.includes(channel.value) ||
-      channel.value === "outro" ||
-      channel.value === "site_proprio"
-    ) {
+    } else if (clientMarketplaces.includes(channel.value)) {
       options.push({
         key: `marketplace:${channel.value}`,
         label: channel.label,
