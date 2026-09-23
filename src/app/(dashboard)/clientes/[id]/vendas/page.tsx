@@ -75,7 +75,8 @@ export default async function ClienteVendasPage({
       </div>
 
       <div className="mb-5 rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-bold text-navy">Faturamento por dia</h2>
+        <h2 className="mb-1 font-bold text-navy">Faturamento por dia</h2>
+        <p className="mb-4 text-xs text-[#94A0BD]">Só os marketplaces que reportam por pedido.</p>
         <AreaChart data={chartData} />
       </div>
 
@@ -116,8 +117,11 @@ export default async function ClienteVendasPage({
       </div>
 
       <p className="mt-3 text-xs text-[#94A0BD]">
-        Faturamento é o valor vendido aos compradores, vindo dos documentos de pedidos importados.
-        Pedidos cancelados e reembolsados ficam de fora.
+        Faturamento é o valor vendido aos compradores, vindo dos documentos importados. Pedidos
+        cancelados e reembolsados ficam de fora. Marketplaces que reportam por produto e não por
+        pedido — a Amazon — entram por mês inteiro, e só quando o período escolhido cobre o mês
+        do começo ao fim; deles vêm unidades no lugar de pedidos, e eles não aparecem no gráfico
+        por dia, porque o relatório não diz em que dia cada venda aconteceu.
       </p>
     </div>
   );

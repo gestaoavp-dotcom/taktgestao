@@ -13,7 +13,15 @@ export type OrdersSummary = {
   platformRows: [string, { revenue: number; orders: number }][];
 };
 
+type ProductRow = {
+  marketplace: string;
+  report_month: string;
+  net_sales: number;
+  units_net: number;
+};
+
 type OrderRow = {
+  id: string;
   order_id: string;
   created_on: string | null;
   marketplace: string;
@@ -32,6 +40,21 @@ function fromISO(value: string) {
   const [y, m, d] = value.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
+
+/**
+ * A product report settles a whole month at once and says nothing about days,
+ * so it counts only when the period contains that month end to end. Splitting
+ * it across a partial range would mean inventing a distribution the report
+ * never gave.
+ */
+function monthWithin(reportMonth: string, start: string, end: string) {
+  const [y, m] = reportMonth.split("-").map(Number);
+  const last = toISO(new Date(y, m, 0));
+  return reportMonth >= start && last <= end;
+}
+
+/** PostgREST stops at 1000 rows, and one busy month already exceeds that. */
+const PAGE = 1000;
 
 function revenueOf(rows: OrderRow[]) {
   return rows.reduce((sum, r) => sum + Number(r.subtotal), 0);
@@ -61,25 +84,59 @@ export async function getOrdersSummary(
   const prevStart = new Date(periodStart);
   prevStart.setDate(prevStart.getDate() - days);
 
-  let query = supabase
-    .from("sales_orders")
-    .select("order_id, created_on, marketplace, subtotal, total_value, net_settlement")
-    .gte("created_on", toISO(prevStart))
-    .lte("created_on", range.end);
+  const rows: OrderRow[] = [];
+  for (let from = 0; ; from += PAGE) {
+    let query = supabase
+      .from("sales_orders")
+      .select("id, order_id, created_on, marketplace, subtotal, total_value, net_settlement")
+      .gte("created_on", toISO(prevStart))
+      .lte("created_on", range.end)
+      .order("id")
+      .range(from, from + PAGE - 1);
 
-  if (filters.clientId) query = query.eq("client_id", filters.clientId);
-  if (filters.marketplace) query = query.eq("marketplace", filters.marketplace);
+    if (filters.clientId) query = query.eq("client_id", filters.clientId);
+    if (filters.marketplace) query = query.eq("marketplace", filters.marketplace);
 
-  const { data } = await query.returns<OrderRow[]>();
+    const { data } = await query.returns<OrderRow[]>();
+    if (!data?.length) break;
+    rows.push(...data);
+    if (data.length < PAGE) break;
+  }
 
-  const billed = (data ?? []).filter((r) => isBilledOrder(r) && r.created_on);
+  // Amazon settles by product, so its revenue lives nowhere in sales_orders.
+  // Left out, "faturamento" silently omits a whole marketplace.
+  let productQuery = supabase
+    .from("sales_products")
+    .select("marketplace, report_month, net_sales, units_net")
+    .eq("is_total", false);
+
+  if (filters.clientId) productQuery = productQuery.eq("client_id", filters.clientId);
+  if (filters.marketplace) productQuery = productQuery.eq("marketplace", filters.marketplace);
+
+  const { data: productData } = await productQuery.returns<ProductRow[]>();
+  const products = productData ?? [];
+
+  const currentProducts = products.filter((p) =>
+    monthWithin(p.report_month, range.start, range.end),
+  );
+  const previousProducts = products.filter((p) =>
+    monthWithin(p.report_month, toISO(prevStart), range.start),
+  );
+
+  const productRevenue = (rows: ProductRow[]) =>
+    rows.reduce((s, p) => s + Number(p.net_sales), 0);
+  // A product report counts units, not orders — and units are what its own
+  // average price divides by, so the ticket comes out right.
+  const productUnits = (rows: ProductRow[]) => rows.reduce((s, p) => s + p.units_net, 0);
+
+  const billed = rows.filter((r) => isBilledOrder(r) && r.created_on);
   const current = billed.filter((r) => r.created_on! >= range.start);
   const previous = billed.filter((r) => r.created_on! < range.start);
 
-  const revenue = revenueOf(current);
-  const orders = countOrders(current);
-  const previousRevenue = revenueOf(previous);
-  const previousOrders = countOrders(previous);
+  const revenue = revenueOf(current) + productRevenue(currentProducts);
+  const orders = countOrders(current) + productUnits(currentProducts);
+  const previousRevenue = revenueOf(previous) + productRevenue(previousProducts);
+  const previousOrders = countOrders(previous) + productUnits(previousProducts);
 
   const byDate = new Map<string, number>();
   for (const r of current) {
@@ -101,8 +158,30 @@ export async function getOrdersSummary(
     byPlatform.set(r.marketplace, entry);
   }
 
+  for (const p of currentProducts) {
+    const entry = byPlatform.get(p.marketplace) ?? { revenue: 0, orderIds: new Set<string>() };
+    entry.revenue += Number(p.net_sales);
+    byPlatform.set(p.marketplace, entry);
+  }
+  const productUnitsByPlatform = new Map<string, number>();
+  for (const p of currentProducts) {
+    productUnitsByPlatform.set(
+      p.marketplace,
+      (productUnitsByPlatform.get(p.marketplace) ?? 0) + p.units_net,
+    );
+  }
+
   const platformRows = Array.from(byPlatform.entries())
-    .map(([platform, v]) => [platform, { revenue: v.revenue, orders: v.orderIds.size }] as const)
+    .map(
+      ([platform, v]) =>
+        [
+          platform,
+          {
+            revenue: v.revenue,
+            orders: v.orderIds.size + (productUnitsByPlatform.get(platform) ?? 0),
+          },
+        ] as const,
+    )
     .sort((a, b) => b[1].revenue - a[1].revenue)
     .map((entry) => entry as [string, { revenue: number; orders: number }]);
 
