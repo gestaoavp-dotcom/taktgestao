@@ -8,6 +8,7 @@ import type { ParsedAmazonProduct } from "@/lib/parsers/amazon-products";
 import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
 import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import type { SalesReportKind } from "@/lib/types";
+import { knownCosts, knownTax } from "@/lib/product-costs";
 
 type ActionState = { ok: true } | { error: string } | null;
 
@@ -53,27 +54,18 @@ export async function importSalesOrders(input: {
 }): Promise<ActionState> {
   const supabase = await createClient();
 
-  // A SKU's cost doesn't change month to month: carry over what the team
-  // already filled in so a new import doesn't start from scratch.
+  // Arrive filled in: each SKU starts from the newest cost recorded at or
+  // before this report's month, and the tax rate in force then.
   const skus = [...new Set(input.orders.map((o) => o.sku).filter((s): s is string => !!s))];
-  const { data: known } = await supabase
-    .from("sales_orders")
-    .select("sku, cost")
-    .eq("client_id", input.clientId)
-    .in("sku", skus)
-    .not("cost", "is", null)
-    .returns<{ sku: string; cost: number }[]>();
-
-  const costBySku = new Map((known ?? []).map((k) => [k.sku, k.cost]));
-
-  // The tax rate is a single client-wide number: reuse it on the new rows.
-  const { data: taxRow } = await supabase
-    .from("sales_orders")
-    .select("tax_percent")
-    .eq("client_id", input.clientId)
-    .not("tax_percent", "is", null)
-    .limit(1)
-    .maybeSingle<{ tax_percent: number }>();
+  const costBySku = await knownCosts(
+    supabase,
+    "sales_orders",
+    "cost",
+    input.clientId,
+    skus,
+    input.reportMonth,
+  );
+  const taxPercent = await knownTax(supabase, "sales_orders", input.clientId, input.reportMonth);
 
   const rows = input.orders.map((o) => ({
     client_id: input.clientId,
@@ -82,7 +74,7 @@ export async function importSalesOrders(input: {
     report_month: input.reportMonth,
     ...o,
     cost: o.sku ? costBySku.get(o.sku) ?? null : null,
-    tax_percent: taxRow?.tax_percent ?? null,
+    tax_percent: taxPercent,
   }));
 
   if (rows.length) {
@@ -143,12 +135,25 @@ export async function importSalesTraffic(input: {
 }): Promise<ActionState> {
   const supabase = await createClient();
 
+  const skus = [...new Set(input.products.map((p) => p.sku).filter((s): s is string => !!s))];
+  const costBySku = await knownCosts(
+    supabase,
+    "sales_products",
+    "unit_cost",
+    input.clientId,
+    skus,
+    input.reportMonth,
+  );
+  const taxPercent = await knownTax(supabase, "sales_products", input.clientId, input.reportMonth);
+
   const rows = input.products.map((p) => ({
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
     report_month: input.reportMonth,
     ...p,
+    unit_cost: p.sku ? costBySku.get(p.sku) ?? null : null,
+    tax_percent: taxPercent,
   }));
 
   if (rows.length) {
@@ -231,29 +236,32 @@ export async function updateOrderCosts(
       tax_percent: taxPercent,
     })
     .eq("id", id)
-    .select("sku")
+    .select("sku, report_month")
     .single();
 
   if (error) return { error: error.message };
 
-  // The cost belongs to the SKU, not to one order: fill in every other order
-  // of the same product so the team types it once.
+  // The cost belongs to the SKU, not to one order — but to the SKU *from this
+  // month on*. Earlier months keep what the product cost at the time, so a
+  // closed month's result never moves because today's price changed.
   if (updated?.sku) {
     const { error: spreadError } = await supabase
       .from("sales_orders")
       .update({ cost })
       .eq("client_id", clientId)
       .eq("sku", updated.sku)
+      .gte("report_month", updated.report_month)
       .neq("id", id);
 
     if (spreadError) return { error: spreadError.message };
   }
 
-  // The tax rate is one number for the whole client.
+  // The tax rate is one number for the client, and changes the same way.
   const { error: taxError } = await supabase
     .from("sales_orders")
     .update({ tax_percent: taxPercent })
     .eq("client_id", clientId)
+    .gte("report_month", updated.report_month)
     .neq("id", id);
 
   if (taxError) return { error: taxError.message };
@@ -271,12 +279,25 @@ export async function importSalesProducts(input: {
 }): Promise<ActionState> {
   const supabase = await createClient();
 
+  const skus = [...new Set(input.products.map((p) => p.sku).filter((s): s is string => !!s))];
+  const costBySku = await knownCosts(
+    supabase,
+    "sales_products",
+    "unit_cost",
+    input.clientId,
+    skus,
+    input.reportMonth,
+  );
+  const taxPercent = await knownTax(supabase, "sales_products", input.clientId, input.reportMonth);
+
   const rows = input.products.map((p) => ({
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
     report_month: input.reportMonth,
     ...p,
+    unit_cost: p.sku ? costBySku.get(p.sku) ?? null : null,
+    tax_percent: taxPercent,
   }));
 
   if (rows.length) {
@@ -323,16 +344,17 @@ export async function updateProductCosts(
 
   const { data: row } = await supabase
     .from("sales_products")
-    .select("sku")
+    .select("sku, report_month")
     .eq("id", id)
-    .maybeSingle<{ sku: string | null }>();
+    .maybeSingle<{ sku: string | null; report_month: string }>();
 
   if (row?.sku) {
     await supabase
       .from("sales_products")
       .update({ unit_cost: unitCost })
       .eq("client_id", clientId)
-      .eq("sku", row.sku);
+      .eq("sku", row.sku)
+      .gte("report_month", row.report_month);
   } else {
     await supabase.from("sales_products").update({ unit_cost: unitCost }).eq("id", id);
   }
@@ -341,7 +363,8 @@ export async function updateProductCosts(
   await supabase
     .from("sales_products")
     .update({ tax_percent: taxPercent })
-    .eq("client_id", clientId);
+    .eq("client_id", clientId)
+    .gte("report_month", row?.report_month ?? "1900-01-01");
 
   revalidatePath(`/clientes/${clientId}/vendas/produtos`);
   return { ok: true };
