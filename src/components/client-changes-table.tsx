@@ -31,12 +31,6 @@ function formatDate(date: string | null) {
   return `${d}/${m}/${y}`;
 }
 
-function channelKeyOf(change: ClientChange) {
-  if (change.account_id) return `account:${change.account_id}`;
-  if (change.marketplace) return `marketplace:${change.marketplace}`;
-  return null;
-}
-
 export function ClientChangesTable({
   clientId,
   changes,
@@ -48,7 +42,11 @@ export function ClientChangesTable({
   accounts: ClientAccount[];
   clientMarketplaces: string[];
 }) {
-  const [activeTab, setActiveTab] = useState<string>(ALL_TAB);
+  // Two levels instead of one long row: the marketplace first, and the store
+  // only when that marketplace has more than one. A flat list repeated the
+  // client's name on every tab and grew with every store added.
+  const [activeMarketplace, setActiveMarketplace] = useState<string>(ALL_TAB);
+  const [activeAccount, setActiveAccount] = useState<string>(ALL_TAB);
   const [workspace, setWorkspace] = useState<{ selectedId: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   // Dictation fills the form by remounting it with new defaults, so the fields
@@ -75,50 +73,127 @@ export function ClientChangesTable({
     [accounts, clientMarketplaces],
   );
 
-  const tabs = useMemo(() => {
-    const known = new Set(channelOptions.map((o) => o.key));
-    const orphanKeys = new Set(
-      changes.map(channelKeyOf).filter((k): k is string => !!k && !known.has(k)),
-    );
-    const orphanTabs = Array.from(orphanKeys).map((key) => {
-      const [, value] = key.split(":");
-      return { value: key, label: CHANGE_CHANNEL_LABEL[value] ?? value };
-    });
+  const marketplaceTabs = useMemo(() => {
+    const seen = new Map<string, { value: string; label: string; count: number }>();
+
+    const add = (value: string) => {
+      if (!seen.has(value)) {
+        seen.set(value, { value, label: CHANGE_CHANNEL_LABEL[value] ?? value, count: 0 });
+      }
+      return seen.get(value)!;
+    };
+
+    // Every channel the client is set up for, plus any a change was logged
+    // against before that setup existed.
+    for (const option of channelOptions) add(option.marketplace);
+    for (const change of changes) if (change.marketplace) add(change.marketplace).count += 1;
 
     return [
-      { value: ALL_TAB, label: "Todos" },
-      ...channelOptions.map((o) => ({ value: o.key, label: o.label })),
-      ...orphanTabs,
+      { value: ALL_TAB, label: "Todos", count: changes.length },
+      ...[...seen.values()],
     ];
   }, [changes, channelOptions]);
 
-  const visibleChanges =
-    activeTab === ALL_TAB ? changes : changes.filter((c) => channelKeyOf(c) === activeTab);
+  /** Stores of the chosen marketplace — asked about only when there are two. */
+  const storeTabs = useMemo(() => {
+    if (activeMarketplace === ALL_TAB) return [];
+    const stores = channelOptions.filter(
+      (o) => o.marketplace === activeMarketplace && o.accountId,
+    );
+    if (stores.length < 2) return [];
+
+    const count = (accountId: string) =>
+      changes.filter((c) => c.account_id === accountId).length;
+
+    return [
+      {
+        value: ALL_TAB,
+        label: "Todas as lojas",
+        count: changes.filter((c) => c.marketplace === activeMarketplace).length,
+      },
+      ...stores.map((o) => ({
+        value: o.accountId as string,
+        label: o.label.split(" — ").slice(1).join(" — ") || o.label,
+        count: count(o.accountId as string),
+      })),
+    ];
+  }, [activeMarketplace, channelOptions, changes]);
+
+  /**
+   * What a new change should default to, given what is on screen. A single
+   * store under the chosen marketplace is as good as having picked it.
+   */
+  const activeChannelKey = (() => {
+    if (activeAccount !== ALL_TAB) return `account:${activeAccount}`;
+    if (activeMarketplace === ALL_TAB) return "";
+    const stores = channelOptions.filter((o) => o.marketplace === activeMarketplace);
+    if (stores.length === 1) return stores[0].key;
+    return `marketplace:${activeMarketplace}`;
+  })();
+
+  const visibleChanges = changes.filter(
+    (c) =>
+      (activeMarketplace === ALL_TAB || c.marketplace === activeMarketplace) &&
+      (activeAccount === ALL_TAB || c.account_id === activeAccount),
+  );
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        {tabs.length > 2 ? (
+      {marketplaceTabs.length > 2 && (
+        <div className="mb-4">
           <nav className="flex flex-wrap gap-1 border-b border-navy/[.08]">
-            {tabs.map((tab) => (
+            {marketplaceTabs.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
-                onClick={() => setActiveTab(tab.value)}
-                className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  activeTab === tab.value
+                onClick={() => {
+                  setActiveMarketplace(tab.value);
+                  setActiveAccount(ALL_TAB);
+                }}
+                className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
+                  activeMarketplace === tab.value
                     ? "border-blue text-blue"
                     : "border-transparent text-[#5B647E] hover:text-navy"
                 }`}
               >
                 {tab.label}
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    activeMarketplace === tab.value
+                      ? "bg-blue/10 text-blue"
+                      : "bg-brand-gray text-[#94A0BD]"
+                  }`}
+                >
+                  {tab.count}
+                </span>
               </button>
             ))}
           </nav>
-        ) : (
-          <div />
-        )}
-      </div>
+
+          {storeTabs.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+                Loja
+              </span>
+              {storeTabs.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveAccount(tab.value)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                    activeAccount === tab.value
+                      ? "bg-navy text-white"
+                      : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                  }`}
+                >
+                  {tab.label}
+                  <span className="ml-1.5 opacity-60">{tab.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
         <div className="mb-3">
@@ -355,7 +430,7 @@ export function ClientChangesTable({
           accounts={accounts}
           channelOptions={channelOptions}
           initialSelectedId={workspace.selectedId}
-          defaultChannelKey={activeTab === ALL_TAB ? "" : activeTab}
+          defaultChannelKey={activeChannelKey}
           onClose={() => setWorkspace(null)}
         />
       )}
