@@ -34,3 +34,11 @@ export const ORDER_LIST_COLUMNS = [
 /** What the summaries add up. Narrower again: no names, no costs. */
 export const ORDER_SUMMARY_COLUMNS =
   "id, order_id, created_on, marketplace, subtotal, total_value, net_settlement";
+
+/**
+ * Rows per request when listing orders.
+ *
+ * One network trip's worth, whatever the client's size — which is the whole
+ * point: a client with 30000 orders should open as fast as one with 300.
+ */
+export const ORDERS_PAGE = 200;

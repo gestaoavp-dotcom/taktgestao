@@ -1,20 +1,28 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesOrder } from "@/lib/types";
 import type { BreakdownLine } from "@/lib/parsers/breakdown";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
 import type { OrderBreakdown as Breakdown } from "@/lib/parsers/breakdown";
-import { isExtraLine, isOrderVoided, orderShares } from "@/lib/parsers/order-breakdown";
+import { isExtraLine, isOrderVoided } from "@/lib/parsers/order-breakdown";
+import { ORDERS_PAGE } from "@/lib/sales-columns";
 import {
   getOrderBreakdown,
+  listOrders,
   updateOrderCosts,
 } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
+import type { ClientAccount } from "@/lib/types";
+import type {
+  MissingCost,
+  OrderTotals,
+} from "@/app/(dashboard)/clientes/[id]/vendas/pedidos/page";
 
-/** A row as the page ships it: the raw report row stays on the server. */
-type SlimOrder = SalesOrder & { hasRaw: boolean };
+/** A row as the page ships it: the raw report row stays in the database. */
+type SlimOrder = SalesOrder;
 
 const MONTHS = [
   "Janeiro",
@@ -56,7 +64,7 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
 
   // Fetched when the row opens, not carried by every row that never will.
   useEffect(() => {
-    if (!order.hasRaw) return;
+
     let live = true;
     getOrderBreakdown(order.id, share).then((result) => {
       if (!live) return;
@@ -66,9 +74,9 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
     return () => {
       live = false;
     };
-  }, [order.id, order.hasRaw, share]);
+  }, [order.id, share]);
 
-  if (!order.hasRaw) {
+  if (!order.raw && order.marketplace === "__nunca__") {
     return (
       <p className="px-4 py-3 text-xs text-[#94A0BD]">
         Esse pedido não tem o detalhamento da planilha guardado (foi importado antes dessa
@@ -324,141 +332,157 @@ function OrderRow({
 
 export function SalesOrdersTable({
   clientId,
-  orders,
-  nets,
-  clientMarketplaces,
+  orders: firstPage,
+  totals,
+  missing,
+  months,
+  accounts,
+  filters,
 }: {
   clientId: string;
   orders: SlimOrder[];
-  nets: Record<string, number>;
-  clientMarketplaces: string[];
+  totals: OrderTotals;
+  missing: MissingCost;
+  months: { report_month: string; orders: number }[];
+  accounts: ClientAccount[];
+  filters: {
+    month: string | null;
+    marketplace: string | null;
+    account: string | null;
+    cost: string | null;
+  };
 }) {
-  const [marketplace, setMarketplace] = useState<string>("all");
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [navigating, startNavigation] = useTransition();
 
-  const months = useMemo(
-    () => Array.from(new Set(orders.map((o) => o.report_month))).sort().reverse(),
-    [orders],
-  );
-  const [month, setMonth] = useState<string>("all");
+  // Rows beyond the first page, fetched as they are asked for. The first page
+  // comes with the document, so the table draws before any of this runs.
+  const [extra, setExtra] = useState<SlimOrder[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const rows = [...firstPage, ...extra];
 
-  const shares = useMemo(() => orderShares(orders), [orders]);
+  const month = filters.month ?? months[0]?.report_month ?? "todos";
+  const marketplace = filters.marketplace ?? "todos";
+  const account = filters.account ?? "todas";
+  const cost = filters.cost ?? "todos";
 
-  // One cost per SKU: typing it on any order shows up on every order of that
-  // product right away, while the server does the same to the stored rows.
-  const [costBySku, setCostBySku] = useState<Record<string, string>>(() => {
-    const map: Record<string, string> = {};
-    for (const o of orders) {
-      if (o.sku && o.cost != null) map[o.sku] = String(o.cost);
-    }
-    return map;
-  });
+  const setFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set(key, value);
+    // A different filter is a different set of rows; anything already loaded
+    // belongs to the old one.
+    setExtra([]);
+    startNavigation(() => router.push(`${pathname}?${params}`));
+  };
+
+  const stores = accounts.filter((a) => marketplace === "todos" || a.marketplace === marketplace);
+
+  // One cost per SKU and one tax rate for the client, as the team already
+  // learned in this table. Typing either shows everywhere it applies at once.
+  const [costBySku, setCostBySku] = useState<Record<string, string>>({});
   const [costByOrder, setCostByOrder] = useState<Record<string, string>>({});
-  const [costs, setCosts] = useState<"all" | "missing" | "filled">("all");
-  /** Rows rendered at once — the totals always cover the whole filter. */
-  const [limit, setLimit] = useState(300);
-
-  // One tax rate for the whole client.
   const [tax, setTax] = useState(() => {
-    const withTax = orders.find((o) => o.tax_percent != null);
+    const withTax = firstPage.find((o) => o.tax_percent != null);
     return withTax?.tax_percent != null ? String(withTax.tax_percent) : "";
   });
 
-  const costOf = (o: SalesOrder) =>
+  const costOf = (o: SlimOrder) =>
     (o.sku ? costBySku[o.sku] : costByOrder[o.id]) ?? (o.cost != null ? String(o.cost) : "");
 
-  const setCostOf = (o: SalesOrder, value: string) => {
+  const setCostOf = (o: SlimOrder, value: string) => {
     if (o.sku) setCostBySku((prev) => ({ ...prev, [o.sku as string]: value }));
     else setCostByOrder((prev) => ({ ...prev, [o.id]: value }));
   };
 
-  // Reads the stored cost, never the field being typed into: filtering on the
-  // live value would pull the row out from under the cursor at the first digit.
-  const missingCost = (o: SalesOrder) => !isOrderVoided(o) && o.cost == null;
-
-  const filtered = orders.filter(
-    (o) =>
-      (marketplace === "all" || o.marketplace === marketplace) &&
-      (month === "all" || o.report_month === month) &&
-      (costs === "all" || (costs === "missing") === missingCost(o)),
+  const nets = Object.fromEntries(
+    rows.map((o) => [o.id, Number(o.net_amount ?? o.net_settlement)]),
   );
 
-  // A cost belongs to a SKU, not to an order: filling one order fills every
-  // order of that product, so what is left to do is counted in SKUs.
-  const pending = orders.filter(missingCost);
-  const pendingSkus = new Set(pending.map((o) => o.sku).filter(Boolean));
-  const pendingLoose = pending.filter((o) => !o.sku).length;
+  async function loadMore() {
+    setLoadingMore(true);
+    const result = await listOrders(
+      {
+        clientId,
+        month: month === "todos" ? null : month,
+        marketplace: marketplace === "todos" ? null : marketplace,
+        accountId: account === "todas" ? null : account,
+        missingCost: cost === "falta" ? true : cost === "preenchido" ? false : null,
+      },
+      rows.length,
+    );
+    setLoadingMore(false);
+    if ("orders" in result) setExtra((prev) => [...prev, ...result.orders]);
+  }
 
-  const shown = filtered.slice(0, limit);
-
-  const totals = filtered.reduce(
-    (acc, o) => {
-      // A cancelled order neither sold nor cost anything.
-      if (isOrderVoided(o)) return acc;
-
-      const net = nets[o.id] ?? o.net_settlement;
-      acc.sold += o.subtotal;
-      acc.net += net;
-      acc.cost += parseFloat(costOf(o).replace(",", ".")) || 0;
-      acc.extra += o.extra_costs ?? 0;
-      acc.tax += (net * (parseFloat(tax.replace(",", ".")) || 0)) / 100;
-      return acc;
-    },
-    { sold: 0, net: 0, cost: 0, extra: 0, tax: 0 },
-  );
-  const totalMargin = totals.net - totals.cost - totals.extra - totals.tax;
+  const SELECT_CLASS =
+    "rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue disabled:opacity-60";
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
+        <div className={`flex flex-wrap gap-2 ${navigating ? "opacity-60" : ""}`}>
+          <select
+            value={month}
+            disabled={navigating}
+            onChange={(e) => setFilter("mes", e.target.value)}
+            className={SELECT_CLASS}
+          >
+            {months.map((m) => (
+              <option key={m.report_month} value={m.report_month}>
+                {monthLabel(m.report_month)} ({m.orders})
+              </option>
+            ))}
+            <option value="todos">Todos os meses</option>
+          </select>
+
           <select
             value={marketplace}
-            onChange={(e) => {
-              setMarketplace(e.target.value);
-              setLimit(300);
-            }}
-            className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+            disabled={navigating}
+            onChange={(e) => setFilter("canal", e.target.value)}
+            className={SELECT_CLASS}
           >
-            <option value="all">Todos os marketplaces</option>
-            {clientMarketplaces.map((m) => (
+            <option value="todos">Todos os marketplaces</option>
+            {[...new Set(accounts.map((a) => a.marketplace))].map((m) => (
               <option key={m} value={m}>
                 {MARKETPLACE_LABEL[m] ?? m}
               </option>
             ))}
           </select>
+
+          {stores.length > 1 && (
+            <select
+              value={account}
+              disabled={navigating}
+              onChange={(e) => setFilter("loja", e.target.value)}
+              className={SELECT_CLASS}
+            >
+              <option value="todas">Todas as lojas</option>
+              {stores.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.store_name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <select
-            value={costs}
-            onChange={(e) => {
-              setCosts(e.target.value as typeof costs);
-              setLimit(300);
-            }}
-            className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+            value={cost}
+            disabled={navigating}
+            onChange={(e) => setFilter("custo", e.target.value)}
+            className={SELECT_CLASS}
           >
-            <option value="all">Todos os custos</option>
-            <option value="missing">Falta preencher o custo</option>
-            <option value="filled">Custo já preenchido</option>
-          </select>
-          <select
-            value={month}
-            onChange={(e) => {
-              setMonth(e.target.value);
-              setLimit(300);
-            }}
-            className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
-          >
-            <option value="all">Todos os meses</option>
-            {months.map((m) => (
-              <option key={m} value={m}>
-                {monthLabel(m)}
-              </option>
-            ))}
+            <option value="todos">Todos os custos</option>
+            <option value="falta">Falta preencher o custo</option>
+            <option value="preenchido">Custo já preenchido</option>
           </select>
         </div>
 
         <div className="flex items-stretch gap-2">
           <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
             <div className="font-display text-xl font-bold leading-none text-navy">
-              {formatCurrency(totals.sold)}
+              {formatCurrency(Number(totals.sold))}
             </div>
             <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
               vendido
@@ -466,7 +490,7 @@ export function SalesOrdersTable({
           </div>
           <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
             <div className="font-display text-xl font-bold leading-none text-navy">
-              {formatCurrency(totals.net)}
+              {formatCurrency(Number(totals.net))}
             </div>
             <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
               recebido da plataforma
@@ -475,36 +499,32 @@ export function SalesOrdersTable({
           <div className="rounded-lg bg-green-50 px-5 py-2 text-right">
             <div
               className={`font-display text-2xl font-bold leading-none ${
-                totalMargin >= 0 ? "text-green-800" : "text-red-600"
+                Number(totals.margin) >= 0 ? "text-green-800" : "text-red-600"
               }`}
             >
-              {formatCurrency(totalMargin)}
+              {formatCurrency(Number(totals.margin))}
             </div>
             <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
-              sobrou ({filtered.length} pedidos)
+              sobrou ({totals.orders} pedidos)
             </div>
           </div>
         </div>
       </div>
 
-      {pending.length > 0 && costs !== "filled" && (
+      {missing.lines > 0 && cost !== "preenchido" && (
         <p className="mb-4 rounded-lg bg-yellow/10 px-4 py-2.5 text-xs text-[#5B647E]">
           <button
             type="button"
-            onClick={() => {
-              setCosts("missing");
-              setLimit(300);
-            }}
+            onClick={() => setFilter("custo", "falta")}
             className="font-bold text-navy underline-offset-2 hover:underline"
           >
-            {pendingSkus.size > 0 &&
-              `${pendingSkus.size} ${pendingSkus.size === 1 ? "SKU" : "SKUs"} sem custo`}
-            {pendingSkus.size > 0 && pendingLoose > 0 && " e "}
-            {pendingLoose > 0 &&
-              `${pendingLoose} ${pendingLoose === 1 ? "pedido sem SKU" : "pedidos sem SKU"}`}
+            {missing.skus > 0 && `${missing.skus} ${missing.skus === 1 ? "SKU" : "SKUs"} sem custo`}
+            {missing.skus > 0 && missing.loose > 0 && " e "}
+            {missing.loose > 0 &&
+              `${missing.loose} ${missing.loose === 1 ? "pedido sem SKU" : "pedidos sem SKU"}`}
           </button>{" "}
-          — em {pending.length} {pending.length === 1 ? "pedido" : "pedidos"}. Preenchendo o custo em
-          um pedido de cada SKU, o valor cola em todos os outros daquele produto.
+          — em {missing.lines} {missing.lines === 1 ? "pedido" : "pedidos"} deste mês. Preenchendo o
+          custo em um pedido de cada SKU, o valor cola em todos os outros daquele produto.
         </p>
       )}
 
@@ -526,7 +546,7 @@ export function SalesOrdersTable({
             </tr>
           </thead>
           <tbody>
-            {shown.map((order) => (
+            {rows.map((order) => (
               <OrderRow
                 key={order.id}
                 clientId={clientId}
@@ -536,36 +556,37 @@ export function SalesOrdersTable({
                 onCostChange={(value) => setCostOf(order, value)}
                 tax={tax}
                 onTaxChange={setTax}
-                share={shares.get(order.id) ?? 1}
+                share={1}
               />
             ))}
-            {shown.length < filtered.length && (
+
+            {rows.length < Number(totals.lines) && (
               <tr>
                 <td colSpan={11} className="px-5 py-4 text-center">
                   <button
                     type="button"
-                    onClick={() => setLimit((n) => n + 500)}
-                    className="rounded-lg border border-navy/10 px-4 py-2 text-xs font-semibold text-navy transition-colors hover:bg-brand-gray"
+                    onClick={loadMore}
+                    disabled={loadingMore}
+                    className="rounded-lg border border-navy/10 px-4 py-2 text-xs font-semibold text-navy transition-colors hover:bg-brand-gray disabled:opacity-50"
                   >
-                    Ver mais 500 — mostrando {shown.length} de {filtered.length}
+                    {loadingMore
+                      ? "Carregando..."
+                      : `Ver mais ${ORDERS_PAGE} — mostrando ${rows.length} de ${totals.lines}`}
                   </button>
                 </td>
               </tr>
             )}
-            {!filtered.length && (
+
+            {!rows.length && (
               <tr>
                 <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
-                  Nenhum pedido encontrado. Envie um documento em &quot;Importar documentos&quot;.
+                  Nenhum pedido com esses filtros.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-[#94A0BD]">
-        Clique numa linha pra ver o detalhamento completo: preço de venda, todos os descontos da
-        planilha (em vermelho) e o valor final recebido.
-      </p>
     </div>
   );
 }

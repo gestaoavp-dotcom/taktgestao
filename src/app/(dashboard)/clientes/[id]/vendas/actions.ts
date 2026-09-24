@@ -12,6 +12,7 @@ import type { SalesOrder, SalesReportKind } from "@/lib/types";
 import type { OrderBreakdown } from "@/lib/parsers/breakdown";
 import { buildOrderBreakdown, orderNet, orderShares } from "@/lib/parsers/order-breakdown";
 import { knownCosts, knownTax } from "@/lib/product-costs";
+import { ORDER_LIST_COLUMNS, ORDERS_PAGE } from "@/lib/sales-columns";
 
 /**
  * Records a cost edit, when it actually changed something.
@@ -518,4 +519,45 @@ export async function getOrderBreakdown(
 
   const breakdown = buildOrderBreakdown(data, share);
   return breakdown ?? { error: "Esse pedido não tem o detalhamento da planilha guardado." };
+}
+
+export type OrderFilters = {
+  clientId: string;
+  month?: string | null;
+  marketplace?: string | null;
+  accountId?: string | null;
+  missingCost?: boolean | null;
+};
+
+/**
+ * One page of orders for a filter.
+ *
+ * The page used to load every order a client had so the table could filter in
+ * the browser. At roughly 2300 a month that stops working within the year, so
+ * the filters live in the query and the rows arrive a page at a time.
+ */
+export async function listOrders(
+  filters: OrderFilters,
+  offset: number,
+): Promise<{ orders: SalesOrder[] } | { error: string }> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("sales_orders")
+    .select(ORDER_LIST_COLUMNS)
+    .eq("client_id", filters.clientId)
+    .order("created_on", { ascending: false })
+    // Dates repeat, so the id keeps paging from skipping or repeating a row.
+    .order("id")
+    .range(offset, offset + ORDERS_PAGE - 1);
+
+  if (filters.month) query = query.eq("report_month", filters.month);
+  if (filters.marketplace) query = query.eq("marketplace", filters.marketplace);
+  if (filters.accountId) query = query.eq("account_id", filters.accountId);
+  if (filters.missingCost === true) query = query.is("cost", null);
+  if (filters.missingCost === false) query = query.not("cost", "is", null);
+
+  const { data, error } = await query.returns<SalesOrder[]>();
+  if (error) return { error: error.message };
+  return { orders: data ?? [] };
 }
