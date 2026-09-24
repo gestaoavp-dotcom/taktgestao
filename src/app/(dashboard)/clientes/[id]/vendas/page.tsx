@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
@@ -24,6 +25,7 @@ export default async function ClienteVendasPage({
   const { id } = await params;
   const { de, ate } = await searchParams;
   const supabase = await createClient();
+  const team = await isTeam();
 
   const fallback = lastDays(DEFAULT_DAYS);
   const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
@@ -41,7 +43,7 @@ export default async function ClienteVendasPage({
 
   return (
     <div>
-      <VendasSubTabs clientId={id} />
+      <VendasSubTabs clientId={id} team={team} />
 
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-bold text-navy">

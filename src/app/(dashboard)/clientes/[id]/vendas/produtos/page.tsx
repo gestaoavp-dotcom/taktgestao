@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import type { ProductCostChange, SalesOrder, SalesProduct } from "@/lib/types";
 import { productsFromOrders } from "@/lib/products-from-orders";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
@@ -35,6 +36,7 @@ export default async function ProdutosPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const team = await isTeam();
 
   const [{ data: reported }, orders, { data: costChanges }] = await Promise.all([
     supabase
@@ -63,7 +65,7 @@ export default async function ProdutosPage({
 
   return (
     <div>
-      <VendasSubTabs clientId={id} />
+      <VendasSubTabs clientId={id} team={team} />
       <SalesProductsTable
         clientId={id}
         products={products}

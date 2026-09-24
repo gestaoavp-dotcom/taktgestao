@@ -3,13 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function VendasSubTabs({ clientId }: { clientId: string }) {
+export function VendasSubTabs({
+  clientId,
+  team = true,
+}: {
+  clientId: string;
+  /** False for a client login: importing reports is the agency's job. */
+  team?: boolean;
+}) {
   const pathname = usePathname();
   const base = `/clientes/${clientId}/vendas`;
 
   const tabs = [
     { href: base, label: "Visão geral" },
-    { href: `${base}/importar`, label: "Importar documentos" },
+    ...(team ? [{ href: `${base}/importar`, label: "Importar documentos" }] : []),
     { href: `${base}/pedidos`, label: "Pedidos" },
     { href: `${base}/produtos`, label: "Produtos" },
     { href: `${base}/ads`, label: "Ads" },

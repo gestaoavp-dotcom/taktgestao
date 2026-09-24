@@ -45,21 +45,39 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // A login created by someone else starts with a password that someone else
-  // knows. Until it is replaced, this page is the only one it reaches — done
-  // here rather than per page, so a page added later is covered without anyone
-  // remembering to cover it.
   if (user && !isPasswordRoute) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("password_changed_at")
+      .select("role, client_id, password_changed_at")
       .eq("id", user.id)
-      .maybeSingle<{ password_changed_at: string | null }>();
+      .maybeSingle<{
+        role: string;
+        client_id: string | null;
+        password_changed_at: string | null;
+      }>();
 
+    // A login created by someone else starts with a password that someone else
+    // knows. Until it is replaced, one page is all it reaches — done here
+    // rather than per page, so a page added later is covered without anyone
+    // remembering to cover it.
     if (profile && !profile.password_changed_at) {
       const url = request.nextUrl.clone();
       url.pathname = "/trocar-senha";
       return NextResponse.redirect(url);
+    }
+
+    // A client belongs on its own pages. The database already refuses it
+    // everything else, so this is not what keeps the data safe — it is what
+    // keeps the client from landing on the agency's dashboard and finding it
+    // empty, or on a tab of tools that will not work for them.
+    if (profile?.role === "cliente" && profile.client_id) {
+      const own = `/clientes/${profile.client_id}`;
+      if (!pathname.startsWith(own)) {
+        const url = request.nextUrl.clone();
+        url.pathname = own;
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
     }
   }
 

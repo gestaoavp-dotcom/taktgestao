@@ -8,16 +8,23 @@ const TABS = [
   { segment: "vendas", label: "Dados" },
   { segment: "controle", label: "Controle" },
   { segment: "relatorios", label: "Relatórios" },
-  { segment: "informacoes", label: "Informações" },
+  // Holds the marketplace passwords and what the client pays the agency.
+  { segment: "informacoes", label: "Informações", team: true },
 ];
 
-export function ClientTabs({ clientId }: { clientId: string }) {
+export function ClientTabs({
+  clientId,
+  team = true,
+}: {
+  clientId: string;
+  team?: boolean;
+}) {
   const pathname = usePathname();
   const base = `/clientes/${clientId}`;
 
   return (
     <nav className="flex gap-1 border-b border-navy/[.08]">
-      {TABS.map((tab) => {
+      {TABS.filter((tab) => team || !tab.team).map((tab) => {
         const href = tab.segment ? `${base}/${tab.segment}` : base;
         // Sub-pages keep their tab lit — but the dashboard's own href is a
         // prefix of every other one, so it has to match exactly.

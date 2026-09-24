@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import type { ClientAccount, SalesReport } from "@/lib/types";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesReportsCard } from "@/components/sales-reports-card";
@@ -10,6 +11,7 @@ export default async function ImportarVendasPage({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const team = await isTeam();
 
   const [{ data: accounts }, { data: reports }] = await Promise.all([
     supabase
@@ -42,7 +44,7 @@ export default async function ImportarVendasPage({
 
   return (
     <div>
-      <VendasSubTabs clientId={id} />
+      <VendasSubTabs clientId={id} team={team} />
       <SalesReportsCard
         clientId={id}
         accounts={accounts ?? []}

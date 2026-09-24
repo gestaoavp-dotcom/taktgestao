@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Store } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import type { ClientAccount } from "@/lib/types";
 import { MARKETPLACES } from "@/lib/marketplaces";
 import { ClientTabs } from "@/components/client-tabs";
@@ -16,6 +17,7 @@ export default async function ClientLayout({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+  const team = await isTeam();
 
   const [{ data: client }, { data: accounts }] = await Promise.all([
     supabase

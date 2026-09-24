@@ -13,16 +13,16 @@ import {
 
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Clientes", icon: Users },
-  { href: "/tarefas", label: "Tarefas", icon: CheckSquare },
-  { href: "/financas", label: "Finanças", icon: Wallet },
-  { href: "/vendas", label: "Vendas", icon: TrendingUp },
+  { href: "/clientes", label: "Clientes", icon: Users, team: true },
+  { href: "/tarefas", label: "Tarefas", icon: CheckSquare, team: true },
+  { href: "/financas", label: "Finanças", icon: Wallet, team: true },
+  { href: "/vendas", label: "Vendas", icon: TrendingUp, team: true },
 ];
 
 /** Shown apart from the rest: it is about the system, not about the work. */
 const SETTINGS = { href: "/configuracoes", label: "Configurações", icon: Settings };
 
-export function NavLinks() {
+export function NavLinks({ team = true }: { team?: boolean }) {
   const pathname = usePathname();
 
   const render = (link: { href: string; label: string; icon: typeof LayoutDashboard }) => {
@@ -49,10 +49,14 @@ export function NavLinks() {
 
   return (
     <nav className="flex flex-col gap-1">
-      {LINKS.map(render)}
+      {LINKS.filter((l) => team || !l.team).map(render)}
 
-      <div className="my-2 border-t border-navy/[.08]" />
-      {render(SETTINGS)}
+      {team && (
+        <>
+          <div className="my-2 border-t border-navy/[.08]" />
+          {render(SETTINGS)}
+        </>
+      )}
     </nav>
   );
 }

@@ -8,10 +8,13 @@ import type { NotificationItem } from "@/lib/notifications";
 
 export function DashboardShell({
   email,
+  team = true,
   notifications,
   children,
 }: {
   email?: string;
+  /** False for a client login: the rest of the sidebar is the agency's. */
+  team?: boolean;
   notifications: NotificationItem[];
   children: React.ReactNode;
 }) {
@@ -28,7 +31,7 @@ export function DashboardShell({
           <div className="mb-8 px-2">
             <Logo height={34} />
           </div>
-          <NavLinks />
+          <NavLinks team={team} />
         </div>
       </aside>
 

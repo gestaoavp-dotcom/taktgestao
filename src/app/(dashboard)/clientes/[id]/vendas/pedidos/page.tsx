@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import type { ClientAccount, SalesOrder } from "@/lib/types";
 import { ORDER_LIST_COLUMNS } from "@/lib/sales-columns";
 import { ORDERS_PAGE } from "@/lib/sales-columns";
@@ -33,6 +34,7 @@ export default async function PedidosPage({
   const { id } = await params;
   const { mes, canal, loja, custo } = await searchParams;
   const supabase = await createClient();
+  const team = await isTeam();
 
   const { data: months } = await supabase.rpc("order_months", { p_client_id: id });
   const available = (months ?? []) as { report_month: string; orders: number }[];
@@ -84,7 +86,7 @@ export default async function PedidosPage({
 
   return (
     <div>
-      <VendasSubTabs clientId={id} />
+      <VendasSubTabs clientId={id} team={team} />
       <SalesOrdersTable
         clientId={id}
         orders={orders ?? []}

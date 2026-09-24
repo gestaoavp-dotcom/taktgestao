@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getNotifications } from "@/lib/notifications";
+import { isTeam } from "@/lib/profile";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 export default async function DashboardLayout({
@@ -11,10 +12,11 @@ export default async function DashboardLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const team = await isTeam();
   const notifications = await getNotifications();
 
   return (
-    <DashboardShell email={user?.email} notifications={notifications}>
+    <DashboardShell email={user?.email} team={team} notifications={notifications}>
       {children}
     </DashboardShell>
   );
