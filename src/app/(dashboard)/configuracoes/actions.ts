@@ -221,3 +221,57 @@ export async function createUserWithPassword(
   revalidatePath("/configuracoes");
   return { ok: true };
 }
+
+/**
+ * Sets a new temporary password on a login that already exists.
+ *
+ * Needed for two ordinary cases: an invitation that never arrived, leaving an
+ * account with no password at all, and someone who has forgotten theirs. Both
+ * end the same way — the password is good for one entry, because this clears
+ * password_changed_at and the middleware then allows nothing but the
+ * change-password page.
+ */
+export async function resetTemporaryPassword(
+  _prevState: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  if (password.length < 8) return { error: "A senha temporária precisa ter ao menos 8 caracteres." };
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("email", email)
+    .maybeSingle<{ id: string }>();
+
+  if (!profile) return { error: "Não achei um login com esse e-mail." };
+
+  // An account created by invitation has no password and no confirmed email;
+  // both are settled here, since no confirmation mail is going to arrive.
+  const { error } = await admin.auth.admin.updateUserById(profile.id, {
+    password,
+    email_confirm: true,
+  });
+  if (error) return { error: error.message };
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ password_changed_at: null })
+    .eq("id", profile.id);
+  if (profileError) return { error: profileError.message };
+
+  revalidatePath("/configuracoes");
+  return { ok: true };
+}

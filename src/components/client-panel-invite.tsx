@@ -2,7 +2,10 @@
 
 import { useActionState, useState } from "react";
 import { Check, Copy, MessageCircle, UserPlus } from "lucide-react";
-import { createUserWithPassword } from "@/app/(dashboard)/configuracoes/actions";
+import {
+  createUserWithPassword,
+  resetTemporaryPassword,
+} from "@/app/(dashboard)/configuracoes/actions";
 
 // Creating the client's login and writing the message that hands it over, in
 // one place — because they are one job, done on the page for that client.
@@ -36,9 +39,14 @@ export function ClientPanelInvite({
   const [password, setPassword] = useState("");
   const [copied, setCopied] = useState(false);
 
-  const [state, formAction, creating] = useActionState(createUserWithPassword, null);
-  const created = !!(state && "ok" in state);
-  const exists = !!loginEmail || created;
+  // Creating and resetting are the same form: which one runs depends on
+  // whether the login is already there.
+  const exists = !!loginEmail;
+  const [state, formAction, working] = useActionState(
+    exists ? resetTemporaryPassword : createUserWithPassword,
+    null,
+  );
+  const done = !!(state && "ok" in state);
 
   const message = `Oi, ${name || "[NOME]"}! Seu acesso ao painel da TAKT está pronto.
 
@@ -62,8 +70,10 @@ A senha vale só para a primeira entrada — o sistema vai pedir para você cria
       </h2>
       <p className="mb-4 max-w-2xl text-xs text-[#5B647E]">
         {exists
-          ? "O login existe. Preencha o nome e a senha temporária para montar a mensagem."
-          : "Crie o login e monte a mensagem de primeiro acesso, tudo aqui. A senha temporária vale uma entrada só: no primeiro acesso o sistema exige que a pessoa crie a dela."}
+          ? "O login já existe. Definir uma senha temporária aqui substitui a atual — serve para quem esqueceu a senha, e para um convite que nunca chegou e deixou a conta sem senha nenhuma."
+          : "Crie o login e monte a mensagem de primeiro acesso, tudo aqui."}{" "}
+        A senha temporária vale uma entrada só: no primeiro acesso o sistema exige que a pessoa
+        crie a dela.
       </p>
 
       <form action={formAction} className="mb-4 flex flex-wrap items-end gap-3">
@@ -107,14 +117,18 @@ A senha vale só para a primeira entrada — o sistema vai pedir para você cria
           />
         </label>
 
-        {!exists && canCreate && (
+        {canCreate && (
           <button
             type="submit"
-            disabled={creating}
+            disabled={working}
             className="flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
           >
             <UserPlus className="h-4 w-4" />
-            {creating ? "Criando..." : "Criar acesso"}
+            {working
+              ? "Salvando..."
+              : exists
+                ? "Definir esta senha"
+                : "Criar acesso"}
           </button>
         )}
       </form>
@@ -122,9 +136,11 @@ A senha vale só para a primeira entrada — o sistema vai pedir para você cria
       {state && "error" in state && (
         <p className="mb-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
       )}
-      {created && (
+      {done && (
         <p className="mb-3 rounded bg-green-50 px-3 py-2 text-xs text-green-800">
-          Acesso criado. Agora copie a mensagem e mande para o cliente.
+          {exists
+            ? "Senha temporária definida. Copie a mensagem e mande para o cliente."
+            : "Acesso criado. Agora copie a mensagem e mande para o cliente."}
         </p>
       )}
 
