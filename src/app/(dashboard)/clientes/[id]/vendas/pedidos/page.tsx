@@ -1,36 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SalesOrder } from "@/lib/types";
 import { distinctMarketplaces } from "@/lib/marketplaces";
+import { fetchAll } from "@/lib/supabase/fetch-all";
+import { ORDER_LIST_COLUMNS } from "@/lib/sales-columns";
 import { orderNet, orderShares } from "@/lib/parsers/order-breakdown";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesOrdersTable } from "@/components/sales-orders-table";
-
-/** PostgREST caps a response at 1000 rows, and a month can be busier than that. */
-const PAGE = 1000;
-
-async function fetchOrders(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  clientId: string,
-) {
-  const all: SalesOrder[] = [];
-
-  for (let from = 0; ; from += PAGE) {
-    const { data } = await supabase
-      .from("sales_orders")
-      .select("*")
-      .eq("client_id", clientId)
-      .order("created_on", { ascending: false })
-      // Dates repeat, so the id keeps the order stable between pages —
-      // without it a row can be skipped or fetched twice.
-      .order("id")
-      .range(from, from + PAGE - 1)
-      .returns<SalesOrder[]>();
-
-    if (!data?.length) return all;
-    all.push(...data);
-    if (data.length < PAGE) return all;
-  }
-}
 
 export default async function PedidosPage({
   params,
@@ -42,17 +17,51 @@ export default async function PedidosPage({
 
   const [{ data: accounts }, orders] = await Promise.all([
     supabase.from("client_accounts").select("marketplace").eq("client_id", id),
-    fetchOrders(supabase, id),
+    fetchAll<SalesOrder>((from, to) =>
+      supabase
+        .from("sales_orders")
+        .select(ORDER_LIST_COLUMNS)
+        .eq("client_id", id)
+        // Dates repeat, so the id keeps the order stable between pages.
+        .order("created_on", { ascending: false })
+        .order("id")
+        .range(from, to)
+        .returns<SalesOrder[]>(),
+    ),
   ]);
 
-  // The net needs the raw report row for Shopee, so it is worked out here and
-  // the row itself is dropped. It is three quarters of what this page weighed,
-  // and only one order's is ever read — when someone opens it.
-  const shares = orderShares(orders);
+  // Mercado Livre states its settled figure in a column; Shopee's has to be
+  // worked out from the report row. So the report row is fetched for those
+  // orders alone — 46 of 5223 across every client, against a column that
+  // doubles how long the whole page takes to read.
+  const needsRaw = orders.filter((o) => o.marketplace !== "mercado_livre").map((o) => o.id);
+  const rawById = new Map<string, Record<string, unknown>>();
+
+  if (needsRaw.length) {
+    const rows = await fetchAll<{ id: string; raw: Record<string, unknown> | null }>((from, to) =>
+      supabase
+        .from("sales_orders")
+        .select("id, raw")
+        .in("id", needsRaw)
+        .order("id")
+        .range(from, to)
+        .returns<{ id: string; raw: Record<string, unknown> | null }[]>(),
+    );
+    for (const row of rows) if (row.raw) rawById.set(row.id, row.raw);
+  }
+
+  const withRaw = orders.map((o) => ({ ...o, raw: rawById.get(o.id) ?? null }));
+  const shares = orderShares(withRaw);
   const nets = Object.fromEntries(
-    orders.map((o) => [o.id, orderNet(o, shares.get(o.id) ?? 1)]),
+    withRaw.map((o) => [o.id, orderNet(o, shares.get(o.id) ?? 1)]),
   );
-  const slim = orders.map(({ raw, ...rest }) => ({ ...rest, raw: null, hasRaw: raw != null }));
+
+  // The table needs to know a breakdown can be opened, not to carry one.
+  const slim = orders.map((o) => ({
+    ...o,
+    raw: null,
+    hasRaw: o.marketplace === "mercado_livre" || rawById.has(o.id),
+  }));
 
   return (
     <div>
