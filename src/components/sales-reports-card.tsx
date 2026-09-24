@@ -9,7 +9,7 @@ import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
 import { parseShopeeAds, stripAdsPreamble } from "@/lib/parsers/shopee-ads";
 import { parseShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import {
-  MERCADO_LIVRE_HEADER_ROW,
+  findMercadoLivreHeaderRow,
   parseMercadoLivreOrders,
 } from "@/lib/parsers/mercado-livre-orders";
 import { parseAmazonProducts } from "@/lib/parsers/amazon-products";
@@ -55,6 +55,15 @@ const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
     hint: "relatório de negócios: resultado do mês por produto, com tarifas e logística",
   },
 ];
+
+/**
+ * Orders per request when sending a parsed report to the server.
+ *
+ * A Server Action refuses a body over 1 MB, and a Mercado Livre order carries
+ * its whole 66-column row: a thousand of them is about 3 MB. Sent in one go it
+ * failed as "could not read the file", which was true of nothing.
+ */
+const ORDERS_PER_BATCH = 150;
 
 /** Unique per upload, so replacing a file never collides with the old one. */
 function storagePath(clientId: string, marketplace: string, name: string) {
@@ -277,43 +286,71 @@ export function SalesReportsCard({
           });
           if (result && "error" in result) setError(result.error);
         } else if (reportMarketplace === "mercado_livre") {
-          // Mercado Livre opens the sheet with five rows of headings and links,
-          // so the header is where it actually is, not where it usually is.
+          // The header is where it actually is, not where it usually is: the
+          // preamble is a different height from one export to the next.
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: "array" });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const headerRow = findMercadoLivreHeaderRow(
+            XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: true }),
+          );
           const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-            range: MERCADO_LIVRE_HEADER_ROW,
+            range: headerRow,
           });
 
-          const result = await importSalesOrders({
-            clientId,
-            reportId: registered.id,
-            marketplace: reportMarketplace,
-            accountId: reportAccountId,
-            reportMonth,
-            orders: parseMercadoLivreOrders(rows),
-          });
-          if (result && "error" in result) setError(result.error);
+          const orders = parseMercadoLivreOrders(rows);
+
+          for (let i = 0; i < orders.length; i += ORDERS_PER_BATCH) {
+            const batch = orders.slice(i, i + ORDERS_PER_BATCH);
+            const last = i + ORDERS_PER_BATCH >= orders.length;
+
+            const result = await importSalesOrders({
+              clientId,
+              reportId: registered.id,
+              marketplace: reportMarketplace,
+              accountId: reportAccountId,
+              reportMonth,
+              orders: batch,
+              finalize: last,
+            });
+            if (result && "error" in result) {
+              setError(result.error);
+              break;
+            }
+          }
         } else {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
           const sheet = workbook.Sheets[workbook.SheetNames[0]];
           const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
 
-          const result = await importSalesOrders({
-            clientId,
-            reportId: registered.id,
-            marketplace: reportMarketplace,
-            accountId: reportAccountId,
-            reportMonth,
-            orders: parseShopeeOrders(rows),
-          });
-          if (result && "error" in result) setError(result.error);
+          const orders = parseShopeeOrders(rows);
+
+          for (let i = 0; i < orders.length; i += ORDERS_PER_BATCH) {
+            const batch = orders.slice(i, i + ORDERS_PER_BATCH);
+            const last = i + ORDERS_PER_BATCH >= orders.length;
+
+            const result = await importSalesOrders({
+              clientId,
+              reportId: registered.id,
+              marketplace: reportMarketplace,
+              accountId: reportAccountId,
+              reportMonth,
+              orders: batch,
+              finalize: last,
+            });
+            if (result && "error" in result) {
+              setError(result.error);
+              break;
+            }
+          }
         }
-      } catch {
+      } catch (e) {
         await markSalesReportError(registered.id, clientId);
-        setError("Não consegui ler o conteúdo do arquivo. Ele foi salvo, mas sem os dados.");
+        setError(
+          `${(e as Error).message || "Não consegui ler o conteúdo do arquivo."} ` +
+            "O arquivo ficou salvo, mas sem os dados — use o botão de substituir para tentar de novo.",
+        );
       }
     }
 

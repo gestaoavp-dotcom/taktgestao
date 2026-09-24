@@ -88,6 +88,8 @@ export async function importSalesOrders(input: {
   accountId: string | null;
   reportMonth: string;
   orders: (ParsedShopeeOrder | ParsedMercadoLivreOrder)[];
+  /** False while more batches are still coming. */
+  finalize?: boolean;
 }): Promise<ActionState> {
   const supabase = await createClient();
 
@@ -120,14 +122,18 @@ export async function importSalesOrders(input: {
     if (error) return { error: error.message };
   }
 
-  const { error: statusError } = await supabase
-    .from("sales_reports")
-    .update({ status: "processado" })
-    .eq("id", input.reportId);
-  if (statusError) return { error: statusError.message };
+  // Only the last batch settles the document, so a run that stops halfway
+  // leaves it visibly unfinished instead of claiming to be done.
+  if (input.finalize !== false) {
+    const { error: statusError } = await supabase
+      .from("sales_reports")
+      .update({ status: "processado" })
+      .eq("id", input.reportId);
+    if (statusError) return { error: statusError.message };
 
-  revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
-  revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
+    revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
+    revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
+  }
   return { ok: true };
 }
 

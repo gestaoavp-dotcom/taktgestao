@@ -1,7 +1,9 @@
 // Parses the "Vendas BR" report Mercado Livre exports from Faturas e relatórios.
 //
-// The sheet opens with five rows of headings and links, so the real header sits
-// on row 6 — read with `range: 5` rather than assuming row one.
+// The sheet opens with headings and links before the table starts, and how
+// many varies between exports — the same account produced five rows one month
+// and four the next. So the header is found by looking for the column every
+// version has, never by counting rows.
 //
 // One row per sale. A sale that shipped together with others carries
 // "Pacote de diversos produtos = Sim" but keeps its own money, so rows are
@@ -29,8 +31,28 @@ export type ParsedMercadoLivreOrder = {
   raw: Record<string, unknown>;
 };
 
-/** Where the header row lives, counted from zero — pass as `range` to SheetJS. */
-export const MERCADO_LIVRE_HEADER_ROW = 5;
+/** The column that identifies the table, present in every version of this export. */
+const HEADER_MARKER = "N.º de venda";
+
+/**
+ * Where the header row is, counted from zero — pass as `range` to SheetJS.
+ *
+ * Takes the sheet as raw rows, because the preamble has no fixed height and
+ * reading it as objects would make its first line the header whatever it says.
+ */
+export function findMercadoLivreHeaderRow(rows: unknown[][]): number {
+  const index = rows.findIndex((row) =>
+    row?.some((cell) => String(cell ?? "").trim() === HEADER_MARKER),
+  );
+
+  if (index === -1) {
+    throw new Error(
+      `Não achei a coluna "${HEADER_MARKER}" nesse arquivo. ` +
+        "Ele parece ser outro relatório: em Faturas e relatórios, baixe o de Vendas.",
+    );
+  }
+  return index;
+}
 
 const MONTHS: Record<string, number> = {
   janeiro: 1,
