@@ -11,6 +11,8 @@
 // holds every amount and the following ones only the extra products, with all
 // money blank. Those rows add nothing to a sum, which is exactly right.
 
+import { stripPersonal } from "./strip-personal";
+
 export type ParsedMercadoLivreOrder = {
   order_id: string;
   status: string | null;
@@ -134,7 +136,7 @@ export function parseMercadoLivreOrders(
         commission_fee: Math.abs(toNumber(row["Tarifa de venda e impostos (BRL)"])),
         service_fee: Math.abs(shippingCosts),
         net_settlement: toNumber(row["Total (BRL)"]),
-        raw: row,
+        raw: stripPersonal(row),
       };
     });
 }

@@ -1,6 +1,8 @@
 // Parses the "orders.all" report Shopee's seller center exports —
 // one row per product line in an order, in Portuguese (BR) headers.
 
+import { stripPersonal } from "./strip-personal";
+
 export type ParsedShopeeOrder = {
   order_id: string;
   status: string | null;
@@ -57,6 +59,6 @@ export function parseShopeeOrders(rows: Record<string, unknown>[]): ParsedShopee
       commission_fee: toNumber(row["Taxa de comissão líquida"]),
       service_fee: toNumber(row["Taxa de serviço líquida"]),
       net_settlement: toNumber(row["Total global"]),
-      raw: row,
+      raw: stripPersonal(row),
     }));
 }
