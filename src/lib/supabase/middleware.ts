@@ -31,6 +31,7 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login");
+  const isPasswordRoute = pathname.startsWith("/trocar-senha");
 
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();
@@ -42,6 +43,24 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
+  }
+
+  // A login created by someone else starts with a password that someone else
+  // knows. Until it is replaced, this page is the only one it reaches — done
+  // here rather than per page, so a page added later is covered without anyone
+  // remembering to cover it.
+  if (user && !isPasswordRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("password_changed_at")
+      .eq("id", user.id)
+      .maybeSingle<{ password_changed_at: string | null }>();
+
+    if (profile && !profile.password_changed_at) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/trocar-senha";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

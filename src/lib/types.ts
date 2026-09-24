@@ -288,6 +288,8 @@ export type Profile = {
   email: string | null;
   role: ProfileRole;
   client_id: string | null;
+  /** Null while the login still has the password someone else set for it. */
+  password_changed_at: string | null;
   created_at: string;
 };
 
