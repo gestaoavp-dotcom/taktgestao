@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, ChevronDown, Menu, Search } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { logout } from "@/app/logout/actions";
 import type { NotificationItem } from "@/lib/notifications";
 
@@ -20,10 +21,13 @@ export function Header({
   email,
   notifications,
   onToggleSidebar,
+  brand = false,
 }: {
   email?: string;
   notifications: NotificationItem[];
-  onToggleSidebar: () => void;
+  onToggleSidebar?: () => void;
+  /** Shows the mark in place of the sidebar toggle, when there is no sidebar. */
+  brand?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -48,14 +52,18 @@ export function Header({
 
   return (
     <header className="flex items-center gap-6 border-b border-navy/[.08] bg-white px-8 py-3.5">
-      <button
-        type="button"
-        aria-label="Alternar menu lateral"
-        onClick={onToggleSidebar}
-        className="rounded-lg p-2 text-[#5B647E] transition-colors hover:bg-brand-gray"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      {brand ? (
+        <Logo height={30} />
+      ) : (
+        <button
+          type="button"
+          aria-label="Alternar menu lateral"
+          onClick={onToggleSidebar}
+          className="rounded-lg p-2 text-[#5B647E] transition-colors hover:bg-brand-gray"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+      )}
 
       <div className="relative w-full max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A0BD]" />

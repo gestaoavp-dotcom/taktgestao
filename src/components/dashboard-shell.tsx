@@ -20,6 +20,18 @@ export function DashboardShell({
 }) {
   const [collapsed, setCollapsed] = useState(false);
 
+  // A client has one place to be, so there is nothing for a sidebar to hold —
+  // and a strip of links they cannot use reads as something withheld. The mark
+  // moves into the header instead: they should know whose panel this is.
+  if (!team) {
+    return (
+      <div className="flex min-h-screen flex-col bg-brand-gray/50">
+        <Header email={email} notifications={notifications} brand />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-brand-gray/50">
       <aside
