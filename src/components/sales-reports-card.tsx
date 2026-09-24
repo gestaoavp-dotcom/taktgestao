@@ -65,6 +65,33 @@ const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
  */
 const ORDERS_PER_BATCH = 150;
 
+/**
+ * Refuses a report whose sales fall outside the window chosen for it.
+ *
+ * Getting this wrong is not a cosmetic mistake: the import replaces the window
+ * it was told it covers, so a August file filed under September deletes nothing
+ * and lands on top of the August orders already there. That doubled a client's
+ * revenue before this check existed.
+ */
+function periodMismatch(
+  dates: (string | null)[],
+  start: string,
+  end: string,
+): string | null {
+  const known = dates.filter((d): d is string => !!d).sort();
+  if (!known.length) return null;
+
+  const first = known[0];
+  const last = known[known.length - 1];
+  if (first >= start && last <= end) return null;
+
+  return (
+    `As vendas desse arquivo vão de ${formatShort(first)} a ${formatShort(last)}, ` +
+    `fora do período ${formatShort(start)} a ${formatShort(end)} que você escolheu. ` +
+    "Ajuste as datas e envie de novo — importar assim duplicaria os pedidos."
+  );
+}
+
 /** "24/09" — enough to read a window at a glance. */
 function formatShort(iso: string) {
   const [, m, d] = iso.split("-");
@@ -332,6 +359,16 @@ export function SalesReportsCard({
 
           const orders = parseMercadoLivreOrders(rows);
 
+          const mismatch = periodEnd
+            ? periodMismatch(orders.map((o) => o.created_on), periodStart, periodEnd)
+            : null;
+          if (mismatch) {
+            await markSalesReportError(registered.id, clientId);
+            setError(mismatch);
+            setUploading(false);
+            return;
+          }
+
           for (let i = 0; i < orders.length; i += ORDERS_PER_BATCH) {
             const batch = orders.slice(i, i + ORDERS_PER_BATCH);
             const last = i + ORDERS_PER_BATCH >= orders.length;
@@ -358,6 +395,16 @@ export function SalesReportsCard({
           const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
 
           const orders = parseShopeeOrders(rows);
+
+          const mismatch = periodEnd
+            ? periodMismatch(orders.map((o) => o.created_on), periodStart, periodEnd)
+            : null;
+          if (mismatch) {
+            await markSalesReportError(registered.id, clientId);
+            setError(mismatch);
+            setUploading(false);
+            return;
+          }
 
           for (let i = 0; i < orders.length; i += ORDERS_PER_BATCH) {
             const batch = orders.slice(i, i + ORDERS_PER_BATCH);
