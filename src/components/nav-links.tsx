@@ -12,13 +12,15 @@ import {
   Inbox,
 } from "lucide-react";
 
+// `client` marks what a client login sees: its own folder under Clientes, and
+// nothing else of the agency's.
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/clientes", label: "Clientes", icon: Users, team: true },
-  { href: "/leads", label: "Leads", icon: Inbox, team: true },
-  { href: "/tarefas", label: "Tarefas", icon: CheckSquare, team: true },
-  { href: "/financas", label: "Finanças", icon: Wallet, team: true },
-  { href: "/vendas", label: "Vendas", icon: TrendingUp, team: true },
+  { href: "/clientes", label: "Clientes", icon: Users, client: true },
+  { href: "/leads", label: "Leads", icon: Inbox },
+  { href: "/tarefas", label: "Tarefas", icon: CheckSquare },
+  { href: "/financas", label: "Finanças", icon: Wallet },
+  { href: "/vendas", label: "Vendas", icon: TrendingUp },
 ];
 
 /** Shown apart from the rest: it is about the system, not about the work. */
@@ -51,7 +53,7 @@ export function NavLinks({ team = true }: { team?: boolean }) {
 
   return (
     <nav className="flex flex-col gap-1">
-      {LINKS.filter((l) => team || !l.team).map(render)}
+      {LINKS.filter((l) => team || l.client).map(render)}
 
       {team && (
         <>

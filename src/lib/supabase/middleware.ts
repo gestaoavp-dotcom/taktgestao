@@ -111,11 +111,13 @@ export async function updateSession(request: NextRequest) {
     // everything else, so this is not what keeps the data safe — it is what
     // keeps the client from landing on the agency's dashboard and finding it
     // empty, or on a tab of tools that will not work for them.
+    // The Clientes list is allowed too: the database hands a client only its
+    // own row, so the list holds that one folder.
     if (profile?.role === "cliente" && profile.client_id) {
       const own = `/clientes/${profile.client_id}`;
-      if (!pathname.startsWith(own)) {
+      if (pathname !== "/clientes" && !pathname.startsWith(own)) {
         const url = request.nextUrl.clone();
-        url.pathname = own;
+        url.pathname = "/clientes";
         url.search = "";
         return NextResponse.redirect(url);
       }

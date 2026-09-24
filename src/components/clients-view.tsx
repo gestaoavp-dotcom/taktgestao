@@ -25,7 +25,14 @@ export type ClientSummary = {
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
-export function ClientsView({ clients }: { clients: ClientSummary[] }) {
+export function ClientsView({
+  clients,
+  canManage,
+}: {
+  clients: ClientSummary[];
+  /** False for a client login: it views its own folder and changes nothing. */
+  canManage: boolean;
+}) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -84,17 +91,19 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
             />
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              resetModalFields();
-              setModalOpen(true);
-            }}
-            className="flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
-          >
-            <Plus className="h-4 w-4" />
-            Adicionar cliente
-          </button>
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => {
+                resetModalFields();
+                setModalOpen(true);
+              }}
+              className="flex items-center gap-2 rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar cliente
+            </button>
+          )}
         </div>
       </div>
 
@@ -113,16 +122,18 @@ export function ClientsView({ clients }: { clients: ClientSummary[] }) {
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue/10">
                     <Folder className="h-5 w-5 text-blue" />
                   </div>
-                  <form action={deleteClientRecord} className="relative z-10">
-                    <input type="hidden" name="id" value={client.id} />
-                    <button
-                      type="submit"
-                      aria-label={`Excluir ${client.name}`}
-                      className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </form>
+                  {canManage && (
+                    <form action={deleteClientRecord} className="relative z-10">
+                      <input type="hidden" name="id" value={client.id} />
+                      <button
+                        type="submit"
+                        aria-label={`Excluir ${client.name}`}
+                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </form>
+                  )}
                 </div>
 
                 <h2 className="truncate font-bold text-navy" title={client.name}>

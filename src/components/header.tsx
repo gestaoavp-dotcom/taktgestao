@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, LogOut, Menu, Search } from "lucide-react";
-import { Logo } from "@/components/logo";
 import { logout } from "@/app/logout/actions";
 import type { NotificationItem } from "@/lib/notifications";
 
@@ -19,15 +18,16 @@ const KIND_LABEL: Record<NotificationItem["kind"], string> = {
 
 export function Header({
   email,
+  roleLabel,
+  showNotifications,
   notifications,
   onToggleSidebar,
-  brand = false,
 }: {
   email?: string;
+  roleLabel: string;
+  showNotifications: boolean;
   notifications: NotificationItem[];
   onToggleSidebar?: () => void;
-  /** Shows the mark in place of the sidebar toggle, when there is no sidebar. */
-  brand?: boolean;
 }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -47,18 +47,14 @@ export function Header({
 
   return (
     <header className="flex items-center gap-6 border-b border-navy/[.08] bg-white px-8 py-3.5">
-      {brand ? (
-        <Logo height={30} />
-      ) : (
-        <button
-          type="button"
-          aria-label="Alternar menu lateral"
-          onClick={onToggleSidebar}
-          className="rounded-lg p-2 text-[#5B647E] transition-colors hover:bg-brand-gray"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-      )}
+      <button
+        type="button"
+        aria-label="Alternar menu lateral"
+        onClick={onToggleSidebar}
+        className="rounded-lg p-2 text-[#5B647E] transition-colors hover:bg-brand-gray"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
 
       <div className="relative w-full max-w-sm">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A0BD]" />
@@ -70,6 +66,7 @@ export function Header({
       </div>
 
       <div className="ml-auto flex items-center gap-5">
+        {showNotifications && (
         <div className="relative" ref={notifRef}>
           <button
             type="button"
@@ -148,6 +145,7 @@ export function Header({
             </div>
           )}
         </div>
+        )}
 
         <div className="flex items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
@@ -155,7 +153,7 @@ export function Header({
           </div>
           <div className="hidden leading-tight sm:block">
             <div className="max-w-[160px] truncate text-sm font-semibold text-navy">{email}</div>
-            <div className="text-xs text-[#94A0BD]">Admin</div>
+            <div className="text-xs text-[#94A0BD]">{roleLabel}</div>
           </div>
         </div>
 

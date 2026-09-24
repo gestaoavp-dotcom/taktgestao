@@ -34,11 +34,14 @@ export function ClientChangesTable({
   changes,
   accounts,
   clientMarketplaces,
+  readOnly = false,
 }: {
   clientId: string;
   changes: ClientChange[];
   accounts: ClientAccount[];
   clientMarketplaces: string[];
+  /** A client login: sees the log, registers and edits nothing. */
+  readOnly?: boolean;
 }) {
   // Two levels instead of one long row: the marketplace first, and the store
   // only when that marketplace has more than one. A flat list repeated the
@@ -187,6 +190,7 @@ export function ClientChangesTable({
         </div>
       )}
 
+      {!readOnly && (
       <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
         <div className="mb-3">
           <h2 className="font-bold text-navy">Registrar alteração</h2>
@@ -300,6 +304,7 @@ export function ClientChangesTable({
           </button>
         </form>
       </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
         <table className="w-full min-w-[1240px] text-left text-sm">
@@ -330,8 +335,10 @@ export function ClientChangesTable({
               return (
                 <tr
                   key={change.id}
-                  onClick={() => setWorkspace({ selectedId: change.id })}
-                  className="group cursor-pointer border-t border-navy/[.06] hover:bg-brand-gray/40"
+                  onClick={readOnly ? undefined : () => setWorkspace({ selectedId: change.id })}
+                  className={`group border-t border-navy/[.06] ${
+                    readOnly ? "" : "cursor-pointer hover:bg-brand-gray/40"
+                  }`}
                 >
                   <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
                     {formatDate(change.changed_on)}
@@ -366,6 +373,7 @@ export function ClientChangesTable({
                     {change.evidence ?? "—"}
                   </td>
                   <td className="px-5 py-2.5">
+                    {!readOnly && (
                     <div className="flex items-center justify-end gap-0.5">
                       <button
                         type="button"
@@ -390,6 +398,7 @@ export function ClientChangesTable({
                         </button>
                       </form>
                     </div>
+                    )}
                   </td>
                 </tr>
               );
@@ -405,7 +414,7 @@ export function ClientChangesTable({
         </table>
       </div>
 
-      {workspace && (
+      {workspace && !readOnly && (
         <ChangeWorkspaceModal
           clientId={clientId}
           changes={visibleChanges}

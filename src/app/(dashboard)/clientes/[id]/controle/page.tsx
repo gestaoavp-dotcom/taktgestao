@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ClientAccount, ClientChange } from "@/lib/types";
 import { distinctMarketplaces } from "@/lib/marketplaces";
+import { isTeam } from "@/lib/profile";
 import { ClientChangesTable } from "@/components/client-changes-table";
 
 export default async function ClienteControlePage({
@@ -32,6 +33,7 @@ export default async function ClienteControlePage({
       changes={changes ?? []}
       accounts={accounts ?? []}
       clientMarketplaces={distinctMarketplaces(accounts ?? [])}
+      readOnly={!(await isTeam())}
     />
   );
 }

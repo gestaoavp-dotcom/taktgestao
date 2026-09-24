@@ -19,8 +19,8 @@ const ROLES: {
 }[] = [
   {
     value: "dono",
-    label: "Dono",
-    hint: "Tudo: clientes, financeiro, senhas dos marketplaces e estes acessos.",
+    label: "Admin",
+    hint: "Tudo de todos os clientes, o financeiro, as senhas dos marketplaces e estes acessos.",
     icon: Crown,
     badge: "bg-yellow text-navy",
   },
@@ -34,7 +34,7 @@ const ROLES: {
   {
     value: "cliente",
     label: "Cliente",
-    hint: "Só o próprio cliente, e nunca a aba de Acessos.",
+    hint: "Padrão. Só a aba Clientes, com a pasta do próprio cliente, apenas para visualizar.",
     icon: User,
     badge: "bg-brand-gray text-[#5B647E]",
   },
@@ -191,7 +191,7 @@ export function AccessSettings({
 }
 
 function InviteForm({ clients }: { clients: Client[] }) {
-  const [role, setRole] = useState<ProfileRole>("operador");
+  const [role, setRole] = useState<ProfileRole>("cliente");
   // Two ways in, because one of them needs email to work and often it does not.
   const [mode, setMode] = useState<"senha" | "convite">("senha");
   const [state, formAction, sending] = useActionState(
