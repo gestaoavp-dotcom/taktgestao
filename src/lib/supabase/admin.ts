@@ -20,9 +20,18 @@ export function createAdminClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
+    // Names the variables this deploy does have. A typo and a missing variable
+    // produce the same silence otherwise, and we spent a round on each.
+    const seen = Object.keys(process.env)
+      .filter((k) => /SUPABASE/i.test(k))
+      .sort()
+      .join(", ");
+
     throw new Error(
-      "SUPABASE_SERVICE_ROLE_KEY não está configurada neste ambiente. " +
-        "Adicione na Vercel, em Settings → Environment Variables, e refaça o deploy.",
+      "SUPABASE_SERVICE_ROLE_KEY não chegou neste deploy. " +
+        `As variáveis do Supabase que existem aqui são: ${seen || "nenhuma"}. ` +
+        "Confira o nome exato na Vercel, em Settings → Environment Variables, " +
+        "e refaça o deploy depois de salvar — a Vercel só lê variáveis ao construir.",
     );
   }
 
