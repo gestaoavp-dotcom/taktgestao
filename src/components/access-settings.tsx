@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Check, Crown, ShieldCheck, User } from "lucide-react";
+import { Check, Crown, Mail, ShieldCheck, User } from "lucide-react";
 import type { Client, Profile, ProfileRole } from "@/lib/types";
 import {
+  inviteUser,
   updateProfileAccess,
   updateProfileName,
 } from "@/app/(dashboard)/configuracoes/actions";
@@ -178,23 +179,103 @@ export function AccessSettings({
         ))}
       </ul>
 
-      <section className="rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Adicionar alguém</h2>
-        <p className="text-sm text-[#5B647E]">
-          Convide pelo painel do Supabase, em <strong className="text-navy">Authentication →
-          Users → Invite user</strong>. Quem entrar aparece aqui na primeira vez que abrir o
-          sistema, já no nível mais restrito — é você que decide até onde a pessoa vai.
-        </p>
-      </section>
-
-      <section className="rounded-lg bg-yellow/10 p-5">
-        <h2 className="mb-1 font-bold text-navy">Os níveis ainda não estão sendo aplicados</h2>
-        <p className="text-sm text-[#5B647E]">
-          Estes acessos já ficam gravados, mas as regras que usam eles não existem ainda: hoje
-          qualquer pessoa logada continua vendo tudo, inclusive as senhas dos marketplaces.
-          Enquanto isso não for feito, não crie um login de cliente.
-        </p>
-      </section>
+      <InviteForm clients={clients} />
     </div>
+  );
+}
+
+function InviteForm({ clients }: { clients: Client[] }) {
+  const [role, setRole] = useState<ProfileRole>("operador");
+  const [state, formAction, sending] = useActionState(inviteUser, null);
+
+  return (
+    <section className="rounded-lg bg-white p-5 shadow-sm">
+      <h2 className="mb-1 flex items-center gap-2 font-bold text-navy">
+        <Mail className="h-4 w-4" />
+        Convidar alguém
+      </h2>
+      <p className="mb-4 max-w-2xl text-xs text-[#5B647E]">
+        O Supabase manda o e-mail e a pessoa escolhe a própria senha pelo link — nós nunca vemos
+        nem definimos senha de ninguém. O nível e o cliente já ficam valendo desde o primeiro
+        acesso.
+      </p>
+
+      <form action={formAction} className="flex flex-wrap items-end gap-3">
+        <label className="flex min-w-[240px] flex-1 flex-col gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            E-mail
+          </span>
+          <input
+            name="email"
+            type="email"
+            required
+            placeholder="pessoa@empresa.com"
+            className={INPUT_CLASS + " w-full"}
+          />
+        </label>
+
+        <label className="flex min-w-[160px] flex-col gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            Nome
+          </span>
+          <input name="name" placeholder="Opcional" className={INPUT_CLASS + " w-full"} />
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            Nível
+          </span>
+          <select
+            name="role"
+            value={role}
+            onChange={(e) => setRole(e.target.value as ProfileRole)}
+            className={INPUT_CLASS}
+          >
+            {ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {role === "cliente" && (
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+              Cliente
+            </span>
+            <select name="client_id" required defaultValue="" className={INPUT_CLASS}>
+              <option value="">Escolha</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <button
+          type="submit"
+          disabled={sending}
+          className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+        >
+          {sending ? "Enviando..." : "Enviar convite"}
+        </button>
+      </form>
+
+      <p className="mt-3 max-w-2xl text-xs text-[#5B647E]">
+        {ROLES.find((r) => r.value === role)?.hint}
+      </p>
+
+      {state && "error" in state && (
+        <p className="mt-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+      )}
+      {state && "ok" in state && (
+        <p className="mt-3 rounded bg-green-50 px-3 py-2 text-xs text-green-800">
+          Convite enviado. A pessoa aparece na lista assim que aceitar.
+        </p>
+      )}
+    </section>
   );
 }
