@@ -82,15 +82,17 @@ A senha vale só para a primeira entrada — o sistema vai pedir para você cria
 
         <label className="flex min-w-[220px] flex-1 flex-col gap-1.5">
           <span className={LABEL_CLASS}>E-mail do cliente</span>
+          {/* readOnly, not disabled: a disabled field is left out of the
+              submission, and this one carries which login to act on. */}
           <input
             name="email"
             type="email"
             required
             value={email}
-            disabled={exists}
+            readOnly={exists}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="pessoa@empresa.com"
-            className={INPUT_CLASS + " disabled:bg-brand-gray/40"}
+            className={INPUT_CLASS + (exists ? " bg-brand-gray/40" : "")}
           />
         </label>
 
