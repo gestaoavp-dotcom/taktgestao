@@ -136,6 +136,8 @@ export type SalesOrder = {
   commission_fee: number;
   service_fee: number;
   net_settlement: number;
+  /** Our reading of what the marketplace paid — see 0029. */
+  net_amount: number | null;
   cost: number | null;
   extra_costs: number | null;
   tax_percent: number | null;

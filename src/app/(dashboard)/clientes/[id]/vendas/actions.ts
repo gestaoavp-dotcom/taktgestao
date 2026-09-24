@@ -10,7 +10,7 @@ import type { ParsedMercadoLivreAd } from "@/lib/parsers/mercado-livre-ads";
 import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import type { SalesOrder, SalesReportKind } from "@/lib/types";
 import type { OrderBreakdown } from "@/lib/parsers/breakdown";
-import { buildOrderBreakdown } from "@/lib/parsers/order-breakdown";
+import { buildOrderBreakdown, orderNet, orderShares } from "@/lib/parsers/order-breakdown";
 import { knownCosts, knownTax } from "@/lib/product-costs";
 
 /**
@@ -135,13 +135,23 @@ export async function importSalesOrders(input: {
   );
   const taxPercent = await knownTax(supabase, "sales_orders", input.clientId, input.reportMonth);
 
-  const rows = input.orders.map((o) => ({
+  // Worked out here, with the report row in hand, instead of on every page
+  // load from a JSON blob the database cannot sum.
+  const shares = orderShares(
+    input.orders.map((o, i) => ({ ...o, id: String(i), marketplace: input.marketplace })) as never,
+  );
+
+  const rows = input.orders.map((o, i) => ({
     client_id: input.clientId,
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
     account_id: input.accountId,
     report_month: input.reportMonth,
     ...o,
+    net_amount: orderNet(
+      { ...o, id: String(i), marketplace: input.marketplace } as never,
+      shares.get(String(i)) ?? 1,
+    ),
     cost: o.sku ? costBySku.get(o.sku) ?? null : null,
     tax_percent: taxPercent,
   }));

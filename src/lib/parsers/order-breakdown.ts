@@ -15,8 +15,15 @@ import {
   isMercadoLivreVoided,
 } from "./mercado-livre-breakdown";
 
-/** What the marketplace actually deposits, before the seller's own costs. */
+/**
+ * What the marketplace actually deposits, before the seller's own costs.
+ *
+ * Prefers the figure stored at import. Recomputing it from the report row on
+ * every page load is what forced that 66-column blob to be read, and what kept
+ * the database from adding these up itself.
+ */
 export function orderNet(order: SalesOrder, share = 1): number {
+  if (order.net_amount != null) return Number(order.net_amount);
   if (!order.raw) return order.net_settlement;
   return order.marketplace === "mercado_livre"
     ? computeMercadoLivreNet(order.raw)
