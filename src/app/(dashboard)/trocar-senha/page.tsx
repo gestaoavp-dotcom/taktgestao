@@ -27,7 +27,7 @@ export default async function TrocarSenhaPage() {
       </h1>
       <p className="mb-6 text-sm text-[#5B647E]">
         {required
-          ? "Sua senha atual foi criada por outra pessoa. Escolha uma só sua para continuar — ninguém mais vai saber qual é, nem quem criou o acesso."
+          ? "Escolha a sua senha para continuar. Só você vai saber qual é — nem quem criou o seu acesso consegue vê-la."
           : "Escolha uma nova senha para o seu acesso."}
       </p>
       <ChangePasswordForm required={required} />

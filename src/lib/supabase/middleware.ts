@@ -6,7 +6,8 @@ export async function updateSession(request: NextRequest) {
   if (
     request.nextUrl.pathname.startsWith("/contato") ||
     request.nextUrl.pathname.startsWith("/inicio") ||
-    request.nextUrl.pathname.startsWith("/calculadora")
+    request.nextUrl.pathname.startsWith("/calculadora") ||
+    request.nextUrl.pathname.startsWith("/acesso")
   ) {
     return NextResponse.next({ request });
   }

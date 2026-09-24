@@ -332,7 +332,7 @@ function InviteForm({ clients }: { clients: Client[] }) {
       {state && "ok" in state && (
         <p className="mt-3 rounded bg-green-50 px-3 py-2 text-xs text-green-800">
           {mode === "senha"
-            ? "Acesso criado. Passe o e-mail e a senha temporária para a pessoa — a mensagem pronta está na aba Acessos do cliente."
+            ? "Acesso criado. Passe o e-mail e a senha temporária para a pessoa. Para um cliente, prefira o link de acesso, na aba Acessos dele."
             : "Convite enviado. A pessoa aparece na lista assim que aceitar."}
         </p>
       )}

@@ -2,9 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { emailConfigured, sendEmail } from "@/lib/email";
-import { generateTemporaryPassword } from "@/lib/temporary-password";
-import { SITE_URL } from "@/lib/site";
+import { createAccessLink, deliverAccessLink } from "@/lib/access-link";
 
 export type CreateClientState =
   | {
@@ -22,20 +20,6 @@ function toNumber(value: FormDataEntryValue | null) {
   if (!value) return null;
   const n = Number(String(value).replace(",", "."));
   return Number.isFinite(n) ? n : null;
-}
-
-function welcomeMessage(name: string, email: string, password: string) {
-  return [
-    `Olá, ${name}!`,
-    "",
-    "Seu acesso à área do cliente da TAKT Assessoria está pronto.",
-    "",
-    `Acesse: ${SITE_URL}/login`,
-    `E-mail: ${email}`,
-    `Senha temporária: ${password}`,
-    "",
-    "No primeiro acesso você cria a sua própria senha e confere os dados para finalizar o cadastro.",
-  ].join("\n");
 }
 
 /**
@@ -83,13 +67,11 @@ export async function createClientRecord(
     return { error: (e as Error).message };
   }
 
-  const password = generateTemporaryPassword();
-
   // The login first: it is the step most likely to be refused (an e-mail that
-  // already has one), and nothing else has been written yet when it is.
+  // already has one), and nothing else has been written yet when it is. It is
+  // made with no password at all — the client sets one through the link.
   const { data: created, error: userError } = await admin.auth.admin.createUser({
     email,
-    password,
     email_confirm: true,
   });
   if (userError || !created.user) {
@@ -142,8 +124,8 @@ export async function createClientRecord(
     );
   }
 
-  // password_changed_at stays empty: the temporary password opens the door
-  // once, and the first access is spent choosing a new one.
+  // password_changed_at stays empty: the link opens the door once, and that
+  // first access is spent choosing a password.
   const { error: profileError } = await admin.from("profiles").upsert({
     id: userId,
     email,
@@ -162,18 +144,25 @@ export async function createClientRecord(
   revalidatePath("/financas");
   revalidatePath("/configuracoes");
 
-  const message = welcomeMessage(name, email, password);
-
-  if (emailConfigured()) {
-    try {
-      await sendEmail({ to: email, subject: "Seu acesso à TAKT Assessoria", text: message });
-      return { ok: true, id: client.id, email, emailSent: true };
-    } catch {
-      // Everything else is in place; the admin can still hand the message over.
-    }
+  // The client and its login are in place from here on; a link that fails to
+  // generate is no reason to undo them — a new one can be sent from Acessos.
+  let link: string;
+  try {
+    link = await createAccessLink(admin, email);
+  } catch (e) {
+    return {
+      ok: true,
+      id: client.id,
+      email,
+      emailSent: false,
+      message: `O cliente foi criado, mas o link não: ${(e as Error).message} Envie um novo pela aba Informações → Acessos.`,
+    };
   }
 
-  return { ok: true, id: client.id, email, emailSent: false, message };
+  const delivery = await deliverAccessLink({ name, email }, link);
+  return delivery.emailSent
+    ? { ok: true, id: client.id, email, emailSent: true }
+    : { ok: true, id: client.id, email, emailSent: false, message: delivery.message };
 }
 
 export async function deleteClientRecord(formData: FormData) {

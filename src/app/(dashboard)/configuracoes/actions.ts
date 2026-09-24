@@ -310,3 +310,89 @@ export async function sendTestEmail(
 
   return { ok: true };
 }
+
+export type AccessLinkState =
+  | { ok: true; emailSent: true }
+  | { ok: true; emailSent: false; message: string }
+  | { error: string }
+  | null;
+
+/**
+ * Sends a client a one-time link to set its password — creating the login
+ * first when the client has none. Also the way back in for a lost first link
+ * or a forgotten password: each new link voids the one before it.
+ *
+ * No password is chosen, shown or stored anywhere on the agency's side.
+ */
+export async function sendClientAccessLink(
+  _prevState: AccessLinkState,
+  formData: FormData,
+): Promise<AccessLinkState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const clientId = String(formData.get("client_id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Informe um e-mail válido." };
+  if (!clientId) return { error: "Falta o cliente." };
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { createAccessLink, deliverAccessLink } = await import("@/lib/access-link");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { data: existing } = await admin
+    .from("profiles")
+    .select("id, role, client_id")
+    .eq("email", email)
+    .maybeSingle<{ id: string; role: ProfileRole; client_id: string | null }>();
+
+  // A link signs its holder in as the login it belongs to, so it only ever goes
+  // to that login's own client — never to an address that belongs to someone else.
+  if (existing && (existing.role !== "cliente" || existing.client_id !== clientId)) {
+    return { error: "Esse e-mail já é o login de outra pessoa." };
+  }
+
+  if (!existing) {
+    const { data: created, error } = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+    });
+    if (error || !created.user) {
+      return { error: error?.message ?? "Não foi possível criar o login." };
+    }
+
+    const { error: profileError } = await admin.from("profiles").upsert({
+      id: created.user.id,
+      email,
+      name: name || email.split("@")[0],
+      role: "cliente",
+      client_id: clientId,
+      password_changed_at: null,
+    });
+    if (profileError) {
+      await admin.auth.admin.deleteUser(created.user.id);
+      return { error: profileError.message };
+    }
+  }
+
+  let link: string;
+  try {
+    link = await createAccessLink(admin, email);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  revalidatePath(`/clientes/${clientId}/informacoes/acessos`);
+  revalidatePath("/configuracoes");
+
+  const delivery = await deliverAccessLink({ name, email }, link);
+  return delivery.emailSent
+    ? { ok: true, emailSent: true }
+    : { ok: true, emailSent: false, message: delivery.message };
+}

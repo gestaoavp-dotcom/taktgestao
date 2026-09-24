@@ -243,8 +243,8 @@ export function ClientsView({
                       {copied ? "Copiado!" : "Copiar mensagem"}
                     </button>
                     <p className="text-xs text-[#94A0BD]">
-                      A senha temporária só aparece agora e vale para um único acesso: no
-                      primeiro login o cliente cria a própria senha.
+                      O link vale uma única vez e expira. Se o cliente não usar a tempo, envie um novo em
+                      Informações → Acessos.
                     </p>
                   </div>
                 )}
@@ -264,7 +264,7 @@ export function ClientsView({
             <>
             <p className="mb-5 text-xs text-[#94A0BD]">
               Este é o pré-cadastro feito por nós. Ao salvar, o cliente ganha um login com
-              o e-mail principal e recebe uma senha temporária para o primeiro acesso.
+              o e-mail principal e recebe um link para criar a própria senha.
             </p>
 
             <form action={formAction} className="flex flex-col gap-4">
