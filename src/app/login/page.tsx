@@ -1,6 +1,6 @@
 import { BackLink } from "@/components/back-link";
 import { Logo } from "@/components/logo";
-import { login, signup } from "./actions";
+import { login } from "./actions";
 
 export default async function LoginPage({
   searchParams,
@@ -66,13 +66,10 @@ export default async function LoginPage({
             >
               Entrar
             </button>
-            <button
-              formAction={signup}
-              className="flex h-10 w-full items-center justify-center rounded border-2 border-blue text-sm font-medium text-blue transition-colors hover:bg-blue/5"
-            >
-              Criar conta
-            </button>
           </div>
+          <p className="text-center text-xs text-[#94A0BD]">
+            Os acessos são criados pela equipe TAKT.
+          </p>
         </form>
       </div>
     </div>

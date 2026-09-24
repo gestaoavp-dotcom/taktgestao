@@ -94,7 +94,12 @@ create policy "Owner manages profiles"
   with check (public.current_role_name() = 'dono');
 
 -- Everyone who already has a login predates this and is part of the agency.
+--
+-- Only on the very first run, while the table is still empty. Run again later
+-- it would otherwise hand dono to every login with no profile yet — including
+-- one made outside the app and still waiting for approval.
 insert into public.profiles (id, email, name, role)
 select id, email, split_part(email, '@', 1), 'dono'
 from auth.users
+where not exists (select 1 from public.profiles)
 on conflict (id) do nothing;

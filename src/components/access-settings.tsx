@@ -93,6 +93,11 @@ function ProfileRow({
               {profile.email}
               {isMe && " · você"}
             </p>
+            {profile.role === "cliente" && !profile.client_id && (
+              <span className="mt-1 inline-block rounded-full bg-yellow/30 px-2 py-0.5 text-[11px] font-semibold text-navy">
+                Aguardando aprovação — ligue a um cliente para liberar
+              </span>
+            )}
           </div>
         </div>
 

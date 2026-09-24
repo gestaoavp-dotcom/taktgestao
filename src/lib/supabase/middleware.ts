@@ -61,7 +61,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && !isPasswordRoute) {
+  if (user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, client_id, password_changed_at")
@@ -72,11 +72,36 @@ export async function updateSession(request: NextRequest) {
         password_changed_at: string | null;
       }>();
 
+    // A login gets in only once the owner has placed it: on the team, or bound
+    // to a client the agency registered. Anything else — a login made outside
+    // the app, a profile never placed — waits on one page until a dono
+    // approves it in Configurações. A failed lookup waits too: closed, not open.
+    const approved =
+      profile?.role === "dono" ||
+      profile?.role === "operador" ||
+      (profile?.role === "cliente" && !!profile.client_id);
+
+    if (!approved) {
+      if (pathname.startsWith("/aguardando")) return supabaseResponse;
+      const url = request.nextUrl.clone();
+      url.pathname = "/aguardando";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith("/aguardando")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/";
+      return NextResponse.redirect(url);
+    }
+
+    if (isPasswordRoute) return supabaseResponse;
+
     // A login created by someone else starts with a password that someone else
     // knows. Until it is replaced, one page is all it reaches — done here
     // rather than per page, so a page added later is covered without anyone
     // remembering to cover it.
-    if (profile && !profile.password_changed_at) {
+    if (!profile!.password_changed_at) {
       const url = request.nextUrl.clone();
       url.pathname = "/trocar-senha";
       return NextResponse.redirect(url);
