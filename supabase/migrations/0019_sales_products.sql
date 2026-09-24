@@ -35,6 +35,9 @@ create table if not exists public.sales_products (
 
 alter table public.sales_products enable row level security;
 
+drop policy if exists "Authenticated users can do anything with sales_products"
+  on public.sales_products;
+
 create policy "Authenticated users can do anything with sales_products"
   on public.sales_products for all to authenticated using (true) with check (true);
 
