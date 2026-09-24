@@ -23,11 +23,34 @@ function monthOf(offset: number) {
   return { start: toISO(start), end: toISO(offset === 0 ? now : end) };
 }
 
+/** A single past day, start and end alike. */
+function dayBefore(days: number) {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  return { start: toISO(d), end: toISO(d) };
+}
+
+function yearOf(offset: number) {
+  const now = new Date();
+  const year = now.getFullYear() + offset;
+  return {
+    start: `${year}-01-01`,
+    end: offset === 0 ? toISO(now) : `${year}-12-31`,
+  };
+}
+
 const PRESETS = [
+  { label: "Hoje", range: () => dayBefore(0) },
+  { label: "Ontem", range: () => dayBefore(1) },
   { label: "7 dias", range: () => lastDays(7) },
+  { label: "14 dias", range: () => lastDays(14) },
   { label: "30 dias", range: () => lastDays(30) },
+  { label: "90 dias", range: () => lastDays(90) },
   { label: "Este mês", range: () => monthOf(0) },
-  { label: "Mês passado", range: () => monthOf(-1) },
+  // A closed month is the only window that includes marketplaces reporting by
+  // month rather than by order, so it earns its place beside the rolling ones.
+  { label: "Mês passado", range: () => monthOf(-1), note: "mês fechado" },
+  { label: "Este ano", range: () => yearOf(0) },
 ];
 
 export function DateRangePicker({ start, end }: { start: string; end: string }) {
@@ -54,6 +77,7 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
               key={preset.label}
               type="button"
               onClick={() => apply(range)}
+              title={preset.note}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 active
                   ? "bg-navy text-white"
