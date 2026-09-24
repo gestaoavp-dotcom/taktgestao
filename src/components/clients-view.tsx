@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Folder, Phone, Plus, Search, Trash2, X } from "lucide-react";
+import { CheckCircle2, Copy, Folder, Phone, Plus, Search, Trash2, X } from "lucide-react";
 import { MARKETPLACES, MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCnpj, formatPhone } from "@/lib/masks";
 import {
@@ -39,23 +39,23 @@ export function ClientsView({
   const [phone, setPhone] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [marketplaces, setMarketplaces] = useState<string[]>([]);
+  const [done, setDone] = useState<Extract<CreateClientState, { ok: true }> | null>(null);
+  const [copied, setCopied] = useState(false);
 
   function resetModalFields() {
     setPhone("");
     setCnpj("");
     setMarketplaces([]);
+    setDone(null);
+    setCopied(false);
   }
 
   const [state, formAction, pending] = useActionState(
     async (prevState: CreateClientState, formData: FormData) => {
       const result = await createClientRecord(prevState, formData);
-      if (result && "ok" in result) {
-        setModalOpen(false);
-        resetModalFields();
-        // Mensalidade, dia de vencimento e forma de pagamento continuam em
-        // Informações — só o pré-cadastro (CNPJ + lojas) mora no modal.
-        router.push(`/clientes/${result.id}/informacoes`);
-      }
+      // Stays open on a confirmation: the admin needs to see whether the
+      // access e-mail went out, and has the message to hand over if not.
+      if (result && "ok" in result) setDone(result);
       return result;
     },
     null,
@@ -198,7 +198,7 @@ export function ClientsView({
             role="dialog"
             aria-modal="true"
             aria-labelledby="novo-cliente-titulo"
-            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            className="max-h-[calc(100vh-2rem)] w-full max-w-md overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
           >
             <div className="mb-1 flex items-center justify-between">
               <h2 id="novo-cliente-titulo" className="text-lg font-bold text-navy">
@@ -213,9 +213,58 @@ export function ClientsView({
                 <X className="h-5 w-5" />
               </button>
             </div>
+            {done ? (
+              <div className="flex flex-col gap-4 pt-2">
+                <div className="flex items-start gap-3 rounded-lg bg-green-50 px-4 py-3">
+                  <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-green-800">Cliente e login criados.</p>
+                    <p className="text-green-800">
+                      {done.emailSent
+                        ? `O e-mail com o acesso foi enviado para ${done.email}.`
+                        : "O envio de e-mail ainda não está configurado — mande a mensagem abaixo ao cliente (WhatsApp, por exemplo)."}
+                    </p>
+                  </div>
+                </div>
+
+                {done.message && (
+                  <div className="flex flex-col gap-2">
+                    <pre className="whitespace-pre-wrap rounded-lg border border-navy/10 bg-brand-gray/40 p-3 font-sans text-xs text-navy">
+                      {done.message}
+                    </pre>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(done.message!).then(() => setCopied(true));
+                      }}
+                      className="flex items-center justify-center gap-2 rounded-lg border border-navy/10 py-2 text-sm font-semibold text-navy transition-colors hover:bg-brand-gray"
+                    >
+                      <Copy className="h-4 w-4" />
+                      {copied ? "Copiado!" : "Copiar mensagem"}
+                    </button>
+                    <p className="text-xs text-[#94A0BD]">
+                      A senha temporária só aparece agora e vale para um único acesso: no
+                      primeiro login o cliente cria a própria senha.
+                    </p>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModalOpen(false);
+                    router.push(`/clientes/${done.id}/informacoes`);
+                  }}
+                  className="rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
+                >
+                  Ir para as informações do cliente
+                </button>
+              </div>
+            ) : (
+            <>
             <p className="mb-5 text-xs text-[#94A0BD]">
-              Este é o pré-cadastro feito por nós: CNPJ e lojas geridas já ficam
-              registrados aqui. A mensalidade é definida depois, na aba Informações.
+              Este é o pré-cadastro feito por nós. Ao salvar, o cliente ganha um login com
+              o e-mail principal e recebe uma senha temporária para o primeiro acesso.
             </p>
 
             <form action={formAction} className="flex flex-col gap-4">
@@ -224,6 +273,24 @@ export function ClientsView({
                   Nome
                 </label>
                 <input id="name" name="name" required autoFocus className={INPUT_CLASS} />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="email" className="text-sm font-semibold text-navy">
+                  E-mail principal
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  autoComplete="off"
+                  placeholder="cliente@empresa.com"
+                  className={INPUT_CLASS}
+                />
+                <p className="text-xs text-[#94A0BD]">
+                  Vira o login do cliente e é para onde vai o acesso.
+                </p>
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -251,6 +318,9 @@ export function ClientsView({
                     id="cnpj"
                     name="cnpj"
                     inputMode="numeric"
+                    required
+                    minLength={18}
+                    title="CNPJ completo, com 14 dígitos"
                     value={cnpj}
                     onChange={(e) => setCnpj(formatCnpj(e.target.value))}
                     placeholder="00.000.000/0000-00"
@@ -359,10 +429,12 @@ export function ClientsView({
                   disabled={pending}
                   className="rounded-lg bg-blue px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8] disabled:opacity-60"
                 >
-                  {pending ? "Salvando..." : "Salvar e continuar"}
+                  {pending ? "Criando..." : "Salvar e criar acesso"}
                 </button>
               </div>
             </form>
+            </>
+            )}
           </div>
         </div>
       )}

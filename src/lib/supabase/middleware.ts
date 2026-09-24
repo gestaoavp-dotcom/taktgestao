@@ -115,7 +115,11 @@ export async function updateSession(request: NextRequest) {
     // own row, so the list holds that one folder.
     if (profile?.role === "cliente" && profile.client_id) {
       const own = `/clientes/${profile.client_id}`;
-      if (pathname !== "/clientes" && !pathname.startsWith(own)) {
+      if (
+        pathname !== "/clientes" &&
+        !pathname.startsWith("/boas-vindas") &&
+        !pathname.startsWith(own)
+      ) {
         const url = request.nextUrl.clone();
         url.pathname = "/clientes";
         url.search = "";

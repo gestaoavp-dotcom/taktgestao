@@ -47,7 +47,9 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
     // Recorded only after Supabase accepted it, so a failed change never
     // counts as done and lets someone past with the temporary password.
     await supabase.rpc("mark_password_changed");
-    router.push("/");
+    // First access carries on to finishing the registration; the page itself
+    // sends anyone who isn't a client straight on to the start.
+    router.push(required ? "/boas-vindas" : "/");
     router.refresh();
   }
 

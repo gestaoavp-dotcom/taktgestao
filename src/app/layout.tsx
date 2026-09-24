@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito_Sans } from "next/font/google";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 const nunitoSans = Nunito_Sans({
@@ -10,7 +11,7 @@ const nunitoSans = Nunito_Sans({
 
 export const metadata: Metadata = {
   // Link previews (WhatsApp, Instagram) need the share image as a full URL.
-  metadataBase: new URL("https://taktgestao.vercel.app"),
+  metadataBase: new URL(SITE_URL),
   title: "TAKT Assessoria",
   description: "Gestão de tarefas, finanças e clientes para assessoria de marketplaces.",
   openGraph: {

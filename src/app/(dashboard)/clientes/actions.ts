@@ -2,8 +2,21 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { emailConfigured, sendEmail } from "@/lib/email";
+import { generateTemporaryPassword } from "@/lib/temporary-password";
+import { SITE_URL } from "@/lib/site";
 
-export type CreateClientState = { ok: true; id: string } | { error: string } | null;
+export type CreateClientState =
+  | {
+      ok: true;
+      id: string;
+      email: string;
+      emailSent: boolean;
+      /** Only when the e-mail could not go out, so the admin can pass it on. */
+      message?: string;
+    }
+  | { error: string }
+  | null;
 
 function toNumber(value: FormDataEntryValue | null) {
   if (!value) return null;
@@ -11,68 +24,156 @@ function toNumber(value: FormDataEntryValue | null) {
   return Number.isFinite(n) ? n : null;
 }
 
+function welcomeMessage(name: string, email: string, password: string) {
+  return [
+    `Olá, ${name}!`,
+    "",
+    "Seu acesso à área do cliente da TAKT Assessoria está pronto.",
+    "",
+    `Acesse: ${SITE_URL}/login`,
+    `E-mail: ${email}`,
+    `Senha temporária: ${password}`,
+    "",
+    "No primeiro acesso você cria a sua própria senha e confere os dados para finalizar o cadastro.",
+  ].join("\n");
+}
+
+/**
+ * The admin's pré-cadastro: the client, its CNPJ principal and stores, and the
+ * client's own login, in one step.
+ *
+ * Creating a login needs the service-role key, so this is for a dono only —
+ * checked here in the database, since a server action can be called by anyone
+ * who knows it exists. Each step undoes the ones before it on failure, so no
+ * client is left without its login and no login without its client.
+ */
 export async function createClientRecord(
   _prevState: CreateClientState,
   formData: FormData,
 ): Promise<CreateClientState> {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Faça login novamente." };
 
-  const name = formData.get("name") as string;
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .maybeSingle<{ role: string }>();
+  if (me?.role !== "dono") return { error: "Só o admin faz o pré-cadastro de clientes." };
+
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const contact_phone = (formData.get("contact_phone") as string) || null;
-  const cnpj = ((formData.get("cnpj") as string) || "").trim();
-  const label = ((formData.get("label") as string) || "").trim() || null;
+  const cnpj = String(formData.get("cnpj") ?? "").trim();
+  const label = String(formData.get("label") ?? "").trim() || null;
   const marketplaces = formData.getAll("marketplaces") as string[];
   const monthly_fee = toNumber(formData.get("monthly_fee"));
   const payment_day = toNumber(formData.get("payment_day"));
 
-  const { data, error } = await supabase
+  if (!name) return { error: "Informe o nome do cliente." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Informe um e-mail válido." };
+  if (cnpj.replace(/\D/g, "").length !== 14) return { error: "Informe o CNPJ completo (14 dígitos)." };
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const password = generateTemporaryPassword();
+
+  // The login first: it is the step most likely to be refused (an e-mail that
+  // already has one), and nothing else has been written yet when it is.
+  const { data: created, error: userError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (userError || !created.user) {
+    if (userError && /already/i.test(userError.message)) {
+      return { error: "Esse e-mail já tem um login. Use outro e-mail principal." };
+    }
+    return { error: userError?.message ?? "Não foi possível criar o login." };
+  }
+  const userId = created.user.id;
+  const undoUser = () => admin.auth.admin.deleteUser(userId);
+
+  const { data: client, error: clientError } = await supabase
     .from("clients")
+    .insert({ name, contact_email: email, contact_phone, created_by: auth.user.id })
+    .select("id")
+    .single<{ id: string }>();
+  if (clientError) {
+    await undoUser();
+    return { error: clientError.message };
+  }
+  const undoClient = () => supabase.from("clients").delete().eq("id", client.id);
+
+  const { data: cnpjRow, error: cnpjError } = await supabase
+    .from("client_cnpjs")
     .insert({
-      name,
-      contact_phone,
-      created_by: auth.user?.id,
+      client_id: client.id,
+      cnpj,
+      label,
+      monthly_fee,
+      payment_day,
+      created_by: auth.user.id,
     })
     .select("id")
     .single<{ id: string }>();
-
-  if (error) {
-    return { error: error.message };
+  if (cnpjError) {
+    await undoClient();
+    await undoUser();
+    return { error: cnpjError.message };
   }
 
-  // The CNPJ and its lojas are the manager's own pré-cadastro, done right here
-  // at creation. Requesting the same info from the client is a separate,
-  // later feature — this is only the internal side of it.
-  if (cnpj) {
-    const { data: cnpjRow } = await supabase
-      .from("client_cnpjs")
-      .insert({
-        client_id: data.id,
-        cnpj,
-        label,
-        monthly_fee,
-        payment_day,
-        created_by: auth.user?.id,
-      })
-      .select("id")
-      .single<{ id: string }>();
+  if (marketplaces.length > 0) {
+    await supabase.from("client_accounts").insert(
+      marketplaces.map((marketplace) => ({
+        client_id: client.id,
+        cnpj_id: cnpjRow.id,
+        marketplace,
+        store_name: label || name,
+        created_by: auth.user!.id,
+      })),
+    );
+  }
 
-    if (cnpjRow && marketplaces.length > 0) {
-      await supabase.from("client_accounts").insert(
-        marketplaces.map((marketplace) => ({
-          client_id: data.id,
-          cnpj_id: cnpjRow.id,
-          marketplace,
-          store_name: label || name,
-          created_by: auth.user?.id,
-        })),
-      );
-    }
+  // password_changed_at stays empty: the temporary password opens the door
+  // once, and the first access is spent choosing a new one.
+  const { error: profileError } = await admin.from("profiles").upsert({
+    id: userId,
+    email,
+    name,
+    role: "cliente",
+    client_id: client.id,
+    password_changed_at: null,
+  });
+  if (profileError) {
+    await undoClient();
+    await undoUser();
+    return { error: profileError.message };
   }
 
   revalidatePath("/clientes");
   revalidatePath("/financas");
-  return { ok: true, id: data.id };
+  revalidatePath("/configuracoes");
+
+  const message = welcomeMessage(name, email, password);
+
+  if (emailConfigured()) {
+    try {
+      await sendEmail({ to: email, subject: "Seu acesso à TAKT Assessoria", text: message });
+      return { ok: true, id: client.id, email, emailSent: true };
+    } catch {
+      // Everything else is in place; the admin can still hand the message over.
+    }
+  }
+
+  return { ok: true, id: client.id, email, emailSent: false, message };
 }
 
 export async function deleteClientRecord(formData: FormData) {
