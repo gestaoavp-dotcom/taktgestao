@@ -152,3 +152,72 @@ export async function inviteUser(
   revalidatePath("/configuracoes");
   return { ok: true };
 }
+
+/**
+ * Creates a login with a temporary password, for when email cannot be relied
+ * on — which is most of the time before a project has its own SMTP.
+ *
+ * The password is chosen by the owner, handed to Supabase, and kept nowhere
+ * here: it is not stored, not logged, and not returned. It works exactly once,
+ * because the profile is left with no password_changed_at and the middleware
+ * sends such a login to the change-password page and nowhere else.
+ */
+export async function createUserWithPassword(
+  _prevState: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+  const role = formData.get("role") as ProfileRole;
+  const clientId = (formData.get("client_id") as string) || null;
+  const name = (formData.get("name") as string)?.trim() || null;
+
+  if (!email.includes("@")) return { error: "Informe um e-mail válido." };
+  if (password.length < 8) return { error: "A senha temporária precisa ter ao menos 8 caracteres." };
+  if (!ROLES.includes(role)) return { error: "Nível inválido." };
+  if (role === "cliente" && !clientId) {
+    return { error: "Um acesso de cliente precisa estar ligado a um cliente." };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  // Confirmed on creation, because no confirmation mail is going to arrive.
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+
+  if (error) {
+    if (/already/i.test(error.message)) {
+      return { error: "Esse e-mail já tem login. Ajuste o nível dele na lista acima." };
+    }
+    return { error: error.message };
+  }
+  if (!data.user) return { error: "A criação não retornou um usuário." };
+
+  // password_changed_at stays null on purpose: that is what makes the
+  // temporary password good for one entry and no more.
+  const { error: profileError } = await admin.from("profiles").upsert({
+    id: data.user.id,
+    email,
+    name: name ?? email.split("@")[0],
+    role,
+    client_id: role === "cliente" ? clientId : null,
+    password_changed_at: null,
+  });
+
+  if (profileError) return { error: profileError.message };
+
+  revalidatePath("/configuracoes");
+  return { ok: true };
+}

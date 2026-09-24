@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { Check, Crown, Mail, ShieldCheck, User } from "lucide-react";
 import type { Client, Profile, ProfileRole } from "@/lib/types";
 import {
+  createUserWithPassword,
   inviteUser,
   updateProfileAccess,
   updateProfileName,
@@ -186,7 +187,12 @@ export function AccessSettings({
 
 function InviteForm({ clients }: { clients: Client[] }) {
   const [role, setRole] = useState<ProfileRole>("operador");
-  const [state, formAction, sending] = useActionState(inviteUser, null);
+  // Two ways in, because one of them needs email to work and often it does not.
+  const [mode, setMode] = useState<"senha" | "convite">("senha");
+  const [state, formAction, sending] = useActionState(
+    mode === "senha" ? createUserWithPassword : inviteUser,
+    null,
+  );
 
   return (
     <section className="rounded-lg bg-white p-5 shadow-sm">
@@ -194,10 +200,38 @@ function InviteForm({ clients }: { clients: Client[] }) {
         <Mail className="h-4 w-4" />
         Convidar alguém
       </h2>
+      <div className="mb-3 flex gap-1 rounded-lg bg-brand-gray p-1">
+        {([
+          { value: "senha", label: "Com senha temporária" },
+          { value: "convite", label: "Convite por e-mail" },
+        ] as const).map((m) => (
+          <button
+            key={m.value}
+            type="button"
+            onClick={() => setMode(m.value)}
+            className={`rounded px-3 py-1.5 text-sm font-semibold transition-colors ${
+              mode === m.value ? "bg-white text-navy shadow-sm" : "text-[#5B647E] hover:text-navy"
+            }`}
+          >
+            {m.label}
+          </button>
+        ))}
+      </div>
+
       <p className="mb-4 max-w-2xl text-xs text-[#5B647E]">
-        O Supabase manda o e-mail e a pessoa escolhe a própria senha pelo link — nós nunca vemos
-        nem definimos senha de ninguém. O nível e o cliente já ficam valendo desde o primeiro
-        acesso.
+        {mode === "senha" ? (
+          <>
+            Você define uma senha temporária e passa para a pessoa. Ela vale{" "}
+            <strong className="text-navy">uma entrada só</strong>: no primeiro acesso o sistema
+            exige que ela crie a própria, e a partir daí ninguém aqui sabe qual é. A temporária não
+            fica guardada em lugar nenhum.
+          </>
+        ) : (
+          <>
+            O Supabase manda o e-mail e a pessoa escolhe a própria senha pelo link. Depende do
+            envio de e-mail estar configurado — se não chegar, use a senha temporária.
+          </>
+        )}
       </p>
 
       <form action={formAction} className="flex flex-wrap items-end gap-3">
@@ -214,12 +248,27 @@ function InviteForm({ clients }: { clients: Client[] }) {
           />
         </label>
 
-        <label className="flex min-w-[160px] flex-col gap-1.5">
+        <label className="flex min-w-[140px] flex-col gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
             Nome
           </span>
           <input name="name" placeholder="Opcional" className={INPUT_CLASS + " w-full"} />
         </label>
+
+        {mode === "senha" && (
+          <label className="flex min-w-[180px] flex-col gap-1.5">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+              Senha temporária
+            </span>
+            <input
+              name="password"
+              autoComplete="off"
+              required
+              placeholder="Pelo menos 8 caracteres"
+              className={INPUT_CLASS + " w-full"}
+            />
+          </label>
+        )}
 
         <label className="flex flex-col gap-1.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
@@ -260,7 +309,11 @@ function InviteForm({ clients }: { clients: Client[] }) {
           disabled={sending}
           className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
         >
-          {sending ? "Enviando..." : "Enviar convite"}
+          {sending
+            ? "Criando..."
+            : mode === "senha"
+              ? "Criar acesso"
+              : "Enviar convite"}
         </button>
       </form>
 
@@ -273,7 +326,9 @@ function InviteForm({ clients }: { clients: Client[] }) {
       )}
       {state && "ok" in state && (
         <p className="mt-3 rounded bg-green-50 px-3 py-2 text-xs text-green-800">
-          Convite enviado. A pessoa aparece na lista assim que aceitar.
+          {mode === "senha"
+            ? "Acesso criado. Passe o e-mail e a senha temporária para a pessoa — a mensagem pronta está na aba Acessos do cliente."
+            : "Convite enviado. A pessoa aparece na lista assim que aceitar."}
         </p>
       )}
     </section>
