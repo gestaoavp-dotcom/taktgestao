@@ -275,3 +275,38 @@ export async function resetTemporaryPassword(
   revalidatePath("/configuracoes");
   return { ok: true };
 }
+
+/**
+ * Sends a test message to the owner's own address, so the sending account can
+ * be checked from here instead of by creating a client. Gmail's refusals
+ * ("Invalid login", "Application-specific password required") are passed on
+ * as they come: they say exactly what to fix.
+ */
+export async function sendTestEmail(
+  _prevState: SettingsState,
+  _formData: FormData,
+): Promise<SettingsState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const { emailConfigured, sendEmail } = await import("@/lib/email");
+  if (!emailConfigured()) {
+    return { error: "O envio ainda não está configurado: faltam SMTP_USER e SMTP_PASS na Vercel." };
+  }
+
+  const { data: auth } = await guard.supabase.auth.getUser();
+  const to = auth.user?.email;
+  if (!to) return { error: "Seu login não tem e-mail para receber o teste." };
+
+  try {
+    await sendEmail({
+      to,
+      subject: "Teste de envio — TAKT Assessoria",
+      text: "Se você recebeu esta mensagem, o envio de e-mails do sistema está funcionando.",
+    });
+  } catch (e) {
+    return { error: `O envio falhou: ${(e as Error).message}` };
+  }
+
+  return { ok: true };
+}
