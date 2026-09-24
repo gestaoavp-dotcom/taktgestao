@@ -32,13 +32,13 @@ export default function InicioPage() {
             href="/calculadora"
             className="flex h-11 items-center justify-center rounded-lg bg-blue text-sm font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
           >
-            Calculadora TAKT
+            Nossa Calculadora
           </Link>
           <Link
             href="/login"
             className="flex h-11 items-center justify-center rounded-lg border-2 border-blue text-sm font-semibold text-blue transition-colors hover:bg-blue/5"
           >
-            Entrar
+            Área do cliente
           </Link>
         </div>
       </div>

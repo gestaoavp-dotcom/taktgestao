@@ -6,7 +6,7 @@ import { Logo } from "@/components/logo";
 import { LEAD_COOKIE } from "@/lib/lead-access";
 
 export const metadata: Metadata = {
-  title: "Calculadora TAKT",
+  title: "Nossa Calculadora | TAKT Assessoria",
 };
 
 export default async function CalculadoraPage() {
@@ -19,7 +19,7 @@ export default async function CalculadoraPage() {
         <div className="mb-6">
           <Logo height={36} />
         </div>
-        <h1 className="text-xl font-bold text-navy">Calculadora TAKT</h1>
+        <h1 className="text-xl font-bold text-navy">Nossa Calculadora</h1>
       </div>
     </div>
   );

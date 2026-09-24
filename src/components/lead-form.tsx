@@ -30,7 +30,7 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
             href="/calculadora"
             className="mt-6 flex h-11 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
           >
-            Acessar a Calculadora TAKT
+            Acessar Nossa Calculadora
           </Link>
         )}
       </div>
@@ -41,7 +41,7 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
     <form action={formAction} className="flex flex-col gap-4">
       {toCalculator && (
         <p className="rounded-lg bg-blue/10 px-3 py-2.5 text-sm font-semibold text-blue">
-          Preencha seus dados para liberar a Calculadora TAKT.
+          Preencha seus dados para liberar Nossa Calculadora.
         </p>
       )}
 
