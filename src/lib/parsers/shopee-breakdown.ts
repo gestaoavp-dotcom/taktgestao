@@ -21,7 +21,6 @@ const SELLER_DISCOUNTS: { key: string; label?: string }[] = [
   { key: "Cupom do vendedor" },
   { key: "Coin Cashback Voucher Amount Sponsored by Seller", label: "Cashback em moedas (vendedor)" },
   { key: "Desconto da Leve Mais por Menos do vendedor" },
-  { key: "Compensar Moedas Shopee" },
   { key: "Ajuste por pagamento via PIX" },
   { key: "Ajuste por participação em ação comercial" },
   { key: "Total descontado Cartão de Crédito" },
@@ -38,6 +37,13 @@ const FEES: { key: string; label?: string }[] = [
 
 /** Shown for reference only — Shopee-funded or duplicated figures. */
 const REFERENCE: { key: string; label?: string; note?: string }[] = [
+  {
+    key: "Compensar Moedas Shopee",
+    // It is a coin balance, not money taken from this sale: R$ 138,00 of it
+    // appeared against a R$ 15,90 product. Counted as a seller discount it put
+    // 61 orders below zero and understated Shopee's net by R$ 6.958,00.
+    note: "saldo de moedas, não sai desta venda",
+  },
   { key: "Incentivo Shopee para ação comercial", note: "bancado pela Shopee" },
   { key: "Cupom", label: "Cupom Shopee", note: "bancado pela Shopee" },
   { key: "Incentivo de cupom", note: "bancado pela Shopee" },
