@@ -148,15 +148,3 @@ create policy "team_read_credential_reveals"
 create policy "team_write_credential_reveals"
   on public.credential_reveals for insert to authenticated
   with check (public.is_team());
-
--- ------------------------------------------------------------------ files --
--- Storage carries the same rule: uploads are the team's, a client reads its own.
-drop policy if exists "Authenticated users can read client files" on storage.objects;
-drop policy if exists "Authenticated users can upload client files" on storage.objects;
-drop policy if exists "Authenticated users can delete client files" on storage.objects;
-drop policy if exists "team_manages_client_files" on storage.objects;
-
-create policy "team_manages_client_files"
-  on storage.objects for all to authenticated
-  using (bucket_id = 'client-files' and public.is_team())
-  with check (bucket_id = 'client-files' and public.is_team());
