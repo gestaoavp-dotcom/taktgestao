@@ -5,7 +5,8 @@ export async function updateSession(request: NextRequest) {
   // The public pages are for people with no login at all.
   if (
     request.nextUrl.pathname.startsWith("/contato") ||
-    request.nextUrl.pathname.startsWith("/inicio")
+    request.nextUrl.pathname.startsWith("/inicio") ||
+    request.nextUrl.pathname.startsWith("/calculadora")
   ) {
     return NextResponse.next({ request });
   }

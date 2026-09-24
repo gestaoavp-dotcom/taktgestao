@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { MARKETPLACES } from "@/lib/marketplaces";
 import { formatPhone } from "@/lib/masks";
@@ -11,7 +12,7 @@ const INPUT_CLASS =
 
 const LABEL_CLASS = "text-sm font-semibold text-navy";
 
-export function LeadForm() {
+export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
   const [phone, setPhone] = useState("");
   const [marketplaces, setMarketplaces] = useState<string[]>([]);
   const [state, formAction, pending] = useActionState(submitLead, null);
@@ -24,12 +25,26 @@ export function LeadForm() {
         <p className="mt-2 text-sm text-[#5B647E]">
           Em breve alguém da nossa equipe fala com você pelo WhatsApp.
         </p>
+        {toCalculator && (
+          <Link
+            href="/calculadora"
+            className="mt-6 flex h-11 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+          >
+            Acessar a Calculadora TAKT
+          </Link>
+        )}
       </div>
     );
   }
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      {toCalculator && (
+        <p className="rounded-lg bg-blue/10 px-3 py-2.5 text-sm font-semibold text-blue">
+          Preencha seus dados para liberar a Calculadora TAKT.
+        </p>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <label htmlFor="name" className={LABEL_CLASS}>
           Nome
