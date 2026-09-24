@@ -8,7 +8,9 @@ import type { ParsedAmazonProduct } from "@/lib/parsers/amazon-products";
 import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
 import type { ParsedMercadoLivreAd } from "@/lib/parsers/mercado-livre-ads";
 import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
-import type { SalesReportKind } from "@/lib/types";
+import type { SalesOrder, SalesReportKind } from "@/lib/types";
+import type { OrderBreakdown } from "@/lib/parsers/breakdown";
+import { buildOrderBreakdown } from "@/lib/parsers/order-breakdown";
 import { knownCosts, knownTax } from "@/lib/product-costs";
 
 /**
@@ -479,4 +481,31 @@ export async function updateProductCosts(
 
   revalidatePath(`/clientes/${clientId}/vendas/produtos`);
   return { ok: true };
+}
+
+/**
+ * The full breakdown of one order, fetched when its row is opened.
+ *
+ * The raw report row is 66 columns wide and only one order's is ever read at a
+ * time, so the list ships without it: that is three quarters of what the
+ * Pedidos page used to weigh. Computed here rather than sent as raw, so the
+ * columns still never cross the wire.
+ */
+export async function getOrderBreakdown(
+  orderId: string,
+  share: number,
+): Promise<OrderBreakdown | { error: string }> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("sales_orders")
+    .select("*")
+    .eq("id", orderId)
+    .maybeSingle<SalesOrder>();
+
+  if (error) return { error: error.message };
+  if (!data) return { error: "Pedido não encontrado." };
+
+  const breakdown = buildOrderBreakdown(data, share);
+  return breakdown ?? { error: "Esse pedido não tem o detalhamento da planilha guardado." };
 }

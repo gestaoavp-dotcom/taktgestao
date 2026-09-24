@@ -1,19 +1,20 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesOrder } from "@/lib/types";
 import type { BreakdownLine } from "@/lib/parsers/breakdown";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { formatCurrency } from "@/lib/sales-summary";
+import type { OrderBreakdown as Breakdown } from "@/lib/parsers/breakdown";
+import { isExtraLine, isOrderVoided, orderShares } from "@/lib/parsers/order-breakdown";
 import {
-  buildOrderBreakdown,
-  isExtraLine,
-  isOrderVoided,
-  orderNet,
-  orderShares,
-} from "@/lib/parsers/order-breakdown";
-import { updateOrderCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
+  getOrderBreakdown,
+  updateOrderCosts,
+} from "@/app/(dashboard)/clientes/[id]/vendas/actions";
+
+/** A row as the page ships it: the raw report row stays on the server. */
+type SlimOrder = SalesOrder & { hasRaw: boolean };
 
 const MONTHS = [
   "Janeiro",
@@ -48,17 +49,37 @@ const STATUS_STYLE: Record<string, string> = {
   Cancelado: "bg-red-50 text-red-700",
 };
 
-function OrderBreakdown({ order, share }: { order: SalesOrder; share: number }) {
+function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
   const [showOther, setShowOther] = useState(false);
-  const breakdown = buildOrderBreakdown(order, share);
+  const [breakdown, setBreakdown] = useState<Breakdown | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!breakdown) {
+  // Fetched when the row opens, not carried by every row that never will.
+  useEffect(() => {
+    if (!order.hasRaw) return;
+    let live = true;
+    getOrderBreakdown(order.id, share).then((result) => {
+      if (!live) return;
+      if ("error" in result) setError(result.error);
+      else setBreakdown(result);
+    });
+    return () => {
+      live = false;
+    };
+  }, [order.id, order.hasRaw, share]);
+
+  if (!order.hasRaw) {
     return (
       <p className="px-4 py-3 text-xs text-[#94A0BD]">
         Esse pedido não tem o detalhamento da planilha guardado (foi importado antes dessa
         funcionalidade existir).
       </p>
     );
+  }
+
+  if (error) return <p className="px-4 py-3 text-xs text-red-700">{error}</p>;
+  if (!breakdown) {
+    return <p className="px-4 py-3 text-xs text-[#94A0BD]">Carregando o detalhamento…</p>;
   }
 
   const { sections, net, voided, otherFields } = breakdown;
@@ -160,6 +181,7 @@ function OrderBreakdown({ order, share }: { order: SalesOrder; share: number }) 
 function OrderRow({
   clientId,
   order,
+  nets,
   cost,
   onCostChange,
   tax,
@@ -167,7 +189,8 @@ function OrderRow({
   share,
 }: {
   clientId: string;
-  order: SalesOrder;
+  order: SlimOrder;
+  nets: Record<string, number>;
   cost: string;
   onCostChange: (value: string) => void;
   tax: string;
@@ -178,7 +201,7 @@ function OrderRow({
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
   const [, formAction] = useActionState(updateOrderCosts, null);
 
-  const net = orderNet(order, share);
+  const net = nets[order.id] ?? order.net_settlement;
   const costNum = parseFloat(cost.replace(",", ".")) || 0;
   const extraNum = parseFloat(extra.replace(",", ".")) || 0;
   const taxNum = parseFloat(tax.replace(",", ".")) || 0;
@@ -302,10 +325,12 @@ function OrderRow({
 export function SalesOrdersTable({
   clientId,
   orders,
+  nets,
   clientMarketplaces,
 }: {
   clientId: string;
-  orders: SalesOrder[];
+  orders: SlimOrder[];
+  nets: Record<string, number>;
   clientMarketplaces: string[];
 }) {
   const [marketplace, setMarketplace] = useState<string>("all");
@@ -370,7 +395,7 @@ export function SalesOrdersTable({
       // A cancelled order neither sold nor cost anything.
       if (isOrderVoided(o)) return acc;
 
-      const net = orderNet(o, shares.get(o.id) ?? 1);
+      const net = nets[o.id] ?? o.net_settlement;
       acc.sold += o.subtotal;
       acc.net += net;
       acc.cost += parseFloat(costOf(o).replace(",", ".")) || 0;
@@ -506,6 +531,7 @@ export function SalesOrdersTable({
                 key={order.id}
                 clientId={clientId}
                 order={order}
+                nets={nets}
                 cost={costOf(order)}
                 onCostChange={(value) => setCostOf(order, value)}
                 tax={tax}
