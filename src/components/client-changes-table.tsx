@@ -6,8 +6,6 @@ import type { ClientAccount, ClientChange } from "@/lib/types";
 import type { ChangeChannelOption } from "@/lib/client-changes";
 import { addChange, deleteChange } from "@/app/(dashboard)/clientes/[id]/actions";
 import { DateField } from "@/components/date-field";
-import { DictationPanel } from "@/components/dictation-panel";
-import type { DictatedChange } from "@/lib/dictation";
 import {
   buildChannelOptions,
   CHANGE_CATEGORIES,
@@ -49,10 +47,6 @@ export function ClientChangesTable({
   const [activeAccount, setActiveAccount] = useState<string>(ALL_TAB);
   const [workspace, setWorkspace] = useState<{ selectedId: string } | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  // Dictation fills the form by remounting it with new defaults, so the fields
-  // stay uncontrolled and the person can still edit everything by hand.
-  const [draft, setDraft] = useState<DictatedChange>({});
-  const [draftVersion, setDraftVersion] = useState(0);
   const [formChannel, setFormChannel] = useState<ChangeChannelOption | null>(null);
 
   const [state, formAction, pending] = useActionState(
@@ -60,8 +54,6 @@ export function ClientChangesTable({
       const result = await addChange(prevState, formData);
       if (result && "ok" in result) {
         formRef.current?.reset();
-        setDraft({});
-        setDraftVersion((v) => v + 1);
       }
       return result;
     },
@@ -204,18 +196,8 @@ export function ClientChangesTable({
           </p>
         </div>
 
-        <DictationPanel
-          channels={channelOptions}
-          onParsed={(parsed) => {
-            setDraft(parsed);
-            setDraftVersion((v) => v + 1);
-            if (parsed.channelKey) {
-              setFormChannel(channelOptions.find((o) => o.key === parsed.channelKey) ?? null);
-            }
-          }}
-        />
 
-        <form key={draftVersion} ref={formRef} action={formAction} className="space-y-2">
+        <form ref={formRef} action={formAction} className="space-y-2">
           <input type="hidden" name="client_id" value={clientId} />
           <input type="hidden" name="marketplace" value={formChannel?.marketplace ?? ""} />
           <input type="hidden" name="account_id" value={formChannel?.accountId ?? ""} />
@@ -223,7 +205,7 @@ export function ClientChangesTable({
           <div className="grid grid-cols-4 gap-2">
             <DateField
               name="changed_on"
-              defaultValue={draft.changed_on ?? new Date().toISOString().slice(0, 10)}
+              defaultValue={new Date().toISOString().slice(0, 10)}
               className={`flex items-center justify-between ${INPUT_CLASS}`}
             />
             <select
@@ -242,7 +224,7 @@ export function ClientChangesTable({
                 </option>
               ))}
             </select>
-            <select name="category" defaultValue={draft.category ?? ""} className={INPUT_CLASS}>
+            <select name="category" defaultValue={""} className={INPUT_CLASS}>
               <option value="" disabled>
                 Categoria
               </option>
@@ -252,7 +234,7 @@ export function ClientChangesTable({
                 </option>
               ))}
             </select>
-            <select name="status" defaultValue={draft.status ?? "aberta"} className={INPUT_CLASS}>
+            <select name="status" defaultValue={"aberta"} className={INPUT_CLASS}>
               {CHANGE_STATUSES.map((st) => (
                 <option key={st.value} value={st.value}>
                   {st.label}
@@ -264,7 +246,7 @@ export function ClientChangesTable({
           <input
             name="description"
             required
-            defaultValue={draft.description ?? ""}
+            defaultValue={""}
             placeholder="Ação feita — o que foi feito, de forma objetiva"
             className={INPUT_CLASS}
           />
@@ -272,19 +254,19 @@ export function ClientChangesTable({
           <div className="grid grid-cols-3 gap-2">
             <input
               name="reason"
-              defaultValue={draft.reason ?? ""}
+              defaultValue={""}
               placeholder="Motivo / Gatilho"
               className={INPUT_CLASS}
             />
             <input
               name="goal"
-              defaultValue={draft.goal ?? ""}
+              defaultValue={""}
               placeholder="Resultado esperado / Métrica"
               className={INPUT_CLASS}
             />
             <input
               name="owner"
-              defaultValue={draft.owner ?? ""}
+              defaultValue={""}
               placeholder="Responsável(is)"
               className={INPUT_CLASS}
             />
@@ -298,7 +280,7 @@ export function ClientChangesTable({
             />
             <input
               name="evidence"
-              defaultValue={draft.evidence ?? ""}
+              defaultValue={""}
               placeholder="Observação / Evidência"
               className={`${INPUT_CLASS} col-span-2`}
             />
