@@ -8,7 +8,7 @@
 // be bundled and shipped to the browser. Everything here runs inside server
 // actions, and the plaintext exists only for the length of one request.
 
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 const VERSION = "v1";
 
@@ -105,4 +105,22 @@ export function keyStatus(): { ok: true } | { ok: false; reason: string } {
   }
 
   return { ok: true };
+}
+
+/**
+ * A short fingerprint of the key this deploy is using.
+ *
+ * Eight hex characters of its SHA-256: enough to tell one key from another at
+ * a glance, useless for reconstructing it. Exists because a rotation can only
+ * be confirmed by comparing the key in two places, and the key itself must not
+ * travel between them.
+ */
+export function keyFingerprint(): string | null {
+  const raw = process.env.CREDENTIALS_KEY;
+  if (!raw) return null;
+
+  const bytes = Buffer.from(normaliseKey(raw), "base64");
+  if (bytes.length !== 32) return null;
+
+  return createHash("sha256").update(bytes).digest("hex").slice(0, 8);
 }

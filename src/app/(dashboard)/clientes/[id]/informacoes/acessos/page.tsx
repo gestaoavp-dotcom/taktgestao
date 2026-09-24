@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ClientCredential } from "@/lib/types";
 import { InformacoesSubTabs } from "@/components/informacoes-sub-tabs";
 import { ClientCredentialsCard } from "@/components/client-credentials-card";
-import { keyStatus } from "@/lib/credentials-crypto";
+import { keyFingerprint, keyStatus } from "@/lib/credentials-crypto";
 
 export default async function ClienteAcessosPage({
   params,
@@ -26,10 +26,18 @@ export default async function ClienteAcessosPage({
   // Checked here, in the running server, so a misconfigured deploy announces
   // itself on arrival rather than when someone tries to save a password.
   const key = keyStatus();
+  const fingerprint = keyFingerprint();
 
   return (
     <div>
       <InformacoesSubTabs clientId={id} />
+
+      {key.ok && fingerprint && (
+        <p className="mb-5 text-[11px] text-[#94A0BD]">
+          Chave de criptografia deste deploy:{" "}
+          <span className="font-mono font-semibold text-[#5B647E]">{fingerprint}</span>
+        </p>
+      )}
 
       {!key.ok && (
         <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
