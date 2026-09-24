@@ -1,5 +1,4 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isBilledOrder } from "@/lib/parsers/order-breakdown";
 import type { DateRange } from "@/lib/sales-summary";
 
 export type OrdersSummary = {
@@ -13,21 +12,18 @@ export type OrdersSummary = {
   platformRows: [string, { revenue: number; orders: number }][];
 };
 
+type DayRow = {
+  day: string;
+  marketplace: string;
+  revenue: number;
+  orders: number;
+};
+
 type ProductRow = {
   marketplace: string;
   report_month: string;
   net_sales: number;
   units_net: number;
-};
-
-type OrderRow = {
-  id: string;
-  order_id: string;
-  created_on: string | null;
-  marketplace: string;
-  subtotal: number;
-  total_value: number;
-  net_settlement: number;
 };
 
 function toISO(d: Date) {
@@ -53,16 +49,13 @@ function monthWithin(reportMonth: string, start: string, end: string) {
   return reportMonth >= start && last <= end;
 }
 
-/** PostgREST stops at 1000 rows, and one busy month already exceeds that. */
-const PAGE = 1000;
-
-function revenueOf(rows: OrderRow[]) {
-  return rows.reduce((sum, r) => sum + Number(r.subtotal), 0);
+function revenueOf(rows: DayRow[]) {
+  return rows.reduce((sum, r) => sum + Number(r.revenue), 0);
 }
 
-/** An order spanning several product lines is still one order. */
-function countOrders(rows: OrderRow[]) {
-  return new Set(rows.map((r) => r.order_id)).size;
+/** Already counted per day in the database, where an order line is one order. */
+function countOrders(rows: DayRow[]) {
+  return rows.reduce((sum, r) => sum + Number(r.orders), 0);
 }
 
 /**
@@ -84,24 +77,19 @@ export async function getOrdersSummary(
   const prevStart = new Date(periodStart);
   prevStart.setDate(prevStart.getDate() - days);
 
-  const rows: OrderRow[] = [];
-  for (let from = 0; ; from += PAGE) {
-    let query = supabase
-      .from("sales_orders")
-      .select("id, order_id, created_on, marketplace, subtotal, total_value, net_settlement")
-      .gte("created_on", toISO(prevStart))
-      .lte("created_on", range.end)
-      .order("id")
-      .range(from, from + PAGE - 1);
+  // One row per day per marketplace, added up in the database. Fetching the
+  // orders to sum them here meant six sequential requests for a 30-day window,
+  // each waiting on the last.
+  const { data: daily } = await supabase.rpc("orders_summary", {
+    p_start: toISO(prevStart),
+    p_end: range.end,
+    p_client_id: filters.clientId ?? null,
+    p_marketplace: filters.marketplace ?? null,
+  });
 
-    if (filters.clientId) query = query.eq("client_id", filters.clientId);
-    if (filters.marketplace) query = query.eq("marketplace", filters.marketplace);
-
-    const { data } = await query.returns<OrderRow[]>();
-    if (!data?.length) break;
-    rows.push(...data);
-    if (data.length < PAGE) break;
-  }
+  const days_ = (daily ?? []) as DayRow[];
+  const current = days_.filter((d) => d.day >= range.start);
+  const previous = days_.filter((d) => d.day < range.start);
 
   // Amazon settles by product, so its revenue lives nowhere in sales_orders.
   // Left out, "faturamento" silently omits a whole marketplace.
@@ -129,10 +117,6 @@ export async function getOrdersSummary(
   // average price divides by, so the ticket comes out right.
   const productUnits = (rows: ProductRow[]) => rows.reduce((s, p) => s + p.units_net, 0);
 
-  const billed = rows.filter((r) => isBilledOrder(r) && r.created_on);
-  const current = billed.filter((r) => r.created_on! >= range.start);
-  const previous = billed.filter((r) => r.created_on! < range.start);
-
   const revenue = revenueOf(current) + productRevenue(currentProducts);
   const orders = countOrders(current) + productUnits(currentProducts);
   const previousRevenue = revenueOf(previous) + productRevenue(previousProducts);
@@ -140,7 +124,7 @@ export async function getOrdersSummary(
 
   const byDate = new Map<string, number>();
   for (const r of current) {
-    byDate.set(r.created_on!, (byDate.get(r.created_on!) ?? 0) + Number(r.subtotal));
+    byDate.set(r.day, (byDate.get(r.day) ?? 0) + Number(r.revenue));
   }
 
   const chartData = Array.from({ length: days }, (_, i) => {
@@ -150,16 +134,16 @@ export async function getOrdersSummary(
     return { date: iso, value: byDate.get(iso) ?? 0 };
   });
 
-  const byPlatform = new Map<string, { revenue: number; orderIds: Set<string> }>();
+  const byPlatform = new Map<string, { revenue: number; orders: number }>();
   for (const r of current) {
-    const entry = byPlatform.get(r.marketplace) ?? { revenue: 0, orderIds: new Set<string>() };
-    entry.revenue += Number(r.subtotal);
-    entry.orderIds.add(r.order_id);
+    const entry = byPlatform.get(r.marketplace) ?? { revenue: 0, orders: 0 };
+    entry.revenue += Number(r.revenue);
+    entry.orders += Number(r.orders);
     byPlatform.set(r.marketplace, entry);
   }
 
   for (const p of currentProducts) {
-    const entry = byPlatform.get(p.marketplace) ?? { revenue: 0, orderIds: new Set<string>() };
+    const entry = byPlatform.get(p.marketplace) ?? { revenue: 0, orders: 0 };
     entry.revenue += Number(p.net_sales);
     byPlatform.set(p.marketplace, entry);
   }
@@ -178,7 +162,7 @@ export async function getOrdersSummary(
           platform,
           {
             revenue: v.revenue,
-            orders: v.orderIds.size + (productUnitsByPlatform.get(platform) ?? 0),
+            orders: v.orders + (productUnitsByPlatform.get(platform) ?? 0),
           },
         ] as const,
     )
