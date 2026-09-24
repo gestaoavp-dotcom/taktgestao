@@ -9,11 +9,13 @@ import {
   Wallet,
   TrendingUp,
   Settings,
+  Inbox,
 } from "lucide-react";
 
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/clientes", label: "Clientes", icon: Users, team: true },
+  { href: "/leads", label: "Leads", icon: Inbox, team: true },
   { href: "/tarefas", label: "Tarefas", icon: CheckSquare, team: true },
   { href: "/financas", label: "Finanças", icon: Wallet, team: true },
   { href: "/vendas", label: "Vendas", icon: TrendingUp, team: true },
