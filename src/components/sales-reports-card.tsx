@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Download, FileSpreadsheet, RefreshCw, Trash2, Upload } from "lucide-react";
 import type { ClientAccount, SalesReport, SalesReportKind } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { DateField } from "@/components/date-field";
 import { createClient } from "@/lib/supabase/client";
 import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
 import { parseShopeeAds, stripAdsPreamble } from "@/lib/parsers/shopee-ads";
@@ -540,26 +541,26 @@ export function SalesReportsCard({
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {kind === "pedidos" ? (
           <>
-            <label className="flex items-center gap-1.5 text-sm text-[#5B647E]">
-              De
-              <input
-                type="date"
-                value={from}
+            <span className="text-sm text-[#5B647E]">De</span>
+            <div className="w-36">
+              <DateField
+                key={`de-${from}`}
+                name="periodo_de"
+                defaultValue={from}
                 max={to}
-                onChange={(e) => setFrom(e.target.value)}
-                className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+                onChange={(value) => value && setFrom(value)}
               />
-            </label>
-            <label className="flex items-center gap-1.5 text-sm text-[#5B647E]">
-              até
-              <input
-                type="date"
-                value={to}
+            </div>
+            <span className="text-sm text-[#5B647E]">até</span>
+            <div className="w-36">
+              <DateField
+                key={`ate-${to}`}
+                name="periodo_ate"
+                defaultValue={to}
                 min={from}
-                onChange={(e) => setTo(e.target.value)}
-                className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+                onChange={(value) => value && setTo(value)}
               />
-            </label>
+            </div>
           </>
         ) : (
           <>

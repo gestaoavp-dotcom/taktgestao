@@ -56,6 +56,8 @@ export function DateField({
   placeholder = "dd/mm/aaaa",
   required,
   className,
+  min,
+  max,
   onChange,
 }: {
   name: string;
@@ -63,6 +65,9 @@ export function DateField({
   placeholder?: string;
   required?: boolean;
   className?: string;
+  /** ISO bounds; days outside them are shown but cannot be picked. */
+  min?: string;
+  max?: string;
   onChange?: (value: string) => void;
 }) {
   const [value, setValue] = useState(defaultValue ?? "");
@@ -87,6 +92,8 @@ export function DateField({
 
   const days = buildMonthGrid(viewDate);
   const selected = fromISO(value);
+  const today = toISO(new Date());
+  const outOfRange = (iso: string) => Boolean((min && iso < min) || (max && iso > max));
 
   return (
     <div ref={containerRef} className="relative">
@@ -138,37 +145,46 @@ export function DateField({
             ))}
           </div>
           <div className="grid grid-cols-7 gap-y-1">
-            {days.map((d, i) =>
-              d ? (
+            {days.map((d, i) => {
+              if (!d) return <span key={i} />;
+              const iso = toISO(d);
+              const isSelected = !!selected && iso === toISO(selected);
+              const blocked = outOfRange(iso);
+
+              return (
                 <button
                   key={i}
                   type="button"
+                  disabled={blocked}
                   onClick={() => {
-                    commit(toISO(d));
+                    commit(iso);
                     setOpen(false);
                   }}
                   className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs transition-colors ${
-                    selected && toISO(d) === toISO(selected)
+                    isSelected
                       ? "bg-navy font-semibold text-white"
-                      : "text-navy hover:bg-brand-gray"
+                      : blocked
+                        ? "cursor-not-allowed text-[#cbd3e1]"
+                        : iso === today
+                          ? "font-bold text-blue ring-1 ring-blue/40 hover:bg-brand-gray"
+                          : "text-navy hover:bg-brand-gray"
                   }`}
                 >
                   {d.getDate()}
                 </button>
-              ) : (
-                <span key={i} />
-              ),
-            )}
+              );
+            })}
           </div>
 
           <div className="mt-2 flex gap-2">
             <button
               type="button"
+              disabled={outOfRange(today)}
               onClick={() => {
-                commit(toISO(new Date()));
+                commit(today);
                 setOpen(false);
               }}
-              className="flex-1 rounded-lg border border-navy/10 py-1 text-xs font-semibold text-navy hover:bg-brand-gray"
+              className="flex-1 rounded-lg border border-navy/10 py-1 text-xs font-semibold text-navy hover:bg-brand-gray disabled:cursor-not-allowed disabled:opacity-40"
             >
               Hoje
             </button>

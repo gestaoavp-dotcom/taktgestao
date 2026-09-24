@@ -11,6 +11,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { Client, Profile, Task } from "@/lib/types";
+import { DateField } from "@/components/date-field";
 import { createTask, deleteTask, moveTask } from "@/app/(dashboard)/tarefas/actions";
 
 // Three ways to read the same list, because the questions differ: the board
@@ -274,7 +275,7 @@ export function TasksBoard({
                         <option value="medium">Média</option>
                         <option value="high">Alta</option>
                       </select>
-                      <input type="date" name="due_date" className={INPUT_CLASS} />
+                      <DateField name="due_date" placeholder="Prazo" />
                     </div>
                     <select name="client_id" defaultValue="" className={INPUT_CLASS}>
                       <option value="">Sem cliente</option>
