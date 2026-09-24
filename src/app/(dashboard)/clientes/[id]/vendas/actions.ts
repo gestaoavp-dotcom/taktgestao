@@ -52,6 +52,8 @@ export async function registerSalesReport(input: {
   marketplace: string;
   accountId: string | null;
   reportMonth: string;
+  periodStart?: string | null;
+  periodEnd?: string | null;
   name: string;
   path: string;
   size: number;
@@ -67,6 +69,8 @@ export async function registerSalesReport(input: {
       marketplace: input.marketplace,
       account_id: input.accountId,
       report_month: input.reportMonth,
+      period_start: input.periodStart ?? input.reportMonth,
+      period_end: input.periodEnd ?? null,
       name: input.name,
       path: input.path,
       size: input.size,
@@ -88,10 +92,33 @@ export async function importSalesOrders(input: {
   accountId: string | null;
   reportMonth: string;
   orders: (ParsedShopeeOrder | ParsedMercadoLivreOrder)[];
+  /** The window this document covers; set on the first batch only. */
+  replace?: { start: string; end: string } | null;
   /** False while more batches are still coming. */
   finalize?: boolean;
 }): Promise<ActionState> {
   const supabase = await createClient();
+
+  // Clear the window before the first batch lands, so uploading the 1st to the
+  // 24th after the 1st to the 17th leaves one set of orders and not one and a
+  // half. Scoped to this store, so two shops on the same marketplace do not
+  // erase each other.
+  if (input.replace) {
+    let clear = supabase
+      .from("sales_orders")
+      .delete()
+      .eq("client_id", input.clientId)
+      .eq("marketplace", input.marketplace)
+      .gte("created_on", input.replace.start)
+      .lte("created_on", input.replace.end);
+
+    clear = input.accountId
+      ? clear.eq("account_id", input.accountId)
+      : clear.is("account_id", null);
+
+    const { error: clearError } = await clear;
+    if (clearError) return { error: clearError.message };
+  }
 
   // Arrive filled in: each SKU starts from the newest cost recorded at or
   // before this report's month, and the tax rate in force then.

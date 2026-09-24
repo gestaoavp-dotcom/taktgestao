@@ -65,6 +65,27 @@ const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
  */
 const ORDERS_PER_BATCH = 150;
 
+/** "24/09" — enough to read a window at a glance. */
+function formatShort(iso: string) {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+function toISODate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function startOfMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
+/** Today's sales are still arriving, so a weekly upload ends yesterday. */
+function yesterday(d: Date) {
+  const y = new Date(d);
+  y.setDate(y.getDate() - 1);
+  return y;
+}
+
 /** Unique per upload, so replacing a file never collides with the old one. */
 function storagePath(clientId: string, marketplace: string, name: string) {
   return `sales-reports/${clientId}/${marketplace}/${Date.now()}-${name.replace(/[^\w.\-]/g, "_")}`;
@@ -133,6 +154,10 @@ export function SalesReportsCard({
   const [accountId, setAccountId] = useState<string>("");
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
+  // Orders carry a date per sale, so they can be uploaded for any window. The
+  // other reports settle a whole month and have no day in them.
+  const [from, setFrom] = useState(() => toISODate(startOfMonth(now)));
+  const [to, setTo] = useState(() => toISODate(yesterday(now)));
   const inputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
   const [replacingId, setReplacingId] = useState<string | null>(null);
@@ -166,7 +191,12 @@ export function SalesReportsCard({
 
     const reportKind = replaceReport?.kind ?? kind;
     const reportMarketplace = replaceReport?.marketplace ?? marketplace;
-    const reportMonth = replaceReport?.report_month ?? `${year}-${String(month).padStart(2, "0")}-01`;
+    const byPeriod = reportKind === "pedidos";
+    const reportMonth =
+      replaceReport?.report_month ??
+      (byPeriod ? `${from.slice(0, 7)}-01` : `${year}-${String(month).padStart(2, "0")}-01`);
+    const periodStart = byPeriod ? (replaceReport?.period_start ?? from) : reportMonth;
+    const periodEnd = byPeriod ? (replaceReport?.period_end ?? to) : null;
     const reportAccountId = replaceReport?.account_id ?? store?.id ?? null;
 
     const supabase = createClient();
@@ -189,6 +219,8 @@ export function SalesReportsCard({
       marketplace: reportMarketplace,
       accountId: reportAccountId,
       reportMonth,
+      periodStart,
+      periodEnd,
       name: file.name,
       path,
       size: file.size,
@@ -311,6 +343,7 @@ export function SalesReportsCard({
               accountId: reportAccountId,
               reportMonth,
               orders: batch,
+              replace: i === 0 && periodEnd ? { start: periodStart, end: periodEnd } : null,
               finalize: last,
             });
             if (result && "error" in result) {
@@ -337,6 +370,7 @@ export function SalesReportsCard({
               accountId: reportAccountId,
               reportMonth,
               orders: batch,
+              replace: i === 0 && periodEnd ? { start: periodStart, end: periodEnd } : null,
               finalize: last,
             });
             if (result && "error" in result) {
@@ -457,6 +491,31 @@ export function SalesReportsCard({
       )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        {kind === "pedidos" ? (
+          <>
+            <label className="flex items-center gap-1.5 text-sm text-[#5B647E]">
+              De
+              <input
+                type="date"
+                value={from}
+                max={to}
+                onChange={(e) => setFrom(e.target.value)}
+                className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+              />
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-[#5B647E]">
+              até
+              <input
+                type="date"
+                value={to}
+                min={from}
+                onChange={(e) => setTo(e.target.value)}
+                className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+              />
+            </label>
+          </>
+        ) : (
+          <>
         <select
           value={month}
           onChange={(e) => setMonth(Number(e.target.value))}
@@ -479,12 +538,16 @@ export function SalesReportsCard({
             </option>
           ))}
         </select>
+          </>
+        )}
 
         <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/20 py-2.5 text-sm font-semibold text-[#5B647E] transition-colors hover:border-blue hover:text-blue">
           <Upload className="h-4 w-4" />
           {uploading && !replacingId
             ? "Enviando..."
-            : `Enviar documento de ${KINDS.find((k) => k.value === kind)?.label.toLowerCase()} deste mês`}
+            : kind === "pedidos"
+              ? "Enviar documento de pedidos deste período"
+              : `Enviar documento de ${KINDS.find((k) => k.value === kind)?.label.toLowerCase()} deste mês`}
           <input
             ref={inputRef}
             type="file"
@@ -526,6 +589,9 @@ export function SalesReportsCard({
                       </p>
                       <p className="text-xs text-[#94A0BD]">
                         {formatDate(report.created_at)} · {formatSize(report.size)}
+                        {report.period_start && report.period_end
+                          ? ` · ${formatShort(report.period_start)} a ${formatShort(report.period_end)}`
+                          : ""}
                         {orderCounts[report.id] ? ` · ${orderCounts[report.id]} pedidos` : ""}
                       </p>
                     </div>

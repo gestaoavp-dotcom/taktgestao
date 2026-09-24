@@ -102,6 +102,8 @@ export type SalesReport = {
   client_id: string;
   account_id: string | null;
   kind: SalesReportKind;
+  period_start: string | null;
+  period_end: string | null;
   marketplace: string;
   report_month: string | null;
   name: string;
