@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ClientCredential } from "@/lib/types";
 import { InformacoesSubTabs } from "@/components/informacoes-sub-tabs";
 import { ClientCredentialsCard } from "@/components/client-credentials-card";
+import { ClientPanelInvite } from "@/components/client-panel-invite";
 import { keyFingerprint, keyStatus } from "@/lib/credentials-crypto";
 
 export default async function ClienteAcessosPage({
@@ -14,6 +15,17 @@ export default async function ClienteAcessosPage({
 
   // Every column except password_cipher: the encrypted password never travels
   // to the browser, not even as ciphertext. Only revealCredential reads it.
+  // The client's own login to this system, if one exists.
+  const [{ data: client }, { data: panelLogin }] = await Promise.all([
+    supabase.from("clients").select("name").eq("id", id).maybeSingle<{ name: string }>(),
+    supabase
+      .from("profiles")
+      .select("email")
+      .eq("client_id", id)
+      .eq("role", "cliente")
+      .maybeSingle<{ email: string | null }>(),
+  ]);
+
   const { data: credentials } = await supabase
     .from("client_credentials")
     .select(
@@ -45,7 +57,13 @@ export default async function ClienteAcessosPage({
           {key.reason}
         </p>
       )}
-      <ClientCredentialsCard clientId={id} credentials={credentials ?? []} />
+      <div className="flex flex-col gap-5">
+        <ClientCredentialsCard clientId={id} credentials={credentials ?? []} />
+        <ClientPanelInvite
+          clientName={client?.name ?? "este cliente"}
+          loginEmail={panelLogin?.email ?? null}
+        />
+      </div>
     </div>
   );
 }
