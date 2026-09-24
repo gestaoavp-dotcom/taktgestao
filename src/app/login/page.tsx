@@ -1,3 +1,4 @@
+import { BackLink } from "@/components/back-link";
 import { Logo } from "@/components/logo";
 import { login, signup } from "./actions";
 
@@ -11,6 +12,7 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen items-center justify-center bg-brand-gray px-4">
       <div className="w-full max-w-sm rounded-xl border border-navy/10 bg-white p-8 shadow-sm">
+        <BackLink />
         <div className="mb-6">
           <Logo height={40} />
         </div>

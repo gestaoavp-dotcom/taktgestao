@@ -2,8 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
-  // The lead-capture page is for people with no login at all.
-  if (request.nextUrl.pathname.startsWith("/contato")) {
+  // The public pages are for people with no login at all.
+  if (
+    request.nextUrl.pathname.startsWith("/contato") ||
+    request.nextUrl.pathname.startsWith("/inicio")
+  ) {
     return NextResponse.next({ request });
   }
 
@@ -37,6 +40,13 @@ export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login");
   const isPasswordRoute = pathname.startsWith("/trocar-senha");
+
+  // A visitor at the root gets the public front page, under the same address.
+  if (!user && pathname === "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = "/inicio";
+    return NextResponse.rewrite(url);
+  }
 
   if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone();

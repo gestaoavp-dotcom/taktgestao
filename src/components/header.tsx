@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Bell, ChevronDown, Menu, Search } from "lucide-react";
+import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { logout } from "@/app/logout/actions";
 import type { NotificationItem } from "@/lib/notifications";
@@ -29,26 +29,21 @@ export function Header({
   /** Shows the mark in place of the sidebar toggle, when there is no sidebar. */
   brand?: boolean;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const initial = email?.[0]?.toUpperCase() ?? "?";
   const hasOverdue = notifications.some((n) => n.severity === "overdue");
 
   useEffect(() => {
-    if (!menuOpen && !notifOpen) return;
+    if (!notifOpen) return;
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setNotifOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [menuOpen, notifOpen]);
+  }, [notifOpen]);
 
   return (
     <header className="flex items-center gap-6 border-b border-navy/[.08] bg-white px-8 py-3.5">
@@ -154,38 +149,25 @@ export function Header({
           )}
         </div>
 
-        <div className="relative" ref={menuRef}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            aria-expanded={menuOpen}
-            className="flex items-center gap-2.5 rounded-lg p-1 transition-colors hover:bg-brand-gray"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
-              {initial}
-            </div>
-            <div className="hidden text-left leading-tight sm:block">
-              <div className="max-w-[160px] truncate text-sm font-semibold text-navy">
-                {email}
-              </div>
-              <div className="text-xs text-[#94A0BD]">Admin</div>
-            </div>
-            <ChevronDown className="h-4 w-4 text-[#94A0BD]" />
-          </button>
-
-          {menuOpen && (
-            <div className="absolute right-0 top-full z-20 mt-2 w-44 overflow-hidden rounded-lg border border-navy/10 bg-white py-1 shadow-lg">
-              <form action={logout}>
-                <button
-                  type="submit"
-                  className="w-full px-4 py-2 text-left text-sm font-medium text-navy transition-colors hover:bg-brand-gray"
-                >
-                  Sair
-                </button>
-              </form>
-            </div>
-          )}
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
+            {initial}
+          </div>
+          <div className="hidden leading-tight sm:block">
+            <div className="max-w-[160px] truncate text-sm font-semibold text-navy">{email}</div>
+            <div className="text-xs text-[#94A0BD]">Admin</div>
+          </div>
         </div>
+
+        <form action={logout}>
+          <button
+            type="submit"
+            className="flex items-center gap-1.5 rounded-lg border border-navy/10 px-3 py-2 text-sm font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray hover:text-navy"
+          >
+            <LogOut className="h-4 w-4" />
+            Sair
+          </button>
+        </form>
       </div>
     </header>
   );
