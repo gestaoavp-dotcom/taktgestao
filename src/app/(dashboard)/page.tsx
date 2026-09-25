@@ -23,11 +23,6 @@ const FEE_LABEL: Record<FeeStatus, { label: string; className: string }> = {
   sem_valor: { label: "Sem valor", className: "bg-brand-gray text-[#94A0BD]" },
 };
 
-function formatBR(iso: string) {
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}/${y}`;
-}
-
 // Payment day clamped to the month's last day, as in Contas a receber.
 function dueDateFor(month: string, paymentDay: number) {
   const [y, m] = month.split("-").map(Number);
@@ -183,7 +178,18 @@ export default async function DashboardPage({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-bold text-navy">Dashboard</h1>
+        <div>
+          <h1 className="font-display text-2xl font-bold text-navy">Dashboard</h1>
+          {/* What is on screen, minus the dates: those are in the picker below,
+              and stating a period twice only invites the two to disagree. */}
+          {(selectedName || marketplace) && (
+            <p className="mt-0.5 text-sm text-[#5B647E]">
+              {[selectedName, marketplace ? MARKETPLACE_LABEL[marketplace] : null]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
+        </div>
         <DashboardFilters
           clients={clients.map(({ id, name }) => ({ id, name }))}
           clientId={clientId}
@@ -191,12 +197,7 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-[#5B647E]">
-          {selectedName ? `${selectedName} · ` : ""}
-          {marketplace ? `${MARKETPLACE_LABEL[marketplace]} · ` : ""}
-          {formatBR(range.start)} a {formatBR(range.end)}
-        </p>
+      <div className="mb-6">
         <DateRangePicker start={range.start} end={range.end} />
       </div>
 
