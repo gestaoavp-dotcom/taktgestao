@@ -29,11 +29,14 @@ const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
 export function ClientsView({
+  notice,
   clients,
   canManage,
   canDelete,
   hasDeletePin,
 }: {
+  /** Shown between the header and the folders — the admin's pending accesses. */
+  notice?: React.ReactNode;
   clients: ClientSummary[];
   /** False for a client login: it views its own folder and changes nothing. */
   canManage: boolean;
@@ -125,6 +128,8 @@ export function ClientsView({
           )}
         </div>
       </div>
+
+      {notice}
 
       {visible.length > 0 ? (
         <div className="grid grid-cols-2 gap-5 lg:grid-cols-3 xl:grid-cols-4">

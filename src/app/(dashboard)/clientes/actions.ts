@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAccessLink, deliverAccessLink } from "@/lib/access-link";
 import { findAbandonedLogin } from "@/lib/abandoned-login";
+import { sendClientAccessLink, type AccessLinkState } from "@/app/(dashboard)/configuracoes/actions";
 
 export type CreateClientState =
   | {
@@ -243,4 +244,57 @@ export async function deleteClientRecord(
   revalidatePath("/clientes");
   revalidatePath("/configuracoes");
   return { ok: true };
+}
+
+/**
+ * Brings a client registered before e-mails were required up to date: its
+ * main e-mail, a CNPJ principal when it has none, and its login — sent the
+ * same one-time link as a new client. A dono only; the link part is the
+ * Acessos action itself, so both paths create logins the same way.
+ */
+export async function completeClientAccess(
+  prevState: AccessLinkState,
+  formData: FormData,
+): Promise<AccessLinkState> {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Faça login novamente." };
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .maybeSingle<{ role: string }>();
+  if (me?.role !== "dono") return { error: "Só o admin cria acessos." };
+
+  const clientId = String(formData.get("client_id") ?? "");
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const cnpj = String(formData.get("cnpj") ?? "").trim();
+  const needsCnpj = formData.get("needs_cnpj") === "1";
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Informe um e-mail válido." };
+  if (needsCnpj && cnpj.replace(/\D/g, "").length !== 14) {
+    return { error: "Informe o CNPJ completo (14 dígitos)." };
+  }
+
+  const { error: emailError } = await supabase
+    .from("clients")
+    .update({ contact_email: email })
+    .eq("id", clientId);
+  if (emailError) return { error: emailError.message };
+
+  if (needsCnpj) {
+    const { error: cnpjError } = await supabase
+      .from("client_cnpjs")
+      .insert({ client_id: clientId, cnpj, created_by: auth.user.id });
+    if (cnpjError) return { error: cnpjError.message };
+  }
+
+  const linkData = new FormData();
+  linkData.set("client_id", clientId);
+  linkData.set("email", email);
+  linkData.set("name", String(formData.get("name") ?? ""));
+
+  const result = await sendClientAccessLink(prevState, linkData);
+  revalidatePath("/clientes");
+  return result;
 }

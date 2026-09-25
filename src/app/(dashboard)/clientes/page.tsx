@@ -3,6 +3,7 @@ import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import { distinctMarketplaces } from "@/lib/marketplaces";
 import { getProfile } from "@/lib/profile";
 import { ClientsView, type ClientSummary } from "@/components/clients-view";
+import { PendingAccess, type PendingClient } from "@/components/pending-access";
 
 export default async function ClientesPage() {
   const supabase = await createClient();
@@ -10,9 +11,11 @@ export default async function ClientesPage() {
   const [{ data: clients }, { data: cnpjs }, { data: accounts }] = await Promise.all([
     supabase
       .from("clients")
-      .select("id, name, contact_phone")
+      .select("id, name, contact_phone, contact_email")
       .order("name")
-      .returns<{ id: string; name: string; contact_phone: string | null }[]>(),
+      .returns<
+        { id: string; name: string; contact_phone: string | null; contact_email: string | null }[]
+      >(),
     supabase.from("client_cnpjs").select("*").returns<ClientCnpj[]>(),
     supabase.from("client_accounts").select("*").returns<ClientAccount[]>(),
   ]);
@@ -70,8 +73,30 @@ export default async function ClientesPage() {
     }
   }
 
+  // Clients with no login yet — the ones registered before the e-mail was
+  // required. Only the admin sees them, since only the admin can make logins.
+  let pending: PendingClient[] = [];
+  if (isOwner) {
+    const { data: logins } = await supabase
+      .from("profiles")
+      .select("client_id")
+      .not("client_id", "is", null)
+      .returns<{ client_id: string }[]>();
+    const withLogin = new Set((logins ?? []).map((l) => l.client_id));
+    pending = (clients ?? [])
+      .filter((c) => !withLogin.has(c.id))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        email: c.contact_email,
+        hasCnpj: (cnpjsByClient.get(c.id) ?? []).length > 0,
+        mainCnpj: [...(cnpjsByClient.get(c.id) ?? [])].sort((x, y) => x.created_at.localeCompare(y.created_at))[0]?.cnpj ?? null,
+      }));
+  }
+
   return (
     <ClientsView
+      notice={pending.length > 0 ? <PendingAccess clients={pending} /> : null}
       clients={summaries}
       canManage={isOwner || profile?.role === "operador"}
       canDelete={isOwner}
