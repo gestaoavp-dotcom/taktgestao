@@ -1,9 +1,9 @@
 import type { DateRange } from "@/lib/sales-summary";
 
 // The sales reports for a Monday-to-Sunday week go up on the Monday after it,
-// so data is only whole up to the last closed Sunday. Every sales view stops
-// there: a period reaching into the open week shows days not yet uploaded as
-// zero, and drags the chart and every comparison down with them.
+// so data is only whole up to the last closed Sunday. The default period and
+// the rolling shortcuts end there: reaching into the open week would show days
+// not yet uploaded as zero, and drag the chart and every comparison down.
 
 // Calendar math on plain ISO dates, in UTC, so no server time zone moves a day.
 function addDays(iso: string, days: number) {
@@ -37,46 +37,52 @@ export function lastReportSunday(today = todayInBrazil()) {
   return addDays(today, day === 0 ? -7 : -day);
 }
 
-const DEFAULT_WEEKS = 4;
+const DEFAULT_DAYS = 30;
 
 /**
- * The period a sales view shows: what the URL asks for, never past the last
- * closed Sunday, and four whole weeks ending there when it asks for nothing.
+ * The period a sales view shows: the 30 days ending on the last closed Sunday
+ * when the URL asks for nothing, and otherwise whatever it asks for — Hoje and
+ * Ontem are for a look at days not uploaded yet, so a chosen period is not cut.
  */
 export function reportRange(de?: string, ate?: string): DateRange {
   const until = lastReportSunday();
   const valid = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined);
 
-  let end = valid(ate) ?? until;
-  if (end > until) end = until;
-  let start = valid(de) ?? addDays(until, -(DEFAULT_WEEKS * 7 - 1));
+  const end = valid(ate) ?? until;
+  let start = valid(de) ?? addDays(until, -(DEFAULT_DAYS - 1));
   if (start > end) start = end;
   return { start, end };
 }
 
-/** Whole weeks and months, all ending no later than the last closed Sunday. */
+/**
+ * The shortcuts. The rolling ones, this month and this year end on the last
+ * closed Sunday, where the data is whole; Hoje and Ontem are those very days;
+ * Mês passado is the whole month.
+ */
 export function reportPresets(today = todayInBrazil()) {
   const until = lastReportSunday(today);
-  const weeks = (n: number) => ({ start: addDays(until, -(n * 7 - 1)), end: until });
+  const days = (n: number) => ({ start: addDays(until, -(n - 1)), end: until });
+  const day = (offset: number) => ({ start: addDays(today, offset), end: addDays(today, offset) });
   const month = today.slice(0, 7);
   const previous = shiftMonth(month, -1);
-  const clamp = (r: DateRange) => ({ start: r.start, end: r.end > until ? until : r.end });
+  // Early in a month, before its first Sunday closes, there is no closed part
+  // of it yet: the month so far is all there is to show.
+  const monthEnd = until >= `${month}-01` ? until : today;
+  const yearStart = `${today.slice(0, 4)}-01-01`;
 
-  const presets: { label: string; range: DateRange; note?: string }[] = [
-    { label: "Última semana", range: weeks(1), note: "segunda a domingo" },
-    { label: "2 semanas", range: weeks(2) },
-    { label: "4 semanas", range: weeks(4) },
-    { label: "12 semanas", range: weeks(12) },
-    { label: "Este mês", range: clamp({ start: `${month}-01`, end: until }) },
+  return [
+    { label: "Hoje", range: day(0) },
+    { label: "Ontem", range: day(-1) },
+    { label: "7 dias", range: days(7) },
+    { label: "14 dias", range: days(14) },
+    { label: "30 dias", range: days(30) },
+    { label: "90 dias", range: days(90) },
+    { label: "Este mês", range: { start: `${month}-01`, end: monthEnd } },
     {
       label: "Mês passado",
-      range: clamp({ start: `${previous}-01`, end: lastDayOfMonth(previous) }),
-      // Its last days may still sit in a week not uploaded yet.
-      note: lastDayOfMonth(previous) <= until ? "mês fechado" : "até o último domingo",
+      range: { start: `${previous}-01`, end: lastDayOfMonth(previous) },
+      note: "mês fechado",
     },
-    { label: "Este ano", range: clamp({ start: `${today.slice(0, 4)}-01-01`, end: until }) },
-  ];
-
-  // Early in a month its first Sunday may not have closed yet: nothing to show.
-  return presets.filter((p) => p.range.start <= p.range.end);
+    { label: "Este ano", range: { start: yearStart, end: until >= yearStart ? until : today } },
+  ] as { label: string; range: DateRange; note?: string }[];
 }

@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { DateField } from "@/components/date-field";
-import { lastReportSunday, reportPresets } from "@/lib/report-week";
+import { lastReportSunday, reportPresets, todayInBrazil } from "@/lib/report-week";
 
 function formatBR(iso: string) {
   const [, m, d] = iso.split("-");
@@ -20,9 +20,10 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
   // route, so loading.tsx never fires and nothing on screen moves. The
   // transition is what makes the wait visible.
   const [pending, startTransition] = useTransition();
-  // Reports for a week go up on the Monday after it: nothing past the last
-  // closed Sunday is whole, so neither the shortcuts nor the calendar go there.
+  // Reports for a week go up on the Monday after it, so the rolling shortcuts
+  // end on the last closed Sunday; a date picked by hand may go up to today.
   const until = lastReportSunday();
+  const today = todayInBrazil();
   const presets = reportPresets();
   // Whichever shortcut matches the period on screen; none means dates typed by hand.
   const current = presets.find((p) => p.range.start === start && p.range.end === end)?.label ?? "";
@@ -65,7 +66,7 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
             key={`de-${start}`}
             name="de"
             defaultValue={start}
-            max={until}
+            max={today}
             onChange={(value) => value && apply({ start: value, end })}
           />
         </div>
@@ -76,7 +77,7 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
             name="ate"
             defaultValue={end}
             min={start}
-            max={until}
+            max={today}
             onChange={(value) => value && apply({ start, end: value })}
           />
         </div>
