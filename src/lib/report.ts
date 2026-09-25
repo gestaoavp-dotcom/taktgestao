@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isBilledOrder } from "@/lib/parsers/order-breakdown";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Assembles the monthly report from the four sources the team imports:
 // orders, ads, traffic and the change log. Every figure is computed here —
@@ -172,6 +173,14 @@ function addDays(iso: string, days: number) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
+type ProductReportRow = {
+  marketplace: string;
+  sku: string | null;
+  product_name: string | null;
+  net_sales: number;
+  units_net: number;
+};
+
 type OrderRow = {
   order_id: string;
   created_on: string | null;
@@ -193,89 +202,129 @@ export async function buildMonthlyReport(
   const { start, end, prevMonth } = monthBounds(month);
   const prev = monthBounds(prevMonth);
 
-  const ordersQuery = (from: string, to: string) => {
-    let q = supabase
-      .from("sales_orders")
-      .select(
-        "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement",
-      )
-      .eq("client_id", clientId)
-      .gte("created_on", from)
-      .lte("created_on", to);
-    if (marketplace) q = q.eq("marketplace", marketplace);
-    return q.returns<OrderRow[]>();
-  };
+  // A client's month runs past a thousand order lines, and the database hands
+  // back no more than that per request without saying so: read it all, a page
+  // at a time, or the report quietly totals the first thousand.
+  const ordersQuery = (from: string, to: string) =>
+    fetchAll<OrderRow>((a, b) => {
+      let q = supabase
+        .from("sales_orders")
+        .select(
+          "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement",
+        )
+        .eq("client_id", clientId)
+        .gte("created_on", from)
+        .lte("created_on", to);
+      if (marketplace) q = q.eq("marketplace", marketplace);
+      return q.order("id").range(a, b).returns<OrderRow[]>();
+    });
 
-  const [{ data: current }, { data: previous }] = await Promise.all([
+  // Amazon settles by product for the whole month, so its revenue lives in the
+  // product report, not in sales_orders. The dashboard counts it; so must this.
+  const productQuery = (m: string) =>
+    fetchAll<ProductReportRow>((a, b) => {
+      let q = supabase
+        .from("sales_products")
+        .select("marketplace, sku, product_name, net_sales, units_net")
+        .eq("client_id", clientId)
+        .eq("report_month", m)
+        .eq("is_total", false);
+      if (marketplace) q = q.eq("marketplace", marketplace);
+      return q.order("id").range(a, b).returns<ProductReportRow[]>();
+    });
+
+  const [current, previous, productsNow, productsPrev] = await Promise.all([
     ordersQuery(start, end),
     ordersQuery(prev.start, prev.end),
+    productQuery(start),
+    productQuery(prev.start),
   ]);
 
   // An order that was cancelled or refunded was never revenue.
-  const billed = (current ?? []).filter(isBilledOrder);
-  const billedPrev = (previous ?? []).filter(isBilledOrder);
+  const billed = current.filter(isBilledOrder);
+  const billedPrev = previous.filter(isBilledOrder);
 
   const revenueOf = (rows: OrderRow[]) => rows.reduce((s, o) => s + Number(o.subtotal), 0);
   const ordersOf = (rows: OrderRow[]) => new Set(rows.map((o) => o.order_id)).size;
+  const productRevenue = (rows: ProductReportRow[]) =>
+    rows.reduce((s, p) => s + Number(p.net_sales), 0);
+  // A product report counts units, not orders — the dashboard counts them the
+  // same way, which keeps the two tickets equal.
+  const productUnits = (rows: ProductReportRow[]) =>
+    rows.reduce((s, p) => s + Number(p.units_net), 0);
 
-  const revenue = revenueOf(billed);
-  const orders = ordersOf(billed);
-  const prevRevenue = revenueOf(billedPrev);
-  const prevOrders = ordersOf(billedPrev);
+  const revenue = revenueOf(billed) + productRevenue(productsNow);
+  const orders = ordersOf(billed) + productUnits(productsNow);
+  const prevRevenue = revenueOf(billedPrev) + productRevenue(productsPrev);
+  const prevOrders = ordersOf(billedPrev) + productUnits(productsPrev);
 
-  const byMarketplace = Array.from(
-    billed.reduce((map, o) => {
-      const e = map.get(o.marketplace) ?? { revenue: 0, ids: new Set<string>() };
-      e.revenue += Number(o.subtotal);
-      e.ids.add(o.order_id);
-      return map.set(o.marketplace, e);
-    }, new Map<string, { revenue: number; ids: Set<string> }>()),
-  )
-    .map(([m, e]) => ({ marketplace: m, revenue: e.revenue, orders: e.ids.size }))
+  const marketplaceTotals = billed.reduce((map, o) => {
+    const e = map.get(o.marketplace) ?? { revenue: 0, ids: new Set<string>(), units: 0 };
+    e.revenue += Number(o.subtotal);
+    e.ids.add(o.order_id);
+    return map.set(o.marketplace, e);
+  }, new Map<string, { revenue: number; ids: Set<string>; units: number }>());
+  for (const p of productsNow) {
+    const e = marketplaceTotals.get(p.marketplace) ?? { revenue: 0, ids: new Set<string>(), units: 0 };
+    e.revenue += Number(p.net_sales);
+    e.units += Number(p.units_net);
+    marketplaceTotals.set(p.marketplace, e);
+  }
+
+  const byMarketplace = Array.from(marketplaceTotals)
+    .map(([m, e]) => ({ marketplace: m, revenue: e.revenue, orders: e.ids.size + e.units }))
     .sort((a, b) => b.revenue - a.revenue);
 
-  const products = sections.includes("produtos")
-    ? Array.from(
-        billed.reduce((map, o) => {
-          const key = o.sku ?? o.product_name ?? "—";
-          const e = map.get(key) ?? {
-            name: o.product_name ?? key,
-            revenue: 0,
-            units: 0,
-            ids: new Set<string>(),
-          };
-          e.revenue += Number(o.subtotal);
-          e.units += o.quantity;
-          e.ids.add(o.order_id);
-          return map.set(key, e);
-        }, new Map<string, { name: string; revenue: number; units: number; ids: Set<string> }>()),
-      )
-        .map(([sku, e]) => ({
-          sku,
-          name: e.name,
-          revenue: e.revenue,
-          units: e.units,
-          orders: e.ids.size,
-          share: revenue > 0 ? (e.revenue / revenue) * 100 : 0,
-        }))
-        .sort((a, b) => b.revenue - a.revenue)
-    : [];
+  type ProductTotal = { name: string; revenue: number; units: number; ids: Set<string>; extraOrders: number };
+  const productTotals = new Map<string, ProductTotal>();
+  if (sections.includes("produtos")) {
+    const entry = (key: string, name: string) => {
+      const e = productTotals.get(key) ?? { name, revenue: 0, units: 0, ids: new Set<string>(), extraOrders: 0 };
+      productTotals.set(key, e);
+      return e;
+    };
+    for (const o of billed) {
+      const key = o.sku ?? o.product_name ?? "—";
+      const e = entry(key, o.product_name ?? key);
+      e.revenue += Number(o.subtotal);
+      e.units += o.quantity;
+      e.ids.add(o.order_id);
+    }
+    for (const p of productsNow) {
+      const key = p.sku ?? p.product_name ?? "—";
+      const e = entry(key, p.product_name ?? key);
+      e.revenue += Number(p.net_sales);
+      e.units += Number(p.units_net);
+      e.extraOrders += Number(p.units_net);
+    }
+  }
+
+  const products = Array.from(productTotals)
+    .map(([sku, e]) => ({
+      sku,
+      name: e.name,
+      revenue: e.revenue,
+      units: e.units,
+      orders: e.ids.size + e.extraOrders,
+      share: revenue > 0 ? (e.revenue / revenue) * 100 : 0,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
 
   // --- Ads -----------------------------------------------------------------
   let ads: MonthlyReport["ads"] = null;
   if (sections.includes("ads")) {
-    const adsQuery = (m: string) => {
-      let q = supabase
-        .from("sales_ads")
-        .select("ad_name, expense, gmv, clicks, conversions")
-        .eq("client_id", clientId)
-        .eq("report_month", m);
-      if (marketplace) q = q.eq("marketplace", marketplace);
-      return q.returns<
-        { ad_name: string; expense: number; gmv: number; clicks: number; conversions: number }[]
-      >();
-    };
-    const [{ data: adsNow }, { data: adsPrev }] = await Promise.all([
+    type AdRow = { ad_name: string; expense: number; gmv: number; clicks: number; conversions: number };
+    const adsQuery = (m: string) =>
+      fetchAll<AdRow>((a, b) => {
+        let q = supabase
+          .from("sales_ads")
+          .select("ad_name, expense, gmv, clicks, conversions")
+          .eq("client_id", clientId)
+          .eq("report_month", m);
+        if (marketplace) q = q.eq("marketplace", marketplace);
+        return q.order("id").range(a, b).returns<AdRow[]>();
+      });
+    const [adsNow, adsPrev] = await Promise.all([
       adsQuery(start),
       adsQuery(prev.start),
     ]);
@@ -327,31 +376,31 @@ export async function buildMonthlyReport(
   // --- Traffic -------------------------------------------------------------
   let traffic: MonthlyReport["traffic"] = null;
   if (sections.includes("trafego")) {
-    const trafficQuery = (m: string) => {
-      let q = supabase
-        .from("sales_traffic")
-        .select(
-          "product_name, impressions, clicks, visitors, bounced_visitors, cart_units, buyers_paid",
-        )
-        .eq("client_id", clientId)
-        .eq("report_month", m)
-        // Variations carry no traffic of their own; counting them would
-        // double the same visitor.
-        .eq("is_variation", false);
-      if (marketplace) q = q.eq("marketplace", marketplace);
-      return q.returns<
-        {
-          product_name: string;
-          impressions: number;
-          clicks: number;
-          visitors: number;
-          bounced_visitors: number;
-          cart_units: number;
-          buyers_paid: number;
-        }[]
-      >();
+    type TrafficRow = {
+      product_name: string;
+      impressions: number;
+      clicks: number;
+      visitors: number;
+      bounced_visitors: number;
+      cart_units: number;
+      buyers_paid: number;
     };
-    const [{ data: tNow }, { data: tPrev }] = await Promise.all([
+    const trafficQuery = (m: string) =>
+      fetchAll<TrafficRow>((a, b) => {
+        let q = supabase
+          .from("sales_traffic")
+          .select(
+            "product_name, impressions, clicks, visitors, bounced_visitors, cart_units, buyers_paid",
+          )
+          .eq("client_id", clientId)
+          .eq("report_month", m)
+          // Variations carry no traffic of their own; counting them would
+          // double the same visitor.
+          .eq("is_variation", false);
+        if (marketplace) q = q.eq("marketplace", marketplace);
+        return q.order("id").range(a, b).returns<TrafficRow[]>();
+      });
+    const [tNow, tPrev] = await Promise.all([
       trafficQuery(start),
       trafficQuery(prev.start),
     ]);

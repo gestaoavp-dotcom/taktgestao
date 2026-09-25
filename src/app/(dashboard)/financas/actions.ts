@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { todayInBrazil } from "@/lib/report-week";
 
 export async function markPaid(formData: FormData) {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ export async function markPaid(formData: FormData) {
       reference_month: formData.get("reference_month") as string,
       amount: Number(formData.get("amount")),
       due_date: formData.get("due_date") as string,
-      paid_on: new Date().toISOString().slice(0, 10),
+      paid_on: todayInBrazil(),
       created_by: auth.user?.id,
     },
     { onConflict: "cnpj_id,reference_month" },

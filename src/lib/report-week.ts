@@ -46,12 +46,28 @@ const DEFAULT_DAYS = 30;
  */
 export function reportRange(de?: string, ate?: string): DateRange {
   const until = lastReportSunday();
-  const valid = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : undefined);
 
-  const end = valid(ate) ?? until;
-  let start = valid(de) ?? addDays(until, -(DEFAULT_DAYS - 1));
+  const end = realDate(ate) ?? until;
+  let start = realDate(de) ?? addDays(until, -(DEFAULT_DAYS - 1));
   if (start > end) start = end;
+  // A period is drawn day by day and compared with one just as long before it,
+  // so an address asking for decades would build tens of thousands of points.
+  const earliest = addDays(end, -(MAX_DAYS - 1));
+  if (start < earliest) start = earliest;
   return { start, end };
+}
+
+/** Longest period a sales view shows: three years. */
+const MAX_DAYS = 3 * 366;
+
+/**
+ * The date when it is a real one. "2026-02-31" has the right shape and is no
+ * day at all — passed on, the database refuses it and the page shows zeros.
+ */
+function realDate(value?: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value ? value : undefined;
 }
 
 /**

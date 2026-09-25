@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { todayInBrazil } from "@/lib/report-week";
 
 export type NotificationItem = {
   id: string;
@@ -42,11 +43,11 @@ function dueDateFor(month: string, paymentDay: number) {
 
 export async function getNotifications(): Promise<NotificationItem[]> {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   const month = today.slice(0, 7);
-  const soonLimit = new Date();
-  soonLimit.setDate(soonLimit.getDate() + SOON_WINDOW_DAYS);
-  const soonLimitStr = soonLimit.toISOString().slice(0, 10);
+  const soonLimitStr = new Date(Date.parse(`${today}T00:00:00Z`) + SOON_WINDOW_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
 
   const [{ data: cnpjs }, { data: payments }, { data: expenses }] = await Promise.all([
     supabase

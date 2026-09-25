@@ -3,13 +3,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/profile";
 import { AreaChart } from "@/components/area-chart";
+import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { DashboardFilters } from "@/components/dashboard-filters";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
-import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
+import { MARKETPLACES, MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
-import { reportRange } from "@/lib/report-week";
+import { reportRange, todayInBrazil } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
 
 
@@ -59,8 +60,9 @@ export default async function DashboardPage({
   const supabase = await createClient();
 
   const range = reportRange(de, ate);
-  const marketplace = platform ?? "";
-  const clientId = cliente ?? "";
+  // Only values the pickers could have produced: an unknown marketplace, or a
+  // client since deleted, would narrow everything down to zero without a word.
+  const marketplace = MARKETPLACES.some((m) => m.value === platform) ? platform! : "";
 
   const [{ data: allClients }, { data: accounts }, { data: openChanges }, { data: openTasks }] =
     await Promise.all([
@@ -87,16 +89,13 @@ export default async function DashboardPage({
     ]);
 
   const clients = allClients ?? [];
+  const clientId = clients.some((c) => c.id === cliente) ? cliente! : "";
   const marketplacesOf = (id: string) =>
     distinctMarketplaces((accounts ?? []).filter((a) => a.client_id === id));
 
   // The clients the filters leave: one when a client is chosen, and only those
   // that sell on the chosen marketplace when one is.
-  const inView = clients.filter(
-    (c) =>
-      (!clientId || c.id === clientId) &&
-      (!marketplace || marketplacesOf(c.id).includes(marketplace)),
-  );
+  const inView = clients.filter((c) => !clientId || c.id === clientId);
 
   const filters = { clientId: clientId || undefined, marketplace: marketplace || undefined };
 
@@ -120,7 +119,7 @@ export default async function DashboardPage({
   // alone.
   const feeStatus = new Map<string, FeeStatus>();
   if (isOwner) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayInBrazil();
     const month = today.slice(0, 7);
     const [{ data: cnpjs }, { data: payments }] = await Promise.all([
       supabase
@@ -159,7 +158,14 @@ export default async function DashboardPage({
   const changesByClient = countBy(openChanges);
   const tasksByClient = countBy(openTasks);
 
+  // With a marketplace chosen, a client counts when it sells there — by its
+  // stores or by its orders, since an order can arrive before its store is
+  // registered, and the rows must still add up to the total above them.
   const rows = perClient
+    .filter(
+      ({ client, summary: s }) =>
+        !marketplace || marketplacesOf(client.id).includes(marketplace) || s.revenue > 0 || s.orders > 0,
+    )
     .map(({ client, summary: s }) => ({
       ...client,
       revenue: s.revenue,
@@ -171,7 +177,7 @@ export default async function DashboardPage({
 
   const { revenue, orders, ticket, previousRevenue, previousOrders, previousTicket, chartData } =
     summary;
-  const newClients = inView.filter((c) => c.created_at.slice(0, 10) >= range.start).length;
+  const newClients = rows.filter((c) => c.created_at.slice(0, 10) >= range.start).length;
   const selectedName = clients.find((c) => c.id === clientId)?.name;
 
   return (
@@ -197,7 +203,7 @@ export default async function DashboardPage({
       <div className="mb-6 grid grid-cols-4 gap-4">
         <KpiCard
           label="Clientes"
-          value={String(inView.length)}
+          value={String(rows.length)}
           trend={newClients > 0 ? 100 : 0}
           icon="users"
         />
@@ -224,6 +230,7 @@ export default async function DashboardPage({
       <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
         <h2 className="mb-4 font-display text-base font-semibold text-navy">Faturamento por dia</h2>
         <AreaChart data={chartData} />
+        <MonthlyRevenueNote value={summary.monthlyRevenue} />
       </div>
 
       <div className="mb-6 overflow-x-auto rounded-lg bg-white shadow-sm">

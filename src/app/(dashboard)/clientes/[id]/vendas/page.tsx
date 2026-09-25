@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { isTeam } from "@/lib/profile";
 import { AreaChart } from "@/components/area-chart";
+import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { DateRangePicker } from "@/components/date-range-picker";
@@ -37,6 +38,7 @@ export default async function ClienteVendasPage({
     previousOrders,
     previousTicket,
     chartData,
+    monthlyRevenue,
     platformRows,
   } = await getOrdersSummary(supabase, range, { clientId: id });
 
@@ -79,6 +81,7 @@ export default async function ClienteVendasPage({
         <h2 className="mb-1 font-bold text-navy">Faturamento por dia</h2>
         <p className="mb-4 text-xs text-[#94A0BD]">Só os marketplaces que reportam por pedido.</p>
         <AreaChart data={chartData} />
+        <MonthlyRevenueNote value={monthlyRevenue} />
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-sm">

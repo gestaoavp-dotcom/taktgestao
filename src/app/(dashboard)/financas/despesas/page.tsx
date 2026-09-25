@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { TaxSettings } from "@/lib/types";
 import { ExpensesView, type Expense } from "@/components/expenses-view";
 import { TaxSummaryCard, type TaxNote } from "@/components/tax-summary-card";
+import { todayInBrazil } from "@/lib/report-week";
 
 const MONTH_NAMES = [
   "janeiro",
@@ -51,7 +52,7 @@ export default async function DespesasPage({
   searchParams: Promise<{ mes?: string }>;
 }) {
   const { mes } = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   const month = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : today.slice(0, 7);
 
   const monthStart = `${month}-01`;

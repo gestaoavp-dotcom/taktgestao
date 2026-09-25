@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ClientAccount, ClientCnpj } from "@/lib/types";
+import { todayInBrazil } from "@/lib/report-week";
 import {
   ReceivablesTable,
   type Charge,
@@ -67,7 +68,7 @@ export default async function FinancasPage({
   searchParams: Promise<{ mes?: string }>;
 }) {
   const { mes } = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   const month = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : today.slice(0, 7);
   const referenceMonth = `${month}-01`;
 

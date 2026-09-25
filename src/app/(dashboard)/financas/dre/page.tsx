@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import type { TaxSettings } from "@/lib/types";
+import { computeFinanceMonth, loadFinanceRows } from "@/lib/finance-month";
+import { todayInBrazil } from "@/lib/report-week";
 
 const MONTH_NAMES = [
   "janeiro",
@@ -35,13 +36,6 @@ const MONTH_SHORT = [
 
 const MONTH_WINDOW = 6;
 
-// The tax-log button in Despesas writes the expense with this exact prefix
-// (see tax-summary-card.tsx), so a logged tax entry can be told apart from
-// an ordinary fixed expense and left out of "Despesas fixas" here — the
-// Impostos line already accounts for it, computed fresh off the period's
-// recebido instead of depending on whether anyone clicked "Lançar".
-const TAX_DESCRIPTION_PREFIX = "Imposto sobre faturamento (";
-
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -72,14 +66,6 @@ function yearMonthKeys(year: number) {
   return Array.from({ length: 12 }, (_, i) => `${year}-${String(i + 1).padStart(2, "0")}`);
 }
 
-type PaymentRow = { amount: number; reference_month: string };
-type ExpenseRow = {
-  amount: number;
-  due_date: string | null;
-  category: "fixed" | "variable" | null;
-  description: string;
-};
-
 type MonthMargin = {
   key: string;
   label: string;
@@ -90,33 +76,6 @@ type MonthMargin = {
   resultado: number;
   marginPct: number;
 };
-
-function computeMonth(
-  key: string,
-  payments: PaymentRow[],
-  expenses: ExpenseRow[],
-  rate: number,
-): MonthMargin {
-  const monthPayments = payments.filter((p) => p.reference_month.slice(0, 7) === key);
-  const recebido = monthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
-  const imposto = monthPayments.reduce(
-    (sum, p) => sum + Math.round(Number(p.amount) * rate * 100) / 100,
-    0,
-  );
-
-  const monthExpenses = expenses.filter((e) => (e.due_date ?? "").slice(0, 7) === key);
-  const fixas = monthExpenses
-    .filter((e) => e.category === "fixed" && !e.description.startsWith(TAX_DESCRIPTION_PREFIX))
-    .reduce((sum, e) => sum + Number(e.amount), 0);
-  const variaveis = monthExpenses
-    .filter((e) => e.category !== "fixed")
-    .reduce((sum, e) => sum + Number(e.amount), 0);
-
-  const resultado = recebido - imposto - fixas - variaveis;
-  const marginPct = recebido > 0 ? (resultado / recebido) * 100 : 0;
-
-  return { key, label: monthShort(key), recebido, imposto, fixas, variaveis, resultado, marginPct };
-}
 
 function aggregate(months: MonthMargin[]): Omit<MonthMargin, "key" | "label"> {
   const recebido = months.reduce((sum, m) => sum + m.recebido, 0);
@@ -134,10 +93,10 @@ export default async function DrePage({
   searchParams: Promise<{ mes?: string; ano?: string; visao?: string }>;
 }) {
   const { mes, ano, visao } = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayInBrazil();
   const view = visao === "anual" ? "anual" : "mensal";
 
-  const anchor = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : today.slice(0, 7);
+  const anchor = mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : today.slice(0, 7);
   const year = ano && /^\d{4}$/.test(ano) ? Number(ano) : Number(today.slice(0, 4));
 
   const monthKeys = view === "anual" ? yearMonthKeys(year) : [];
@@ -145,31 +104,17 @@ export default async function DrePage({
     for (let i = MONTH_WINDOW - 1; i >= 0; i--) monthKeys.push(shiftMonth(anchor, -i));
   }
 
-  const rangeStart = `${monthKeys[0]}-01`;
-  const rangeEndMonth = view === "anual" ? `${year + 1}-01` : shiftMonth(anchor, 1);
-  const rangeEnd = `${rangeEndMonth}-01`;
-
   const supabase = await createClient();
-
-  const [{ data: payments }, { data: expenses }, { data: taxSettings }] = await Promise.all([
-    supabase
-      .from("client_payments")
-      .select("amount, reference_month")
-      .gte("reference_month", rangeStart)
-      .lt("reference_month", rangeEnd)
-      .returns<PaymentRow[]>(),
-    supabase
-      .from("finance_entries")
-      .select("amount, due_date, category, description")
-      .eq("type", "expense")
-      .gte("due_date", rangeStart)
-      .lt("due_date", rangeEnd)
-      .returns<ExpenseRow[]>(),
-    supabase.from("tax_settings").select("*").limit(1).maybeSingle<TaxSettings>(),
-  ]);
-
-  const rate = taxSettings ? Number(taxSettings.rate_percent) / 100 : 0;
-  const months = monthKeys.map((key) => computeMonth(key, payments ?? [], expenses ?? [], rate));
+  const { payments, expenses, taxSettings } = await loadFinanceRows(
+    supabase,
+    monthKeys[0],
+    monthKeys[monthKeys.length - 1],
+  );
+  const months: MonthMargin[] = monthKeys.map((key) => ({
+    key,
+    label: monthShort(key),
+    ...computeFinanceMonth(key, payments, expenses, taxSettings),
+  }));
 
   const current = view === "anual" ? { ...aggregate(months) } : months[months.length - 1];
   const periodLabel = view === "anual" ? `o ano de ${year}` : monthLabel(anchor);

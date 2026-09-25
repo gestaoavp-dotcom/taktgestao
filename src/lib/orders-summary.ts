@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DateRange } from "@/lib/sales-summary";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 
 export type OrdersSummary = {
   revenue: number;
@@ -9,6 +10,8 @@ export type OrdersSummary = {
   previousOrders: number;
   previousTicket: number;
   chartData: { date: string; value: number }[];
+  /** Revenue from monthly product reports (Amazon): in the totals, not in the day chart. */
+  monthlyRevenue: number;
   platformRows: [string, { revenue: number; orders: number }][];
 };
 
@@ -80,29 +83,38 @@ export async function getOrdersSummary(
   // One row per day per marketplace, added up in the database. Fetching the
   // orders to sum them here meant six sequential requests for a 30-day window,
   // each waiting on the last.
-  const { data: daily } = await supabase.rpc("orders_summary", {
-    p_start: toISO(prevStart),
-    p_end: range.end,
-    p_client_id: filters.clientId ?? null,
-    p_marketplace: filters.marketplace ?? null,
-  });
-
-  const days_ = (daily ?? []) as DayRow[];
+  // Paged: a long period across several marketplaces passes the thousand rows
+  // the database returns per request, and the rest would be dropped unsaid.
+  const days_ = await fetchAll<DayRow>((from, to) =>
+    supabase
+      .rpc("orders_summary", {
+        p_start: toISO(prevStart),
+        p_end: range.end,
+        p_client_id: filters.clientId ?? null,
+        p_marketplace: filters.marketplace ?? null,
+      })
+      .order("day")
+      .order("marketplace")
+      .range(from, to),
+  );
   const current = days_.filter((d) => d.day >= range.start);
   const previous = days_.filter((d) => d.day < range.start);
 
   // Amazon settles by product, so its revenue lives nowhere in sales_orders.
   // Left out, "faturamento" silently omits a whole marketplace.
-  let productQuery = supabase
-    .from("sales_products")
-    .select("marketplace, report_month, net_sales, units_net")
-    .eq("is_total", false);
-
-  if (filters.clientId) productQuery = productQuery.eq("client_id", filters.clientId);
-  if (filters.marketplace) productQuery = productQuery.eq("marketplace", filters.marketplace);
-
-  const { data: productData } = await productQuery.returns<ProductRow[]>();
-  const products = productData ?? [];
+  // Only the months that can count for either window, read in pages: one row
+  // per product per month adds up past a thousand fast.
+  const products = await fetchAll<ProductRow>((from, to) => {
+    let q = supabase
+      .from("sales_products")
+      .select("marketplace, report_month, net_sales, units_net")
+      .eq("is_total", false)
+      .gte("report_month", `${toISO(prevStart).slice(0, 7)}-01`)
+      .lte("report_month", range.end);
+    if (filters.clientId) q = q.eq("client_id", filters.clientId);
+    if (filters.marketplace) q = q.eq("marketplace", filters.marketplace);
+    return q.order("id").range(from, to).returns<ProductRow[]>();
+  });
 
   const currentProducts = products.filter((p) =>
     monthWithin(p.report_month, range.start, range.end),
@@ -177,6 +189,7 @@ export async function getOrdersSummary(
     previousOrders,
     previousTicket: previousOrders > 0 ? previousRevenue / previousOrders : 0,
     chartData,
+    monthlyRevenue: productRevenue(currentProducts),
     platformRows,
   };
 }

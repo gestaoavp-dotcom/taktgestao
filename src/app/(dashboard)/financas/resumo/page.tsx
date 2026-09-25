@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { computeFinanceMonth, loadFinanceRows } from "@/lib/finance-month";
+import { todayInBrazil } from "@/lib/report-week";
 import { CashflowChart, type MonthPoint } from "@/components/cashflow-chart";
 
 const MONTH_NAMES = [
@@ -60,56 +62,36 @@ function shiftMonth(month: string, delta: number) {
   return new Date(Date.UTC(y, m - 1 + delta, 1)).toISOString().slice(0, 7);
 }
 
-type PaymentRow = { amount: number; reference_month: string };
-type ExpenseRow = { amount: number; due_date: string | null; category: "fixed" | "variable" | null };
-
 export default async function ResumoPage({
   searchParams,
 }: {
   searchParams: Promise<{ mes?: string }>;
 }) {
   const { mes } = await searchParams;
-  const today = new Date().toISOString().slice(0, 10);
-  const anchor = mes && /^\d{4}-\d{2}$/.test(mes) ? mes : today.slice(0, 7);
+  const today = todayInBrazil();
+  const anchor = mes && /^\d{4}-(0[1-9]|1[0-2])$/.test(mes) ? mes : today.slice(0, 7);
 
   const monthKeys: string[] = [];
   for (let i = WINDOW - 1; i >= 0; i--) monthKeys.push(shiftMonth(anchor, -i));
 
-  const rangeStart = `${monthKeys[0]}-01`;
-  const rangeEnd = `${shiftMonth(anchor, 1)}-01`;
-
   const supabase = await createClient();
+  const { payments, expenses, taxSettings } = await loadFinanceRows(
+    supabase,
+    monthKeys[0],
+    monthKeys[monthKeys.length - 1],
+  );
 
-  const [{ data: payments }, { data: expenses }] = await Promise.all([
-    supabase
-      .from("client_payments")
-      .select("amount, reference_month")
-      .gte("reference_month", rangeStart)
-      .lt("reference_month", rangeEnd)
-      .returns<PaymentRow[]>(),
-    supabase
-      .from("finance_entries")
-      .select("amount, due_date, category")
-      .eq("type", "expense")
-      .gte("due_date", rangeStart)
-      .lt("due_date", rangeEnd)
-      .returns<ExpenseRow[]>(),
-  ]);
-
+  // The same month the DRE shows, split for the chart: the tax is a fixed
+  // cost, so it sits with the fixed expenses here.
   const months: MonthPoint[] = monthKeys.map((key) => {
-    const recebido = (payments ?? [])
-      .filter((p) => p.reference_month.slice(0, 7) === key)
-      .reduce((sum, p) => sum + Number(p.amount), 0);
-
-    const monthExpenses = (expenses ?? []).filter((e) => (e.due_date ?? "").slice(0, 7) === key);
-    const fixed = monthExpenses
-      .filter((e) => e.category === "fixed")
-      .reduce((sum, e) => sum + Number(e.amount), 0);
-    const variable = monthExpenses
-      .filter((e) => e.category !== "fixed")
-      .reduce((sum, e) => sum + Number(e.amount), 0);
-
-    return { key, label: monthShort(key), recebido, fixed, variable };
+    const m = computeFinanceMonth(key, payments, expenses, taxSettings);
+    return {
+      key,
+      label: monthShort(key),
+      recebido: m.recebido,
+      fixed: m.imposto + m.fixas,
+      variable: m.variaveis,
+    };
   });
 
   const current = months[months.length - 1];

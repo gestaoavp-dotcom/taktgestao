@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { linkLooseStoresToFirstCnpj } from "@/lib/link-stores";
+import { todayInBrazil } from "@/lib/report-week";
 
 export type ActionState = { ok: true } | { error: string } | null;
 
@@ -369,7 +370,7 @@ export async function updateChangeStatus(formData: FormData) {
     .from("client_changes")
     .update({
       status,
-      closed_on: status === "concluida" ? new Date().toISOString().slice(0, 10) : null,
+      closed_on: status === "concluida" ? todayInBrazil() : null,
     })
     .eq("id", formData.get("id") as string);
 
