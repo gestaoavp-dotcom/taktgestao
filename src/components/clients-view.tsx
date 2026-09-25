@@ -123,7 +123,19 @@ export function ClientsView({
                     <Folder className="h-5 w-5 text-blue" />
                   </div>
                   {canManage && (
-                    <form action={deleteClientRecord} className="relative z-10">
+                    <form
+                      action={deleteClientRecord}
+                      onSubmit={(e) => {
+                        if (
+                          !window.confirm(
+                            `Excluir ${client.name}? A pasta, os dados e o login do cliente serão apagados de vez.`,
+                          )
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                      className="relative z-10"
+                    >
                       <input type="hidden" name="id" value={client.id} />
                       <button
                         type="submit"

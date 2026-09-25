@@ -165,11 +165,42 @@ export async function createClientRecord(
     : { ok: true, id: client.id, email, emailSent: false, message: delivery.message };
 }
 
+/**
+ * Deleting a client deletes its logins too.
+ *
+ * The database drops the profile with the client, but not the login behind
+ * it: left alone, that login could still sign in — through a link sent
+ * earlier, say — and would land with no client, waiting for an approval
+ * nobody meant to give. So the logins go first, then the folder. A dono only,
+ * since removing a login needs the service-role key.
+ */
 export async function deleteClientRecord(formData: FormData) {
   const supabase = await createClient();
   const id = formData.get("id") as string;
 
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return;
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .maybeSingle<{ role: string }>();
+  if (me?.role !== "dono") return;
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const admin = createAdminClient();
+
+  const { data: logins } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("client_id", id)
+    .returns<{ id: string }[]>();
+  for (const login of logins ?? []) {
+    await admin.auth.admin.deleteUser(login.id);
+  }
+
   await supabase.from("clients").delete().eq("id", id);
 
   revalidatePath("/clientes");
+  revalidatePath("/configuracoes");
 }
