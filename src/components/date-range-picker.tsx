@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { Loader2 } from "lucide-react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { DateField } from "@/components/date-field";
@@ -18,19 +18,16 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
 
   // Changing only the query string re-renders the page without remounting the
   // route, so loading.tsx never fires and nothing on screen moves. The
-  // transition is what makes the wait visible, and it shows up on the control
-  // that was actually clicked.
+  // transition is what makes the wait visible.
   const [pending, startTransition] = useTransition();
-  // Which button was pressed. The active one is still the old window until the
-  // navigation lands, so it is the wrong place to put the spinner.
-  const [clicked, setClicked] = useState<string | null>(null);
   // Reports for a week go up on the Monday after it: nothing past the last
   // closed Sunday is whole, so neither the shortcuts nor the calendar go there.
   const until = lastReportSunday();
   const presets = reportPresets();
+  // Whichever shortcut matches the period on screen; none means dates typed by hand.
+  const current = presets.find((p) => p.range.start === start && p.range.end === end)?.label ?? "";
 
-  const apply = (range: { start: string; end: string }, label?: string) => {
-    setClicked(label ?? null);
+  const apply = (range: { start: string; end: string }) => {
     // Keep whatever else is filtering the page, like the marketplace.
     const params = new URLSearchParams(searchParams);
     params.set("de", range.start);
@@ -44,32 +41,23 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
         pending ? "opacity-60" : ""
       }`}
     >
-      <div className="flex flex-wrap gap-1.5">
-        {presets.map((preset) => {
-          const range = preset.range;
-          const active = range.start === start && range.end === end;
-          return (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() => apply(range, preset.label)}
-              title={preset.note}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                active
-                  ? "bg-navy text-white"
-                  : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                {preset.label}
-                {pending && clicked === preset.label && (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <select
+        aria-label="Período"
+        value={current}
+        onChange={(e) => {
+          const preset = presets.find((p) => p.label === e.target.value);
+          if (preset) apply(preset.range);
+        }}
+        className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+      >
+        {!current && <option value="">Personalizado</option>}
+        {presets.map((preset) => (
+          <option key={preset.label} value={preset.label}>
+            {preset.label}
+            {preset.note ? ` (${preset.note})` : ""}
+          </option>
+        ))}
+      </select>
 
       <div className="flex items-center gap-1.5">
         <div className="w-36">
@@ -93,6 +81,8 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
           />
         </div>
       </div>
+
+      {pending && <Loader2 className="h-4 w-4 animate-spin text-[#94A0BD]" />}
 
       <p className="w-full text-[11px] text-[#94A0BD]">
         Dados fechados até domingo, {formatBR(until)} — os relatórios da semana sobem às segundas.
