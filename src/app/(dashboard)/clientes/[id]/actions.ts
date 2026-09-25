@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { linkLooseStoresToFirstCnpj } from "@/lib/link-stores";
 
 export type ActionState = { ok: true } | { error: string } | null;
 
@@ -19,17 +20,23 @@ export async function addCnpj(
   const { data: auth } = await supabase.auth.getUser();
   const clientId = formData.get("client_id") as string;
 
-  const { error } = await supabase.from("client_cnpjs").insert({
-    client_id: clientId,
-    cnpj: formData.get("cnpj") as string,
-    label: (formData.get("label") as string) || null,
-    monthly_fee: toNumber(formData.get("monthly_fee")),
-    payment_day: toNumber(formData.get("payment_day")),
-    payment_method: (formData.get("payment_method") as string) || null,
-    created_by: auth.user?.id,
-  });
+  const { data: created, error } = await supabase
+    .from("client_cnpjs")
+    .insert({
+      client_id: clientId,
+      cnpj: formData.get("cnpj") as string,
+      label: (formData.get("label") as string) || null,
+      monthly_fee: toNumber(formData.get("monthly_fee")),
+      payment_day: toNumber(formData.get("payment_day")),
+      payment_method: (formData.get("payment_method") as string) || null,
+      created_by: auth.user?.id,
+    })
+    .select("id")
+    .single<{ id: string }>();
 
   if (error) return { error: error.message };
+
+  await linkLooseStoresToFirstCnpj(supabase, clientId, created.id);
 
   revalidatePath(`/clientes/${clientId}/informacoes`);
   revalidatePath("/financas");

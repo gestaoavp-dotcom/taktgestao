@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAccessLink, deliverAccessLink } from "@/lib/access-link";
 import { findAbandonedLogin } from "@/lib/abandoned-login";
+import { linkLooseStoresToFirstCnpj } from "@/lib/link-stores";
 import { sendClientAccessLink, type AccessLinkState } from "@/app/(dashboard)/configuracoes/actions";
 
 export type CreateClientState =
@@ -283,10 +284,13 @@ export async function completeClientAccess(
   if (emailError) return { error: emailError.message };
 
   if (needsCnpj) {
-    const { error: cnpjError } = await supabase
+    const { data: created, error: cnpjError } = await supabase
       .from("client_cnpjs")
-      .insert({ client_id: clientId, cnpj, created_by: auth.user.id });
+      .insert({ client_id: clientId, cnpj, created_by: auth.user.id })
+      .select("id")
+      .single<{ id: string }>();
     if (cnpjError) return { error: cnpjError.message };
+    await linkLooseStoresToFirstCnpj(supabase, clientId, created.id);
   }
 
   const linkData = new FormData();
