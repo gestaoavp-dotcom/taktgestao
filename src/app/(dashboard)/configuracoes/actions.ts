@@ -89,194 +89,6 @@ export async function updateProfileName(
 }
 
 /**
- * Invites someone by email and places them in one step.
- *
- * Creating a login is the only thing in this app that needs the service-role
- * key, and it never leaves the server. The owner check above runs first, and
- * it reads the caller's level from the database rather than trusting anything
- * the request carried.
- *
- * Supabase sends the email; the person sets their own password from the link.
- * We never see it, and never set one for them.
- */
-export async function inviteUser(
-  _prevState: SettingsState,
-  formData: FormData,
-): Promise<SettingsState> {
-  const guard = await requireOwner();
-  if (!guard.ok) return { error: guard.error };
-
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const role = formData.get("role") as ProfileRole;
-  const clientId = (formData.get("client_id") as string) || null;
-  const name = (formData.get("name") as string)?.trim() || null;
-
-  if (!email.includes("@")) return { error: "Informe um e-mail válido." };
-  if (!ROLES.includes(role)) return { error: "Nível inválido." };
-  if (role === "cliente" && !clientId) {
-    return { error: "Um acesso de cliente precisa estar ligado a um cliente." };
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/admin");
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
-
-  if (error) {
-    // The commonest case by far, and worth saying plainly rather than passing
-    // the raw message through.
-    if (/already/i.test(error.message)) {
-      return { error: "Esse e-mail já tem login. Ajuste o nível dele na lista acima." };
-    }
-    return { error: error.message };
-  }
-  if (!data.user) return { error: "O convite não retornou um usuário." };
-
-  // Placed now, so the person arrives already where they belong instead of
-  // spending their first visit at the most restricted level.
-  const { error: profileError } = await admin.from("profiles").upsert({
-    id: data.user.id,
-    email,
-    name: name ?? email.split("@")[0],
-    role,
-    client_id: role === "cliente" ? clientId : null,
-  });
-
-  if (profileError) return { error: profileError.message };
-
-  revalidatePath("/configuracoes");
-  return { ok: true };
-}
-
-/**
- * Creates a login with a temporary password, for when email cannot be relied
- * on — which is most of the time before a project has its own SMTP.
- *
- * The password is chosen by the owner, handed to Supabase, and kept nowhere
- * here: it is not stored, not logged, and not returned. It works exactly once,
- * because the profile is left with no password_changed_at and the middleware
- * sends such a login to the change-password page and nowhere else.
- */
-export async function createUserWithPassword(
-  _prevState: SettingsState,
-  formData: FormData,
-): Promise<SettingsState> {
-  const guard = await requireOwner();
-  if (!guard.ok) return { error: guard.error };
-
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  const role = formData.get("role") as ProfileRole;
-  const clientId = (formData.get("client_id") as string) || null;
-  const name = (formData.get("name") as string)?.trim() || null;
-
-  if (!email.includes("@")) return { error: "Informe um e-mail válido." };
-  if (password.length < 8) return { error: "A senha temporária precisa ter ao menos 8 caracteres." };
-  if (!ROLES.includes(role)) return { error: "Nível inválido." };
-  if (role === "cliente" && !clientId) {
-    return { error: "Um acesso de cliente precisa estar ligado a um cliente." };
-  }
-
-  const { createAdminClient } = await import("@/lib/supabase/admin");
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-
-  // Confirmed on creation, because no confirmation mail is going to arrive.
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  });
-
-  if (error) {
-    if (/already/i.test(error.message)) {
-      return { error: "Esse e-mail já tem login. Ajuste o nível dele na lista acima." };
-    }
-    return { error: error.message };
-  }
-  if (!data.user) return { error: "A criação não retornou um usuário." };
-
-  // password_changed_at stays null on purpose: that is what makes the
-  // temporary password good for one entry and no more.
-  const { error: profileError } = await admin.from("profiles").upsert({
-    id: data.user.id,
-    email,
-    name: name ?? email.split("@")[0],
-    role,
-    client_id: role === "cliente" ? clientId : null,
-    password_changed_at: null,
-  });
-
-  if (profileError) return { error: profileError.message };
-
-  revalidatePath("/configuracoes");
-  return { ok: true };
-}
-
-/**
- * Sets a new temporary password on a login that already exists.
- *
- * Needed for two ordinary cases: an invitation that never arrived, leaving an
- * account with no password at all, and someone who has forgotten theirs. Both
- * end the same way — the password is good for one entry, because this clears
- * password_changed_at and the middleware then allows nothing but the
- * change-password page.
- */
-export async function resetTemporaryPassword(
-  _prevState: SettingsState,
-  formData: FormData,
-): Promise<SettingsState> {
-  const guard = await requireOwner();
-  if (!guard.ok) return { error: guard.error };
-
-  const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const password = String(formData.get("password") ?? "");
-  if (password.length < 8) return { error: "A senha temporária precisa ter ao menos 8 caracteres." };
-
-  const { createAdminClient } = await import("@/lib/supabase/admin");
-  let admin;
-  try {
-    admin = createAdminClient();
-  } catch (e) {
-    return { error: (e as Error).message };
-  }
-
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("id")
-    .eq("email", email)
-    .maybeSingle<{ id: string }>();
-
-  if (!profile) return { error: "Não achei um login com esse e-mail." };
-
-  // An account created by invitation has no password and no confirmed email;
-  // both are settled here, since no confirmation mail is going to arrive.
-  const { error } = await admin.auth.admin.updateUserById(profile.id, {
-    password,
-    email_confirm: true,
-  });
-  if (error) return { error: error.message };
-
-  const { error: profileError } = await admin
-    .from("profiles")
-    .update({ password_changed_at: null })
-    .eq("id", profile.id);
-  if (profileError) return { error: profileError.message };
-
-  revalidatePath("/configuracoes");
-  return { ok: true };
-}
-
-/**
  * Sends a test message to the owner's own address, so the sending account can
  * be checked from here instead of by creating a client. Gmail's refusals
  * ("Invalid login", "Application-specific password required") are passed on
@@ -399,6 +211,119 @@ export async function sendClientAccessLink(
   revalidatePath("/configuracoes");
 
   const delivery = await deliverAccessLink({ name, email }, link);
+  return delivery.emailSent
+    ? { ok: true, emailSent: true }
+    : { ok: true, emailSent: false, message: delivery.message };
+}
+
+/**
+ * The one way to make a login: with no password, and a one-time link to the
+ * person to choose theirs. Any level — a client, the team, another admin.
+ */
+export async function createLoginWithLink(
+  _prevState: AccessLinkState,
+  formData: FormData,
+): Promise<AccessLinkState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const name = String(formData.get("name") ?? "").trim();
+  const role = formData.get("role") as ProfileRole;
+  const clientId = (formData.get("client_id") as string) || null;
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { error: "Informe um e-mail válido." };
+  if (!ROLES.includes(role)) return { error: "Nível inválido." };
+  if (role === "cliente" && !clientId) {
+    return { error: "Um acesso de cliente precisa estar ligado a um cliente." };
+  }
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { createAccessLink, deliverAccessLink } = await import("@/lib/access-link");
+  const { findAbandonedLogin } = await import("@/lib/abandoned-login");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const abandoned = await findAbandonedLogin(admin, email);
+  if (abandoned) await admin.auth.admin.deleteUser(abandoned);
+
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+  });
+  if (error || !created.user) {
+    if (error && /already/i.test(error.message)) {
+      return { error: "Esse e-mail já tem login. Para uma nova senha, use o botão na lista acima." };
+    }
+    return { error: error?.message ?? "Não foi possível criar o login." };
+  }
+
+  const { error: profileError } = await admin.from("profiles").upsert({
+    id: created.user.id,
+    email,
+    name: name || email.split("@")[0],
+    role,
+    client_id: role === "cliente" ? clientId : null,
+    password_changed_at: null,
+  });
+  if (profileError) {
+    await admin.auth.admin.deleteUser(created.user.id);
+    return { error: profileError.message };
+  }
+
+  revalidatePath("/configuracoes");
+
+  let link: string;
+  try {
+    link = await createAccessLink(admin, email);
+  } catch (e) {
+    return { error: `Login criado, mas o link não: ${(e as Error).message}` };
+  }
+  const delivery = await deliverAccessLink({ name, email }, link);
+  return delivery.emailSent
+    ? { ok: true, emailSent: true }
+    : { ok: true, emailSent: false, message: delivery.message };
+}
+
+/**
+ * A fresh one-time link for a login that already exists — the way back in for
+ * a forgotten password. Each link voids the one before; nothing else changes.
+ */
+export async function sendPasswordLink(
+  _prevState: AccessLinkState,
+  formData: FormData,
+): Promise<AccessLinkState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const id = String(formData.get("id") ?? "");
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { createAccessLink, deliverAccessLink } = await import("@/lib/access-link");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("email, name")
+    .eq("id", id)
+    .maybeSingle<{ email: string | null; name: string | null }>();
+  if (!profile?.email) return { error: "Não achei o e-mail desse login." };
+
+  let link: string;
+  try {
+    link = await createAccessLink(admin, profile.email);
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  const delivery = await deliverAccessLink({ name: profile.name ?? "", email: profile.email }, link);
   return delivery.emailSent
     ? { ok: true, emailSent: true }
     : { ok: true, emailSent: false, message: delivery.message };

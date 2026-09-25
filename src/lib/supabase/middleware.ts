@@ -73,6 +73,28 @@ export async function updateSession(request: NextRequest) {
         password_changed_at: string | null;
       }>();
 
+    // A login that has never chosen its own password may come in only through
+    // its one-time link. A session opened with a password means a password
+    // someone else set — a leftover temporary one, or a sign-up made outside
+    // the app — so it is ended here, before any other rule, and above all
+    // before /trocar-senha, where it could otherwise take the login over.
+    if (!profile?.password_changed_at) {
+      const { data: claimsData } = await supabase.auth.getClaims();
+      const amr = (claimsData?.claims.amr ?? []) as (string | { method: string })[];
+      const byPassword = amr.some((m) => (typeof m === "string" ? m : m.method) === "password");
+      if (byPassword) {
+        await supabase.auth.signOut();
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        url.search = `?error=${encodeURIComponent(
+          "Este acesso só abre pelo link enviado por e-mail. Peça um novo à equipe TAKT.",
+        )}`;
+        const response = NextResponse.redirect(url);
+        supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
+        return response;
+      }
+    }
+
     // A login gets in only once the owner has placed it: on the team, or bound
     // to a client the agency registered. Anything else — a login made outside
     // the app, a profile never placed — waits on one page until a dono
