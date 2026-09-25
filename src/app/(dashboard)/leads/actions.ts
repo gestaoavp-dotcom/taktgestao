@@ -14,10 +14,45 @@ export async function updateLeadStatus(formData: FormData) {
   revalidatePath("/leads");
 }
 
-export async function deleteLead(formData: FormData) {
+export type DeleteLeadState = { ok: true } | { error: string } | null;
+
+/**
+ * Deletes a lead for good. The admin's alone, and only with its PIN — the
+ * same one that deletes a client, created here the first time if it has none.
+ * A lead that became a client goes without touching the client.
+ */
+export async function deleteLead(
+  _prevState: DeleteLeadState,
+  formData: FormData,
+): Promise<DeleteLeadState> {
   const supabase = await createClient();
-  await supabase.from("leads").delete().eq("id", formData.get("id") as string);
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { error: "Faça login novamente." };
+
+  const { data: me } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", auth.user.id)
+    .maybeSingle<{ role: string }>();
+  if (me?.role !== "dono") return { error: "Só o admin pode apagar leads." };
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { authorizeWithPin } = await import("@/lib/admin-pin");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const problem = await authorizeWithPin(admin, auth.user.id, formData);
+  if (problem) return { error: problem };
+
+  const { error } = await supabase.from("leads").delete().eq("id", formData.get("id") as string);
+  if (error) return { error: error.message };
+
   revalidatePath("/leads");
+  return { ok: true };
 }
 
 export type LeadEmailState = { ok: true } | { error: string } | null;

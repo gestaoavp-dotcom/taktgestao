@@ -209,7 +209,6 @@ export async function deleteClientRecord(
 ): Promise<DeleteClientState> {
   const supabase = await createClient();
   const id = formData.get("id") as string;
-  const pin = String(formData.get("pin") ?? "");
 
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return { error: "Faça login novamente." };
@@ -221,7 +220,7 @@ export async function deleteClientRecord(
   if (me?.role !== "dono") return { error: "Só o admin pode excluir clientes." };
 
   const { createAdminClient } = await import("@/lib/supabase/admin");
-  const { checkPin, createPin, hasPin, isValidPin } = await import("@/lib/admin-pin");
+  const { authorizeWithPin } = await import("@/lib/admin-pin");
   let admin;
   try {
     admin = createAdminClient();
@@ -229,17 +228,8 @@ export async function deleteClientRecord(
     return { error: (e as Error).message };
   }
 
-  if (await hasPin(admin, auth.user.id)) {
-    const problem = await checkPin(admin, auth.user.id, pin);
-    if (problem) return { error: problem };
-  } else {
-    if (!isValidPin(pin)) return { error: "O PIN precisa ter 4 números." };
-    if (pin !== String(formData.get("pin_confirm") ?? "")) {
-      return { error: "Os dois PINs não são iguais." };
-    }
-    const problem = await createPin(admin, auth.user.id, pin);
-    if (problem) return { error: problem };
-  }
+  const problem = await authorizeWithPin(admin, auth.user.id, formData);
+  if (problem) return { error: problem };
 
   const { data: logins } = await admin
     .from("profiles")

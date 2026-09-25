@@ -80,3 +80,18 @@ export async function checkPin(admin: SupabaseClient, userId: string, pin: strin
     ? `PIN errado. Exclusão bloqueada por ${LOCK_MINUTES} minutos.`
     : `PIN errado. ${MAX_ATTEMPTS - attempts} tentativa(s) antes do bloqueio.`;
 }
+
+/**
+ * The PIN step of any "apagar para sempre": checks the PIN typed in the form,
+ * or — the first time, when the dono has none — creates it from the two
+ * matching entries. Null when the deletion may go ahead.
+ */
+export async function authorizeWithPin(admin: SupabaseClient, userId: string, formData: FormData) {
+  const pin = String(formData.get("pin") ?? "");
+
+  if (await hasPin(admin, userId)) return checkPin(admin, userId, pin);
+
+  if (!isValidPin(pin)) return "O PIN precisa ter 4 números.";
+  if (pin !== String(formData.get("pin_confirm") ?? "")) return "Os dois PINs não são iguais.";
+  return createPin(admin, userId, pin);
+}

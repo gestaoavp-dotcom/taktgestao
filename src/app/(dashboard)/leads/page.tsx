@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
-import { ConvertLeadButton, LeadEmailField } from "@/components/lead-actions";
+import { ConvertLeadButton, DeleteLeadButton, LeadEmailField } from "@/components/lead-actions";
 import { getProfile } from "@/lib/profile";
-import { deleteLead, updateLeadStatus } from "./actions";
+import { updateLeadStatus } from "./actions";
 
 type Lead = {
   id: string;
@@ -47,7 +46,21 @@ export default async function LeadsPage() {
   const rows = leads ?? [];
 
   // Converting creates a login, which is the admin's alone.
-  const isOwner = (await getProfile())?.role === "dono";
+  const profile = await getProfile();
+  const isOwner = profile?.role === "dono";
+
+  // Whether the admin already has its deletion PIN, so the dialog asks for it
+  // or offers to create it.
+  let hasDeletePin = false;
+  if (isOwner && profile) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { hasPin } = await import("@/lib/admin-pin");
+    try {
+      hasDeletePin = await hasPin(createAdminClient(), profile.id);
+    } catch {
+      // No service key on this deploy: the delete action says so when used.
+    }
+  }
 
   // The clients converted leads became, to link to by name.
   const clientIds = rows.map((l) => l.client_id).filter((id): id is string => !!id);
@@ -155,16 +168,9 @@ export default async function LeadsPage() {
                   )}
                 </td>
                 <td className="px-5 py-3 text-right">
-                  <form action={deleteLead}>
-                    <input type="hidden" name="id" value={lead.id} />
-                    <button
-                      type="submit"
-                      aria-label={`Excluir lead ${lead.name}`}
-                      className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </form>
+                  {isOwner && (
+                    <DeleteLeadButton lead={{ id: lead.id, name: lead.name }} hasPin={hasDeletePin} />
+                  )}
                 </td>
               </tr>
             ))}
