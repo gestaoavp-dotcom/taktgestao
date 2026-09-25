@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAccessLink, deliverAccessLink } from "@/lib/access-link";
+import { findAbandonedLogin } from "@/lib/abandoned-login";
 
 export type CreateClientState =
   | {
@@ -70,14 +71,24 @@ export async function createClientRecord(
   // The login first: it is the step most likely to be refused (an e-mail that
   // already has one), and nothing else has been written yet when it is. It is
   // made with no password at all — the client sets one through the link.
-  const { data: created, error: userError } = await admin.auth.admin.createUser({
-    email,
-    email_confirm: true,
-  });
-  if (userError || !created.user) {
-    if (userError && /already/i.test(userError.message)) {
-      return { error: "Esse e-mail já tem um login. Use outro e-mail principal." };
+  const createLogin = () => admin.auth.admin.createUser({ email, email_confirm: true });
+  let { data: created, error: userError } = await createLogin();
+
+  // An e-mail can be held by a login that reaches nothing: no profile, or a
+  // client-level profile bound to no client (what a deleted client used to
+  // leave behind). Such a login is removed and made again from scratch —
+  // never reused, since whoever made it may know its password. A login that
+  // is in use keeps its e-mail.
+  if (userError && /already/i.test(userError.message)) {
+    const abandoned = await findAbandonedLogin(admin, email);
+    if (!abandoned) {
+      return { error: "Esse e-mail já é o login de outra pessoa. Use outro e-mail principal." };
     }
+    await admin.auth.admin.deleteUser(abandoned);
+    ({ data: created, error: userError } = await createLogin());
+  }
+
+  if (userError || !created.user) {
     return { error: userError?.message ?? "Não foi possível criar o login." };
   }
   const userId = created.user.id;

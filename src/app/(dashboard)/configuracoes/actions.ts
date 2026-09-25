@@ -346,11 +346,18 @@ export async function sendClientAccessLink(
     return { error: (e as Error).message };
   }
 
-  const { data: existing } = await admin
-    .from("profiles")
-    .select("id, role, client_id")
-    .eq("email", email)
-    .maybeSingle<{ id: string; role: ProfileRole; client_id: string | null }>();
+  // A login that reaches nothing is cleared away and made fresh, not reused.
+  const { findAbandonedLogin } = await import("@/lib/abandoned-login");
+  const abandoned = await findAbandonedLogin(admin, email);
+  if (abandoned) await admin.auth.admin.deleteUser(abandoned);
+
+  const { data: existing } = abandoned
+    ? { data: null }
+    : await admin
+        .from("profiles")
+        .select("id, role, client_id")
+        .eq("email", email)
+        .maybeSingle<{ id: string; role: ProfileRole; client_id: string | null }>();
 
   // A link signs its holder in as the login it belongs to, so it only ever goes
   // to that login's own client — never to an address that belongs to someone else.

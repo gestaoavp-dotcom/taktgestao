@@ -23,6 +23,8 @@ export type ClientSummary = {
   searchText: string;
 };
 
+const EMPTY_FIELDS = { name: "", email: "", label: "", monthly_fee: "", payment_day: "" };
+
 const INPUT_CLASS =
   "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
 
@@ -46,6 +48,14 @@ export function ClientsView({
   const [modalOpen, setModalOpen] = useState(false);
   const [phone, setPhone] = useState("");
   const [cnpj, setCnpj] = useState("");
+  // Controlled so a refused save keeps what was typed: React resets the
+  // uncontrolled fields of a form once its action has run.
+  const [fields, setFields] = useState(EMPTY_FIELDS);
+  const field = (key: keyof typeof EMPTY_FIELDS) => ({
+    value: fields[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+      setFields((f) => ({ ...f, [key]: e.target.value })),
+  });
   const [marketplaces, setMarketplaces] = useState<string[]>([]);
   const [done, setDone] = useState<Extract<CreateClientState, { ok: true }> | null>(null);
   const [copied, setCopied] = useState(false);
@@ -53,6 +63,7 @@ export function ClientsView({
   function resetModalFields() {
     setPhone("");
     setCnpj("");
+    setFields(EMPTY_FIELDS);
     setMarketplaces([]);
     setDone(null);
     setCopied(false);
@@ -278,7 +289,14 @@ export function ClientsView({
                 <label htmlFor="name" className="text-sm font-semibold text-navy">
                   Nome
                 </label>
-                <input id="name" name="name" required autoFocus className={INPUT_CLASS} />
+                <input
+                  id="name"
+                  name="name"
+                  required
+                  autoFocus
+                  {...field("name")}
+                  className={INPUT_CLASS}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -287,6 +305,7 @@ export function ClientsView({
                 </label>
                 <input
                   id="email"
+                  {...field("email")}
                   name="email"
                   type="email"
                   required
@@ -339,6 +358,7 @@ export function ClientsView({
                   </label>
                   <input
                     id="label"
+                  {...field("label")}
                     name="label"
                     placeholder="Opcional"
                     className={INPUT_CLASS}
@@ -353,6 +373,7 @@ export function ClientsView({
                   </label>
                   <input
                     id="monthly_fee"
+                  {...field("monthly_fee")}
                     name="monthly_fee"
                     type="number"
                     step="0.01"
@@ -367,6 +388,7 @@ export function ClientsView({
                   </label>
                   <input
                     id="payment_day"
+                  {...field("payment_day")}
                     name="payment_day"
                     type="number"
                     min="1"
