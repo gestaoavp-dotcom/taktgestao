@@ -25,6 +25,11 @@ export async function submitLead(
   if (!phone || phone.replace(/\D/g, "").length < 10) {
     return { error: "Informe um WhatsApp com DDD." };
   }
+  // The e-mail a converted lead's login is made with, so it is not optional.
+  const email = text(formData, "email", 160)?.toLowerCase() ?? null;
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Informe um e-mail válido." };
+  }
 
   const marketplaces = formData
     .getAll("marketplaces")
@@ -40,7 +45,7 @@ export async function submitLead(
     id,
     name,
     phone,
-    email: text(formData, "email", 160),
+    email,
     company: text(formData, "company", 120),
     marketplaces,
     message: text(formData, "message", 1000),

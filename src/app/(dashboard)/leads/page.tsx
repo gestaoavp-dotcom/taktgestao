@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { AutoSubmitSelect } from "@/components/auto-submit-select";
+import { ConvertLeadButton, LeadEmailField } from "@/components/lead-actions";
+import { getProfile } from "@/lib/profile";
 import { deleteLead, updateLeadStatus } from "./actions";
 
 type Lead = {
@@ -13,6 +16,7 @@ type Lead = {
   marketplaces: string[];
   message: string | null;
   status: "novo" | "contatado" | "convertido" | "descartado";
+  client_id: string | null;
   created_at: string;
 };
 
@@ -41,6 +45,20 @@ export default async function LeadsPage() {
     .returns<Lead[]>();
 
   const rows = leads ?? [];
+
+  // Converting creates a login, which is the admin's alone.
+  const isOwner = (await getProfile())?.role === "dono";
+
+  // The clients converted leads became, to link to by name.
+  const clientIds = rows.map((l) => l.client_id).filter((id): id is string => !!id);
+  const { data: converted } = clientIds.length
+    ? await supabase
+        .from("clients")
+        .select("id, name")
+        .in("id", clientIds)
+        .returns<{ id: string; name: string }[]>()
+    : { data: [] as { id: string; name: string }[] };
+  const clientName = new Map((converted ?? []).map((c) => [c.id, c.name]));
   const newCount = rows.filter((l) => l.status === "novo").length;
 
   return (
@@ -62,6 +80,7 @@ export default async function LeadsPage() {
               <th className="px-5 py-2.5 font-semibold text-navy">Loja / marketplaces</th>
               <th className="px-5 py-2.5 font-semibold text-navy">Mensagem</th>
               <th className="px-5 py-2.5 font-semibold text-navy">Status</th>
+              <th className="px-5 py-2.5 font-semibold text-navy">Cliente</th>
               <th className="px-5 py-2.5" />
             </tr>
           </thead>
@@ -81,7 +100,7 @@ export default async function LeadsPage() {
                   >
                     {lead.phone}
                   </a>
-                  {lead.email && <p className="text-xs text-[#94A0BD]">{lead.email}</p>}
+                  <LeadEmailField id={lead.id} email={lead.email} />
                 </td>
                 <td className="px-5 py-3">
                   <p className="text-navy">{lead.company ?? "—"}</p>
@@ -112,6 +131,29 @@ export default async function LeadsPage() {
                     />
                   </form>
                 </td>
+                <td className="px-5 py-3">
+                  {lead.client_id ? (
+                    <Link
+                      href={`/clientes/${lead.client_id}`}
+                      className="whitespace-nowrap text-xs font-semibold text-blue hover:underline"
+                    >
+                      {clientName.get(lead.client_id) ?? "Ver cliente"} →
+                    </Link>
+                  ) : isOwner ? (
+                    <ConvertLeadButton
+                      lead={{
+                        id: lead.id,
+                        name: lead.name,
+                        phone: lead.phone,
+                        email: lead.email,
+                        company: lead.company,
+                        marketplaces: lead.marketplaces,
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-[#94A0BD]">—</span>
+                  )}
+                </td>
                 <td className="px-5 py-3 text-right">
                   <form action={deleteLead}>
                     <input type="hidden" name="id" value={lead.id} />
@@ -128,7 +170,7 @@ export default async function LeadsPage() {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-[#94A0BD]">
+                <td colSpan={7} className="px-5 py-10 text-center text-[#94A0BD]">
                   Nenhum lead ainda. Assim que alguém preencher o formulário, aparece aqui.
                 </td>
               </tr>

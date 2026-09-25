@@ -72,13 +72,15 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="email" className={LABEL_CLASS}>
-          E-mail <span className="font-normal text-[#94A0BD]">(opcional)</span>
+          E-mail principal
         </label>
         <input
           id="email"
           name="email"
           type="email"
+          required
           maxLength={160}
+          placeholder="voce@empresa.com"
           autoComplete="email"
           className={INPUT_CLASS}
         />

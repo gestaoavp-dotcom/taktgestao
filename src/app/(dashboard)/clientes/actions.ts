@@ -153,6 +153,17 @@ export async function createClientRecord(
     return { error: profileError.message };
   }
 
+  // Converting a lead: it now points at the client it became, and leaves the
+  // list of leads still to be worked.
+  const leadId = String(formData.get("lead_id") ?? "");
+  if (leadId) {
+    await supabase
+      .from("leads")
+      .update({ status: "convertido", client_id: client.id })
+      .eq("id", leadId);
+    revalidatePath("/leads");
+  }
+
   revalidatePath("/clientes");
   revalidatePath("/financas");
   revalidatePath("/configuracoes");
