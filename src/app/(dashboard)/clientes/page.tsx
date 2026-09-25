@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { ClientAccount, ClientCnpj } from "@/lib/types";
 import { distinctMarketplaces } from "@/lib/marketplaces";
-import { isTeam } from "@/lib/profile";
+import { getProfile } from "@/lib/profile";
 import { ClientsView, type ClientSummary } from "@/components/clients-view";
 
 export default async function ClientesPage() {
@@ -57,5 +57,25 @@ export default async function ClientesPage() {
     };
   });
 
-  return <ClientsView clients={summaries} canManage={await isTeam()} />;
+  const profile = await getProfile();
+  const isOwner = profile?.role === "dono";
+  let hasDeletePin = false;
+  if (isOwner) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const { hasPin } = await import("@/lib/admin-pin");
+    try {
+      hasDeletePin = await hasPin(createAdminClient(), profile.id);
+    } catch {
+      // No service key on this deploy: the delete action reports it when used.
+    }
+  }
+
+  return (
+    <ClientsView
+      clients={summaries}
+      canManage={isOwner || profile?.role === "operador"}
+      canDelete={isOwner}
+      hasDeletePin={hasDeletePin}
+    />
+  );
 }

@@ -10,6 +10,7 @@ import {
   createClientRecord,
   deleteClientRecord,
   type CreateClientState,
+  type DeleteClientState,
 } from "@/app/(dashboard)/clientes/actions";
 
 export type ClientSummary = {
@@ -28,11 +29,18 @@ const INPUT_CLASS =
 export function ClientsView({
   clients,
   canManage,
+  canDelete,
+  hasDeletePin,
 }: {
   clients: ClientSummary[];
   /** False for a client login: it views its own folder and changes nothing. */
   canManage: boolean;
+  /** Deleting is the admin's alone, and takes its PIN. */
+  canDelete: boolean;
+  /** False until the admin's first deletion, which creates the PIN. */
+  hasDeletePin: boolean;
 }) {
+  const [deleteTarget, setDeleteTarget] = useState<ClientSummary | null>(null);
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -122,29 +130,15 @@ export function ClientsView({
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue/10">
                     <Folder className="h-5 w-5 text-blue" />
                   </div>
-                  {canManage && (
-                    <form
-                      action={deleteClientRecord}
-                      onSubmit={(e) => {
-                        if (
-                          !window.confirm(
-                            `Excluir ${client.name}? A pasta, os dados e o login do cliente serão apagados de vez.`,
-                          )
-                        ) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="relative z-10"
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(client)}
+                      aria-label={`Excluir ${client.name}`}
+                      className="relative z-10 rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
                     >
-                      <input type="hidden" name="id" value={client.id} />
-                      <button
-                        type="submit"
-                        aria-label={`Excluir ${client.name}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </form>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   )}
                 </div>
 
@@ -450,6 +444,118 @@ export function ClientsView({
           </div>
         </div>
       )}
+
+      {deleteTarget && (
+        <DeleteClientModal
+          key={deleteTarget.id}
+          client={deleteTarget}
+          hasPin={hasDeletePin}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+const PIN_INPUT_CLASS =
+  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-center text-lg tracking-[0.5em] text-navy outline-none focus:border-blue";
+
+function DeleteClientModal({
+  client,
+  hasPin,
+  onClose,
+}: {
+  client: ClientSummary;
+  hasPin: boolean;
+  onClose: () => void;
+}) {
+  const [state, formAction, pending] = useActionState(
+    async (prev: DeleteClientState, formData: FormData) => {
+      const result = await deleteClientRecord(prev, formData);
+      if (result && "ok" in result) onClose();
+      return result;
+    },
+    null,
+  );
+
+  const pinProps = {
+    type: "password",
+    inputMode: "numeric" as const,
+    pattern: "[0-9]{4}",
+    maxLength: 4,
+    required: true,
+    autoComplete: "off",
+    className: PIN_INPUT_CLASS,
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="excluir-cliente-titulo"
+        className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+      >
+        <h2 id="excluir-cliente-titulo" className="text-lg font-bold text-navy">
+          Excluir {client.name}?
+        </h2>
+        <p className="mt-2 text-sm text-[#5B647E]">
+          A pasta, todos os dados e o login do cliente serão apagados de vez. Não dá para
+          desfazer.
+        </p>
+
+        <form action={formAction} className="mt-5 flex flex-col gap-3">
+          <input type="hidden" name="id" value={client.id} />
+
+          {hasPin ? (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-sm font-semibold text-navy">Seu PIN de exclusão</span>
+              <input name="pin" autoFocus {...pinProps} />
+            </label>
+          ) : (
+            <>
+              <p className="rounded-lg bg-blue/10 px-3 py-2.5 text-xs text-navy">
+                Primeira exclusão: crie agora o seu PIN de 4 números. Ele será pedido em toda
+                exclusão de cliente daqui para a frente.
+              </p>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold text-navy">Novo PIN</span>
+                <input name="pin" autoFocus {...pinProps} />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="text-sm font-semibold text-navy">Repita o PIN</span>
+                <input name="pin_confirm" {...pinProps} />
+              </label>
+            </>
+          )}
+
+          {state && "error" in state && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+          )}
+
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-navy/10 px-4 py-2 text-sm font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={pending}
+              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+            >
+              {pending ? "Excluindo..." : "Excluir de vez"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

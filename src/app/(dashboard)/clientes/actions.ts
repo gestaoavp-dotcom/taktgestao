@@ -165,30 +165,57 @@ export async function createClientRecord(
     : { ok: true, id: client.id, email, emailSent: false, message: delivery.message };
 }
 
+export type DeleteClientState = { ok: true } | { error: string } | null;
+
 /**
  * Deleting a client deletes its logins too.
  *
  * The database drops the profile with the client, but not the login behind
  * it: left alone, that login could still sign in — through a link sent
  * earlier, say — and would land with no client, waiting for an approval
- * nobody meant to give. So the logins go first, then the folder. A dono only,
- * since removing a login needs the service-role key.
+ * nobody meant to give. So the logins go first, then the folder.
+ *
+ * A dono only, and only with its PIN — created right here the first time,
+ * when the dono has none yet. Checked on the server against a hash no login
+ * can read; see lib/admin-pin.
  */
-export async function deleteClientRecord(formData: FormData) {
+export async function deleteClientRecord(
+  _prevState: DeleteClientState,
+  formData: FormData,
+): Promise<DeleteClientState> {
   const supabase = await createClient();
   const id = formData.get("id") as string;
+  const pin = String(formData.get("pin") ?? "");
 
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return;
+  if (!auth.user) return { error: "Faça login novamente." };
   const { data: me } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", auth.user.id)
     .maybeSingle<{ role: string }>();
-  if (me?.role !== "dono") return;
+  if (me?.role !== "dono") return { error: "Só o admin pode excluir clientes." };
 
   const { createAdminClient } = await import("@/lib/supabase/admin");
-  const admin = createAdminClient();
+  const { checkPin, createPin, hasPin, isValidPin } = await import("@/lib/admin-pin");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  if (await hasPin(admin, auth.user.id)) {
+    const problem = await checkPin(admin, auth.user.id, pin);
+    if (problem) return { error: problem };
+  } else {
+    if (!isValidPin(pin)) return { error: "O PIN precisa ter 4 números." };
+    if (pin !== String(formData.get("pin_confirm") ?? "")) {
+      return { error: "Os dois PINs não são iguais." };
+    }
+    const problem = await createPin(admin, auth.user.id, pin);
+    if (problem) return { error: problem };
+  }
 
   const { data: logins } = await admin
     .from("profiles")
@@ -199,8 +226,10 @@ export async function deleteClientRecord(formData: FormData) {
     await admin.auth.admin.deleteUser(login.id);
   }
 
-  await supabase.from("clients").delete().eq("id", id);
+  const { error } = await supabase.from("clients").delete().eq("id", id);
+  if (error) return { error: error.message };
 
   revalidatePath("/clientes");
   revalidatePath("/configuracoes");
+  return { ok: true };
 }
