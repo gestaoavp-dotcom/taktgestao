@@ -8,10 +8,10 @@ import { DateRangePicker } from "@/components/date-range-picker";
 import { DashboardFilters } from "@/components/dashboard-filters";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
 import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
-import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { trendOf, formatCurrency } from "@/lib/sales-summary";
+import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
 
-const DEFAULT_DAYS = 30;
 
 type FeeStatus = "em_dia" | "a_vencer" | "atrasada" | "sem_valor";
 
@@ -58,8 +58,7 @@ export default async function DashboardPage({
   const { platform, de, ate, cliente } = await searchParams;
   const supabase = await createClient();
 
-  const fallback = lastDays(DEFAULT_DAYS);
-  const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
+  const range = reportRange(de, ate);
   const marketplace = platform ?? "";
   const clientId = cliente ?? "";
 

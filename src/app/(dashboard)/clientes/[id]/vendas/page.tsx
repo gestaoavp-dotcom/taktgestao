@@ -5,10 +5,10 @@ import { KpiCard } from "@/components/kpi-card";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
-import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { trendOf, formatCurrency } from "@/lib/sales-summary";
+import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
 
-const DEFAULT_DAYS = 30;
 
 function formatBR(iso: string) {
   const [y, m, d] = iso.split("-");
@@ -27,8 +27,7 @@ export default async function ClienteVendasPage({
   const supabase = await createClient();
   const team = await isTeam();
 
-  const fallback = lastDays(DEFAULT_DAYS);
-  const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
+  const range = reportRange(de, ate);
 
   const {
     revenue,

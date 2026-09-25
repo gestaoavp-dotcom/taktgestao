@@ -3,14 +3,14 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { ClientAccount } from "@/lib/types";
 import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
-import { lastDays, trendOf, formatCurrency } from "@/lib/sales-summary";
+import { trendOf, formatCurrency } from "@/lib/sales-summary";
+import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
 import { AreaChart } from "@/components/area-chart";
 import { KpiCard } from "@/components/kpi-card";
 import { ChangesActivityCard } from "@/components/changes-activity-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 
-const DEFAULT_DAYS = 30;
 
 function formatBR(iso: string) {
   const [y, m, d] = iso.split("-");
@@ -28,8 +28,7 @@ export default async function ClienteDashboardPage({
   const { de, ate } = await searchParams;
   const supabase = await createClient();
 
-  const fallback = lastDays(DEFAULT_DAYS);
-  const range = { start: de ?? fallback.start, end: ate ?? fallback.end };
+  const range = reportRange(de, ate);
 
   const [{ data: client }, { data: accounts }, sales, { data: allChanges }] = await Promise.all([
     supabase.from("clients").select("id").eq("id", id).maybeSingle<{ id: string }>(),
