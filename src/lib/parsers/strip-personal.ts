@@ -49,6 +49,23 @@ const PERSONAL_KEYS = new Set([
   "Código de rastreio",
   "Link para download do CTe",
   "Número da carta de porte de primeira viagem",
+  // TikTok Shop, whose export puts the buyer's full CPF in the clear.
+  "Buyer Username",
+  "CPF Number",
+  "CPF Name",
+  "Recipient",
+  "Phone #",
+  "Street Name",
+  "Street Number",
+  "Neighborhood",
+  "House Name or Number",
+  "City",
+  "State",
+  "Country",
+  "Zipcode",
+  "Shipping Information",
+  "Tracking ID",
+  "Buyer Message",
 ]);
 
 /** Catches the numbered duplicates SheetJS makes, and anything close. */

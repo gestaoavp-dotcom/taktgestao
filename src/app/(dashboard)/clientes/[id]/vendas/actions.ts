@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
 import type { ParsedMercadoLivreOrder } from "@/lib/parsers/mercado-livre-orders";
 import type { ParsedSheinOrder } from "@/lib/parsers/shein-orders";
+import type { ParsedTikTokOrder } from "@/lib/parsers/tiktok-orders";
 import type { ParsedAmazonProduct } from "@/lib/parsers/amazon-products";
 import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
 import type { ParsedMercadoLivreAd } from "@/lib/parsers/mercado-livre-ads";
@@ -95,7 +96,12 @@ export async function importSalesOrders(input: {
   marketplace: string;
   accountId: string | null;
   reportMonth: string;
-  orders: (ParsedShopeeOrder | ParsedMercadoLivreOrder | ParsedSheinOrder)[];
+  orders: (
+    | ParsedShopeeOrder
+    | ParsedMercadoLivreOrder
+    | ParsedSheinOrder
+    | ParsedTikTokOrder
+  )[];
   /** The window this document covers; set on the first batch only. */
   replace?: { start: string; end: string } | null;
   /** False while more batches are still coming. */

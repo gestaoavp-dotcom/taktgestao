@@ -9,6 +9,11 @@ import type { SalesOrder } from "@/lib/types";
 import type { OrderBreakdown } from "./breakdown";
 import { buildShopeeBreakdown, computeShopeeNet } from "./shopee-breakdown";
 import {
+  buildTikTokBreakdown,
+  computeTikTokNet,
+  isTikTokVoided,
+} from "./tiktok-breakdown";
+import {
   buildSheinBreakdown,
   computeSheinNet,
   isSheinVoided,
@@ -32,6 +37,7 @@ export function orderNet(order: SalesOrder, share = 1): number {
   if (!order.raw) return order.net_settlement;
   if (order.marketplace === "mercado_livre") return computeMercadoLivreNet(order.raw);
   if (order.marketplace === "shein") return computeSheinNet(order.raw);
+  if (order.marketplace === "tiktok") return computeTikTokNet(order.raw);
   return computeShopeeNet(order.raw, share);
 }
 
@@ -39,6 +45,7 @@ export function buildOrderBreakdown(order: SalesOrder, share = 1): OrderBreakdow
   if (!order.raw) return null;
   if (order.marketplace === "mercado_livre") return buildMercadoLivreBreakdown(order.raw);
   if (order.marketplace === "shein") return buildSheinBreakdown(order.raw);
+  if (order.marketplace === "tiktok") return buildTikTokBreakdown(order.raw);
   return buildShopeeBreakdown(order.raw, share);
 }
 
@@ -52,9 +59,13 @@ export function isOrderVoided(order: SalesOrder): boolean {
       ? isMercadoLivreVoided(order.raw)
       : Number(order.net_settlement) === 0 && Number(order.subtotal) > 0;
   }
-  // Shein keeps the price on a refunded line and says so in the status.
+  // Shein and TikTok keep the price on a cancelled line and say so in the
+  // status, so the status is what settles it.
   if (order.marketplace === "shein") {
     return order.raw ? isSheinVoided(order.raw) : Number(order.net_amount) === 0;
+  }
+  if (order.marketplace === "tiktok") {
+    return order.raw ? isTikTokVoided(order.raw) : Number(order.net_amount) === 0;
   }
   return Number(order.total_value) === 0;
 }
@@ -108,7 +119,10 @@ export function isBilledOrder(row: {
   net_amount?: number | string | null;
 }): boolean {
   if (row.marketplace === "mercado_livre") return Number(row.net_settlement ?? 0) > 0;
-  // Shein bills the line whatever its status; a refund shows in net_amount.
-  if (row.marketplace === "shein") return Number(row.net_amount ?? 0) > 0;
+  // Shein and TikTok bill the line whatever its status; a cancellation shows
+  // in net_amount instead.
+  if (row.marketplace === "shein" || row.marketplace === "tiktok") {
+    return Number(row.net_amount ?? 0) > 0;
+  }
   return Number(row.total_value) > 0;
 }
