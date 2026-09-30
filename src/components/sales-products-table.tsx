@@ -6,6 +6,7 @@ import type { ProductCostChange, SalesProduct } from "@/lib/types";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
 import { formatCurrency } from "@/lib/sales-summary";
+import { costKey } from "@/lib/product-costs";
 import { updateProductCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const CELL_INPUT_CLASS =
@@ -302,7 +303,7 @@ export function SalesProductsTable({
 }) {
   // One cost per SKU and one tax rate per client, both shared across the table
   // so typing in any row updates every row it applies to at once.
-  const [costBySku, setCostBySku] = useState<Record<string, string>>(() => {
+  const [costByKey, setCostByKey] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
     for (const p of products) {
       if (p.sku && p.unit_cost != null) map[p.sku] = String(p.unit_cost);
@@ -315,11 +316,14 @@ export function SalesProductsTable({
     return withTax?.tax_percent != null ? String(withTax.tax_percent) : "";
   });
 
-  const costOf = (p: SalesProduct) =>
-    (p.sku ? costBySku[p.sku] : costById[p.id]) ?? (p.unit_cost != null ? String(p.unit_cost) : "");
+  const costOf = (p: SalesProduct) => {
+    const key = costKey(p);
+    return (key ? costByKey[key] : costById[p.id]) ?? (p.unit_cost != null ? String(p.unit_cost) : "");
+  };
 
   const setCostOf = (p: SalesProduct, value: string) => {
-    if (p.sku) setCostBySku((prev) => ({ ...prev, [p.sku as string]: value }));
+    const key = costKey(p);
+    if (key) setCostByKey((prev) => ({ ...prev, [key]: value }));
     else setCostById((prev) => ({ ...prev, [p.id]: value }));
   };
 

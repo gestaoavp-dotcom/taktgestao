@@ -10,6 +10,7 @@ import { formatCurrency } from "@/lib/sales-summary";
 import type { OrderBreakdown as Breakdown } from "@/lib/parsers/breakdown";
 import { isExtraLine, isOrderVoided } from "@/lib/parsers/order-breakdown";
 import { ORDERS_PAGE } from "@/lib/sales-columns";
+import { costKey } from "@/lib/product-costs";
 import {
   getOrderBreakdown,
   listOrders,
@@ -381,19 +382,24 @@ export function SalesOrdersTable({
 
   // One cost per SKU and one tax rate for the client, as the team already
   // learned in this table. Typing either shows everywhere it applies at once.
-  const [costBySku, setCostBySku] = useState<Record<string, string>>({});
-  const [costByOrder, setCostByOrder] = useState<Record<string, string>>({});
+  const [costByKey, setCostByKey] = useState<Record<string, string>>({});
+  const [costById, setCostById] = useState<Record<string, string>>({});
   const [tax, setTax] = useState(() => {
     const withTax = firstPage.find((o) => o.tax_percent != null);
     return withTax?.tax_percent != null ? String(withTax.tax_percent) : "";
   });
 
-  const costOf = (o: SlimOrder) =>
-    (o.sku ? costBySku[o.sku] : costByOrder[o.id]) ?? (o.cost != null ? String(o.cost) : "");
+  // Keyed as the server files it: by SKU, or by exact title when there is
+  // none. Typing in one row shows on every row of the same product at once.
+  const costOf = (o: SlimOrder) => {
+    const key = costKey(o);
+    return (key ? costByKey[key] : costById[o.id]) ?? (o.cost != null ? String(o.cost) : "");
+  };
 
   const setCostOf = (o: SlimOrder, value: string) => {
-    if (o.sku) setCostBySku((prev) => ({ ...prev, [o.sku as string]: value }));
-    else setCostByOrder((prev) => ({ ...prev, [o.id]: value }));
+    const key = costKey(o);
+    if (key) setCostByKey((prev) => ({ ...prev, [key]: value }));
+    else setCostById((prev) => ({ ...prev, [o.id]: value }));
   };
 
   const nets = Object.fromEntries(

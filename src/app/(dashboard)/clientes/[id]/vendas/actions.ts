@@ -12,7 +12,7 @@ import type { ParsedShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import type { SalesOrder, SalesReportKind } from "@/lib/types";
 import type { OrderBreakdown } from "@/lib/parsers/breakdown";
 import { buildOrderBreakdown, orderNet, orderShares } from "@/lib/parsers/order-breakdown";
-import { knownCosts, knownTax } from "@/lib/product-costs";
+import { costKey, knownCosts, knownTax } from "@/lib/product-costs";
 import { ORDER_LIST_COLUMNS, ORDERS_PAGE } from "@/lib/sales-columns";
 
 /**
@@ -126,13 +126,11 @@ export async function importSalesOrders(input: {
 
   // Arrive filled in: each SKU starts from the newest cost recorded at or
   // before this report's month, and the tax rate in force then.
-  const skus = [...new Set(input.orders.map((o) => o.sku).filter((s): s is string => !!s))];
-  const costBySku = await knownCosts(
+  const costByKey = await knownCosts(
     supabase,
     "sales_orders",
     "cost",
     input.clientId,
-    skus,
     input.reportMonth,
   );
   const taxPercent = await knownTax(supabase, "sales_orders", input.clientId, input.reportMonth);
@@ -154,7 +152,7 @@ export async function importSalesOrders(input: {
       { ...o, id: String(i), marketplace: input.marketplace } as never,
       shares.get(String(i)) ?? 1,
     ),
-    cost: o.sku ? costBySku.get(o.sku) ?? null : null,
+    cost: costByKey.get(costKey(o) ?? "") ?? null,
     tax_percent: taxPercent,
   }));
 
@@ -223,13 +221,11 @@ export async function importSalesTraffic(input: {
 }): Promise<ActionState> {
   const supabase = await createClient();
 
-  const skus = [...new Set(input.products.map((p) => p.sku).filter((s): s is string => !!s))];
-  const costBySku = await knownCosts(
+  const costByKey = await knownCosts(
     supabase,
     "sales_products",
     "unit_cost",
     input.clientId,
-    skus,
     input.reportMonth,
   );
   const taxPercent = await knownTax(supabase, "sales_products", input.clientId, input.reportMonth);
@@ -241,7 +237,7 @@ export async function importSalesTraffic(input: {
     account_id: input.accountId,
     report_month: input.reportMonth,
     ...p,
-    unit_cost: p.sku ? costBySku.get(p.sku) ?? null : null,
+    unit_cost: costByKey.get(costKey(p) ?? "") ?? null,
     tax_percent: taxPercent,
   }));
 
@@ -336,7 +332,7 @@ export async function updateOrderCosts(
       tax_percent: taxPercent,
     })
     .eq("id", id)
-    .select("sku, report_month")
+    .select("sku, product_name, report_month")
     .single();
 
   if (error) return { error: error.message };
@@ -344,15 +340,23 @@ export async function updateOrderCosts(
   // The cost belongs to the SKU, not to one order — but to the SKU *from this
   // month on*. Earlier months keep what the product cost at the time, so a
   // closed month's result never moves because today's price changed.
-  if (updated?.sku) {
-    const { error: spreadError } = await supabase
+  // Filed under the SKU when there is one, under the exact title when there is
+  // not — so a marketplace that omits SKUs does not mean typing the same cost
+  // on every line of the same product.
+  if (updated) {
+    let spread = supabase
       .from("sales_orders")
       .update({ cost })
       .eq("client_id", clientId)
-      .eq("sku", updated.sku)
       .gte("report_month", updated.report_month)
       .neq("id", id);
 
+    if (updated.sku) spread = spread.eq("sku", updated.sku);
+    else if (updated.product_name) {
+      spread = spread.is("sku", null).eq("product_name", updated.product_name);
+    } else spread = spread.eq("id", id);
+
+    const { error: spreadError } = await spread;
     if (spreadError) return { error: spreadError.message };
   }
 
@@ -389,13 +393,11 @@ export async function importSalesProducts(input: {
 }): Promise<ActionState> {
   const supabase = await createClient();
 
-  const skus = [...new Set(input.products.map((p) => p.sku).filter((s): s is string => !!s))];
-  const costBySku = await knownCosts(
+  const costByKey = await knownCosts(
     supabase,
     "sales_products",
     "unit_cost",
     input.clientId,
-    skus,
     input.reportMonth,
   );
   const taxPercent = await knownTax(supabase, "sales_products", input.clientId, input.reportMonth);
@@ -407,7 +409,7 @@ export async function importSalesProducts(input: {
     account_id: input.accountId,
     report_month: input.reportMonth,
     ...p,
-    unit_cost: p.sku ? costBySku.get(p.sku) ?? null : null,
+    unit_cost: costByKey.get(costKey(p) ?? "") ?? null,
     tax_percent: taxPercent,
   }));
 
@@ -464,13 +466,18 @@ export async function updateProductCosts(
       unit_cost: number | null;
     }>();
 
-  if (row?.sku) {
-    await supabase
+  if (row?.sku || row?.product_name) {
+    let spread = supabase
       .from("sales_products")
       .update({ unit_cost: unitCost })
       .eq("client_id", clientId)
-      .eq("sku", row.sku)
       .gte("report_month", row.report_month);
+
+    spread = row.sku
+      ? spread.eq("sku", row.sku)
+      : spread.is("sku", null).eq("product_name", row.product_name);
+
+    await spread;
   } else {
     await supabase.from("sales_products").update({ unit_cost: unitCost }).eq("id", id);
   }
