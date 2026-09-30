@@ -11,6 +11,7 @@
 // as a settlement.
 
 import { stripPersonal } from "./strip-personal";
+import { sellerPrice, tiktokFees } from "./tiktok-breakdown";
 
 export type ParsedTikTokOrder = {
   order_id: string;
@@ -21,6 +22,9 @@ export type ParsedTikTokOrder = {
   sku: string | null;
   quantity: number;
   returned_quantity: number;
+  /** The price the marketplace charges against, and what it charges. */
+  gross_base: number;
+  fee_amount: number;
   unit_price: number;
   subtotal: number;
   total_value: number;
@@ -43,6 +47,10 @@ function toNumber(value: unknown): number {
     .replace(",", ".");
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : 0;
+}
+
+function round2(value: number) {
+  return Math.round(value * 100) / 100;
 }
 
 function toText(value: unknown): string | null {
@@ -89,6 +97,10 @@ export function parseTikTokOrders(rows: unknown[][]): ParsedTikTokOrder[] {
     .filter((row) => toText(at(row, "Order ID")))
     .map((row) => {
       const paid = toNumber(at(row, "SKU Subtotal After Discount"));
+      const clean = stripPersonal(
+        Object.fromEntries(header.map((name, i) => [name || `col${i}`, row[i]])),
+      );
+      const fees = tiktokFees(clean);
 
       return {
         order_id: toText(at(row, "Order ID"))!,
@@ -110,9 +122,9 @@ export function parseTikTokOrders(rows: unknown[][]): ParsedTikTokOrder[] {
         commission_fee: 0,
         service_fee: 0,
         net_settlement: 0,
-        raw: stripPersonal(
-          Object.fromEntries(header.map((name, i) => [name || `col${i}`, row[i]])),
-        ),
+        gross_base: sellerPrice(clean),
+        fee_amount: round2(fees.commission + fees.perItem),
+        raw: clean,
       };
     });
 }

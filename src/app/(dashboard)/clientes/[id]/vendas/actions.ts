@@ -14,7 +14,6 @@ import type { SalesOrder, SalesReportKind } from "@/lib/types";
 import type { OrderBreakdown } from "@/lib/parsers/breakdown";
 import { buildOrderBreakdown, orderNet, orderShares } from "@/lib/parsers/order-breakdown";
 import { costKey, knownCosts, knownTax } from "@/lib/product-costs";
-import { computeTikTokNet } from "@/lib/parsers/tiktok-breakdown";
 import { ORDER_LIST_COLUMNS, ORDERS_PAGE } from "@/lib/sales-columns";
 
 /**
@@ -369,40 +368,18 @@ export async function updateOrderCosts(
     if (spreadError) return { error: spreadError.message };
   }
 
-  // The affiliate's share is inside the settled figure, and that figure is
-  // stored — so changing the share means recomputing it. Without this the
-  // percentage saved and nothing on screen moved.
-  if (updated?.marketplace === "tiktok" || updated?.sku || updated?.product_name) {
-    let affected = supabase
-      .from("sales_orders")
-      .select("id, marketplace, raw")
-      .eq("client_id", clientId)
-      .eq("marketplace", "tiktok")
-      .gte("report_month", updated.report_month);
-
-    affected = updated.sku
-      ? affected.eq("sku", updated.sku)
-      : updated.product_name
-        ? affected.is("sku", null).eq("product_name", updated.product_name)
-        : affected.eq("id", id);
-
-    const { data: rows } = await affected.returns<
-      { id: string; marketplace: string; raw: Record<string, unknown> | null }[]
-    >();
-
-    // In parallel, in chunks: one write per line in a queue took thirteen
-    // seconds for fifty-eight lines, which is a field that looks broken.
-    const pending = (rows ?? []).filter((row) => row.raw);
-    for (let i = 0; i < pending.length; i += 50) {
-      await Promise.all(
-        pending.slice(i, i + 50).map((row) =>
-          supabase
-            .from("sales_orders")
-            .update({ net_amount: computeTikTokNet(row.raw!, affiliatePercent) })
-            .eq("id", row.id),
-        ),
-      );
-    }
+  // One statement for the whole product: the pieces are stored, so the
+  // database does the arithmetic. Rewriting each line from here took two of
+  // the three seconds it cost to leave the field.
+  if (updated?.marketplace === "tiktok") {
+    const { error: affiliateError } = await supabase.rpc("set_affiliate_percent", {
+      p_client_id: clientId,
+      p_sku: updated.sku,
+      p_product_name: updated.product_name,
+      p_from_month: updated.report_month,
+      p_percent: affiliatePercent,
+    });
+    if (affiliateError) return { error: affiliateError.message };
   }
 
   // The tax rate is one number for the client, and changes the same way.

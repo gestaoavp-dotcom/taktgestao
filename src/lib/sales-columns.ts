@@ -27,6 +27,8 @@ export const ORDER_LIST_COLUMNS = [
   "net_settlement",
   "net_amount",
   "affiliate_percent",
+  "gross_base",
+  "fee_amount",
   "cost",
   "extra_costs",
   "tax_percent",
