@@ -352,6 +352,7 @@ function OrderRow({
 export function SalesOrdersTable({
   clientId,
   orders: firstPage,
+  error,
   totals,
   missing,
   months,
@@ -360,6 +361,8 @@ export function SalesOrdersTable({
 }: {
   clientId: string;
   orders: SlimOrder[];
+  /** Set when the database refused the query, rather than returned nothing. */
+  error: string | null;
   totals: OrderTotals;
   missing: MissingCost;
   months: { report_month: string; orders: number }[];
@@ -606,7 +609,7 @@ export function SalesOrdersTable({
               />
             ))}
 
-            {rows.length < Number(totals.lines) && (
+            {!error && rows.length < Number(totals.lines) && (
               <tr>
                 <td colSpan={11} className="px-5 py-4 text-center">
                   <button
@@ -625,8 +628,13 @@ export function SalesOrdersTable({
 
             {!rows.length && (
               <tr>
-                <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
-                  Nenhum pedido com esses filtros.
+                <td
+                  colSpan={11}
+                  className={`px-5 py-8 text-center ${error ? "text-red-700" : "text-[#94A0BD]"}`}
+                >
+                  {error
+                    ? `Não consegui carregar os pedidos: ${error}`
+                    : "Nenhum pedido com esses filtros."}
                 </td>
               </tr>
             )}

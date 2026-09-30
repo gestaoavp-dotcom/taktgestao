@@ -46,7 +46,7 @@ export default async function PedidosPage({
   const accountId = loja && loja !== "todas" ? loja : null;
   const missingCost = custo === "falta" ? true : custo === "preenchido" ? false : null;
 
-  const [{ data: accounts }, { data: totalsRows }, { data: pendingRows }, { data: orders }] =
+  const [{ data: accounts }, { data: totalsRows }, { data: pendingRows }, ordersResult] =
     await Promise.all([
       supabase
         .from("client_accounts")
@@ -80,6 +80,12 @@ export default async function PedidosPage({
       })(),
     ]);
 
+  // A refused query is not an empty month. Saying so beats a table that reads
+  // "nenhum pedido" while the totals above it show thousands — which is what a
+  // column added to the listing before the migration ran produced.
+  const ordersError = ordersResult.error?.message ?? null;
+  const orders = ordersResult.data ?? [];
+
   const totals = (totalsRows?.[0] ?? {
     orders: 0, lines: 0, sold: 0, net: 0, cost: 0, extra: 0, tax: 0, margin: 0,
   }) as OrderTotals;
@@ -89,7 +95,8 @@ export default async function PedidosPage({
       <VendasSubTabs clientId={id} team={team} />
       <SalesOrdersTable
         clientId={id}
-        orders={orders ?? []}
+        orders={orders}
+        error={ordersError}
         totals={totals}
         missing={(pendingRows?.[0] ?? { skus: 0, loose: 0, lines: 0 }) as MissingCost}
         months={available}
