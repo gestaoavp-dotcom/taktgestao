@@ -9,6 +9,11 @@ import type { SalesOrder } from "@/lib/types";
 import type { OrderBreakdown } from "./breakdown";
 import { buildShopeeBreakdown, computeShopeeNet } from "./shopee-breakdown";
 import {
+  buildSheinBreakdown,
+  computeSheinNet,
+  isSheinVoided,
+} from "./shein-breakdown";
+import {
   buildMercadoLivreBreakdown,
   computeMercadoLivreNet,
   isMercadoLivreExtraLine,
@@ -25,16 +30,16 @@ import {
 export function orderNet(order: SalesOrder, share = 1): number {
   if (order.net_amount != null) return Number(order.net_amount);
   if (!order.raw) return order.net_settlement;
-  return order.marketplace === "mercado_livre"
-    ? computeMercadoLivreNet(order.raw)
-    : computeShopeeNet(order.raw, share);
+  if (order.marketplace === "mercado_livre") return computeMercadoLivreNet(order.raw);
+  if (order.marketplace === "shein") return computeSheinNet(order.raw);
+  return computeShopeeNet(order.raw, share);
 }
 
 export function buildOrderBreakdown(order: SalesOrder, share = 1): OrderBreakdown | null {
   if (!order.raw) return null;
-  return order.marketplace === "mercado_livre"
-    ? buildMercadoLivreBreakdown(order.raw)
-    : buildShopeeBreakdown(order.raw, share);
+  if (order.marketplace === "mercado_livre") return buildMercadoLivreBreakdown(order.raw);
+  if (order.marketplace === "shein") return buildSheinBreakdown(order.raw);
+  return buildShopeeBreakdown(order.raw, share);
 }
 
 /**
@@ -46,6 +51,10 @@ export function isOrderVoided(order: SalesOrder): boolean {
     return order.raw
       ? isMercadoLivreVoided(order.raw)
       : Number(order.net_settlement) === 0 && Number(order.subtotal) > 0;
+  }
+  // Shein keeps the price on a refunded line and says so in the status.
+  if (order.marketplace === "shein") {
+    return order.raw ? isSheinVoided(order.raw) : Number(order.net_amount) === 0;
   }
   return Number(order.total_value) === 0;
 }
@@ -96,8 +105,10 @@ export function isBilledOrder(row: {
   marketplace: string;
   total_value: number | string;
   net_settlement?: number | string | null;
+  net_amount?: number | string | null;
 }): boolean {
-  return row.marketplace === "mercado_livre"
-    ? Number(row.net_settlement ?? 0) > 0
-    : Number(row.total_value) > 0;
+  if (row.marketplace === "mercado_livre") return Number(row.net_settlement ?? 0) > 0;
+  // Shein bills the line whatever its status; a refund shows in net_amount.
+  if (row.marketplace === "shein") return Number(row.net_amount ?? 0) > 0;
+  return Number(row.total_value) > 0;
 }

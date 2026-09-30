@@ -41,6 +41,14 @@ const PERSONAL_KEYS = new Set([
   "País do destinatário",
   "Número de rastreamento da Shopee",
   "Observação do comprador",
+  // Shein, whose column names match none of the patterns below.
+  "Província",
+  "Número de identificação fiscal do comprador",
+  "Número de identificação fiscal do vendedor",
+  "carteira de identidade",
+  "Código de rastreio",
+  "Link para download do CTe",
+  "Número da carta de porte de primeira viagem",
 ]);
 
 /** Catches the numbered duplicates SheetJS makes, and anything close. */

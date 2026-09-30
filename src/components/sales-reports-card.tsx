@@ -14,6 +14,7 @@ import {
   parseMercadoLivreOrders,
 } from "@/lib/parsers/mercado-livre-orders";
 import { parseAmazonProducts } from "@/lib/parsers/amazon-products";
+import { parseSheinOrders } from "@/lib/parsers/shein-orders";
 import {
   MERCADO_LIVRE_ADS_SHEET,
   parseMercadoLivreAds,
@@ -136,7 +137,7 @@ const MONTHS = [
 
 /** Marketplaces whose report we know how to read, per kind of report. */
 const READABLE: Record<SalesReportKind, string[]> = {
-  pedidos: ["shopee", "mercado_livre"],
+  pedidos: ["shopee", "mercado_livre", "shein"],
   produtos: ["amazon"],
   ads: ["shopee", "mercado_livre"],
   trafego: ["shopee"],
@@ -345,6 +346,42 @@ export function SalesReportsCard({
             products: parseAmazonProducts(rows),
           });
           if (result && "error" in result) setError(result.error);
+        } else if (reportMarketplace === "shein") {
+          // Two header rows, the second holding the real names, so the sheet
+          // comes back raw and the parser finds its own header.
+          const buffer = await file.arrayBuffer();
+          const workbook = XLSX.read(buffer, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const orders = parseSheinOrders(
+            XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false }),
+          );
+
+          const mismatch = periodEnd
+            ? periodMismatch(orders.map((o) => o.created_on), periodStart, periodEnd)
+            : null;
+          if (mismatch) {
+            await markSalesReportError(registered.id, clientId);
+            setError(mismatch);
+            setUploading(false);
+            return;
+          }
+
+          for (let i = 0; i < orders.length; i += ORDERS_PER_BATCH) {
+            const result = await importSalesOrders({
+              clientId,
+              reportId: registered.id,
+              marketplace: reportMarketplace,
+              accountId: reportAccountId,
+              reportMonth,
+              orders: orders.slice(i, i + ORDERS_PER_BATCH),
+              replace: i === 0 && periodEnd ? { start: periodStart, end: periodEnd } : null,
+              finalize: i + ORDERS_PER_BATCH >= orders.length,
+            });
+            if (result && "error" in result) {
+              setError(result.error);
+              break;
+            }
+          }
         } else if (reportMarketplace === "mercado_livre") {
           // The header is where it actually is, not where it usually is: the
           // preamble is a different height from one export to the next.
