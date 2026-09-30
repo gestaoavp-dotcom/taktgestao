@@ -390,12 +390,18 @@ export async function updateOrderCosts(
       { id: string; marketplace: string; raw: Record<string, unknown> | null }[]
     >();
 
-    for (const row of rows ?? []) {
-      if (!row.raw) continue;
-      await supabase
-        .from("sales_orders")
-        .update({ net_amount: computeTikTokNet(row.raw, affiliatePercent) })
-        .eq("id", row.id);
+    // In parallel, in chunks: one write per line in a queue took thirteen
+    // seconds for fifty-eight lines, which is a field that looks broken.
+    const pending = (rows ?? []).filter((row) => row.raw);
+    for (let i = 0; i < pending.length; i += 50) {
+      await Promise.all(
+        pending.slice(i, i + 50).map((row) =>
+          supabase
+            .from("sales_orders")
+            .update({ net_amount: computeTikTokNet(row.raw!, affiliatePercent) })
+            .eq("id", row.id),
+        ),
+      );
     }
   }
 
