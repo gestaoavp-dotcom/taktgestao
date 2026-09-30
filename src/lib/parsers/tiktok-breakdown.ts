@@ -54,13 +54,28 @@ function money(raw: Record<string, unknown>, key: string) {
   return toNumber(String(raw[key] ?? "").replace(/[A-Za-z$\s]/g, ""));
 }
 
+/**
+ * The price TikTok charges against: the listing price less what the seller
+ * discounted, and nothing else.
+ *
+ * The export's "after discount" column also takes off TikTok's own discount,
+ * which is the platform subsidising a sale — it does not reduce what the
+ * seller is charged on, and it is paid back to the seller.
+ */
+export function sellerPrice(raw: Record<string, unknown>): number {
+  return round(
+    money(raw, "SKU Subtotal Before Discount") - money(raw, "SKU Seller Discount"),
+  );
+}
+
 export function tiktokFees(raw: Record<string, unknown>) {
-  const paid = money(raw, "SKU Subtotal After Discount");
+  const base = sellerPrice(raw);
   const quantity = Math.max(1, Math.round(money(raw, "Quantity")) || 1);
-  const table = feeTable(paid, orderDate(raw));
+  const table = feeTable(base, orderDate(raw));
 
   return {
-    commission: round(paid * table.commission),
+    base,
+    commission: round(base * table.commission),
     commissionRate: table.commission,
     perItem: round(table.perItem * quantity),
     perItemRate: table.perItem,
@@ -80,11 +95,11 @@ export function computeTikTokNet(
 ): number {
   if (isTikTokVoided(raw)) return 0;
 
-  const paid = money(raw, "SKU Subtotal After Discount");
+  const base = sellerPrice(raw);
   const fees = tiktokFees(raw);
-  const affiliate = round((paid * Number(affiliatePercent ?? 0)) / 100);
+  const affiliate = round((base * Number(affiliatePercent ?? 0)) / 100);
 
-  return round(paid - fees.commission - fees.perItem - affiliate);
+  return round(base - fees.commission - fees.perItem - affiliate);
 }
 
 export function buildTikTokBreakdown(
@@ -111,18 +126,24 @@ export function buildTikTokBreakdown(
     },
     {
       label: "Desconto do TikTok",
-      note: "bancado pela plataforma",
+      note: "bancado pela plataforma, devolvido ao vendedor",
       value: money(raw, "SKU Platform Discount"),
+      kind: "info",
+    },
+    {
+      label: "Pago pelo comprador",
+      note: "referência — o TikTok repõe o desconto que ele mesmo deu",
+      value: money(raw, "SKU Subtotal After Discount"),
       kind: "info",
     },
   ];
 
-  const paid = money(raw, "SKU Subtotal After Discount");
+  const base = sellerPrice(raw);
   const fees = tiktokFees(raw);
-  const affiliate = round((paid * Number(affiliatePercent ?? 0)) / 100);
+  const affiliate = round((base * Number(affiliatePercent ?? 0)) / 100);
 
   const sections: BreakdownSection[] = [
-    { title: "Pago pelo comprador", lines: products, total: paid },
+    { title: "Preço após o desconto do vendedor", lines: products, total: base },
     {
       title: "Tarifas do TikTok",
       // Applied from the published table, because the order export carries no
@@ -132,9 +153,7 @@ export function buildTikTokBreakdown(
         {
           label: `Comissão (${Math.round(fees.commissionRate * 100)}%)`,
           note:
-            paid < 50
-              ? "item abaixo de R$ 50,00"
-              : "item de R$ 50,00 ou mais",
+            base < 50 ? "item abaixo de R$ 50,00" : "item de R$ 50,00 ou mais",
           value: fees.commission,
           kind: "deduction",
         },
