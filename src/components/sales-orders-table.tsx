@@ -193,6 +193,9 @@ function OrderRow({
   nets,
   cost,
   onCostChange,
+  affiliate,
+  onAffiliateChange,
+  showAffiliate,
   tax,
   onTaxChange,
   share,
@@ -200,6 +203,9 @@ function OrderRow({
   clientId: string;
   order: SlimOrder;
   nets: Record<string, number>;
+  affiliate: string;
+  onAffiliateChange: (value: string) => void;
+  showAffiliate: boolean;
   cost: string;
   onCostChange: (value: string) => void;
   tax: string;
@@ -301,6 +307,18 @@ function OrderRow({
               inputMode="decimal"
               className={CELL_INPUT_CLASS}
             />
+            {showAffiliate && (
+              <input
+                name="affiliate_percent"
+                value={order.marketplace === "tiktok" ? affiliate : ""}
+                onChange={(e) => onAffiliateChange(e.target.value)}
+                disabled={order.marketplace !== "tiktok"}
+                placeholder="Afil.%"
+                inputMode="decimal"
+                title="Comissão do afiliado, em % do valor pago — vale para todos os pedidos deste produto"
+                className={CELL_INPUT_CLASS + " disabled:bg-brand-gray/40"}
+              />
+            )}
             <input
               name="tax_percent"
               value={tax}
@@ -384,6 +402,10 @@ export function SalesOrdersTable({
   // learned in this table. Typing either shows everywhere it applies at once.
   const [costByKey, setCostByKey] = useState<Record<string, string>>({});
   const [costById, setCostById] = useState<Record<string, string>>({});
+  // TikTok is the only marketplace here with affiliates, so the column shows
+  // only where it means something.
+  const hasAffiliates = firstPage.some((o) => o.marketplace === "tiktok");
+  const [affiliateByKey, setAffiliateByKey] = useState<Record<string, string>>({});
   const [tax, setTax] = useState(() => {
     const withTax = firstPage.find((o) => o.tax_percent != null);
     return withTax?.tax_percent != null ? String(withTax.tax_percent) : "";
@@ -400,6 +422,19 @@ export function SalesOrdersTable({
     const key = costKey(o);
     if (key) setCostByKey((prev) => ({ ...prev, [key]: value }));
     else setCostById((prev) => ({ ...prev, [o.id]: value }));
+  };
+
+  const affiliateOf = (o: SlimOrder) => {
+    const key = costKey(o);
+    return (
+      (key ? affiliateByKey[key] : undefined) ??
+      (o.affiliate_percent != null ? String(o.affiliate_percent) : "")
+    );
+  };
+
+  const setAffiliateOf = (o: SlimOrder, value: string) => {
+    const key = costKey(o);
+    if (key) setAffiliateByKey((prev) => ({ ...prev, [key]: value }));
   };
 
   const nets = Object.fromEntries(
@@ -547,7 +582,9 @@ export function SalesOrdersTable({
               <th className="px-4 py-2 font-semibold text-navy">Status</th>
               <th className="px-4 py-2 text-right font-semibold text-navy">Preço de venda</th>
               <th className="px-4 py-2 text-right font-semibold text-navy">Recebido</th>
-              <th className="px-2 py-2 font-semibold text-navy">Custo / Outros / Imp. %</th>
+              <th className="px-2 py-2 font-semibold text-navy">
+                Custo / Outros{hasAffiliates ? " / Afil.%" : ""} / Imp. %
+              </th>
               <th className="px-4 py-2 text-right font-semibold text-navy">Sobrou</th>
             </tr>
           </thead>
@@ -560,6 +597,9 @@ export function SalesOrdersTable({
                 nets={nets}
                 cost={costOf(order)}
                 onCostChange={(value) => setCostOf(order, value)}
+                affiliate={affiliateOf(order)}
+                onAffiliateChange={(value) => setAffiliateOf(order, value)}
+                showAffiliate={hasAffiliates}
                 tax={tax}
                 onTaxChange={setTax}
                 share={1}

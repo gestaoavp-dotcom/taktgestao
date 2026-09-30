@@ -138,6 +138,8 @@ export type SalesOrder = {
   net_settlement: number;
   /** Our reading of what the marketplace paid — see 0029. */
   net_amount: number | null;
+  /** The creator's share, per cent, where a marketplace has affiliates. */
+  affiliate_percent: number | null;
   cost: number | null;
   extra_costs: number | null;
   tax_percent: number | null;

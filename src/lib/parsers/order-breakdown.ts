@@ -37,7 +37,9 @@ export function orderNet(order: SalesOrder, share = 1): number {
   if (!order.raw) return order.net_settlement;
   if (order.marketplace === "mercado_livre") return computeMercadoLivreNet(order.raw);
   if (order.marketplace === "shein") return computeSheinNet(order.raw);
-  if (order.marketplace === "tiktok") return computeTikTokNet(order.raw);
+  if (order.marketplace === "tiktok") {
+    return computeTikTokNet(order.raw, order.affiliate_percent);
+  }
   return computeShopeeNet(order.raw, share);
 }
 
@@ -45,7 +47,9 @@ export function buildOrderBreakdown(order: SalesOrder, share = 1): OrderBreakdow
   if (!order.raw) return null;
   if (order.marketplace === "mercado_livre") return buildMercadoLivreBreakdown(order.raw);
   if (order.marketplace === "shein") return buildSheinBreakdown(order.raw);
-  if (order.marketplace === "tiktok") return buildTikTokBreakdown(order.raw);
+  if (order.marketplace === "tiktok") {
+    return buildTikTokBreakdown(order.raw, order.affiliate_percent);
+  }
   return buildShopeeBreakdown(order.raw, share);
 }
 

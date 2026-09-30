@@ -318,6 +318,7 @@ export async function updateOrderCosts(
 
   const cost = toNumberOrNull(formData.get("cost"));
   const taxPercent = toNumberOrNull(formData.get("tax_percent"));
+  const affiliatePercent = toNumberOrNull(formData.get("affiliate_percent"));
 
   const { data: before } = await supabase
     .from("sales_orders")
@@ -336,6 +337,7 @@ export async function updateOrderCosts(
       cost,
       extra_costs: toNumberOrNull(formData.get("extra_costs")),
       tax_percent: taxPercent,
+      affiliate_percent: affiliatePercent,
     })
     .eq("id", id)
     .select("sku, product_name, report_month")
@@ -352,7 +354,7 @@ export async function updateOrderCosts(
   if (updated) {
     let spread = supabase
       .from("sales_orders")
-      .update({ cost })
+      .update({ cost, affiliate_percent: affiliatePercent })
       .eq("client_id", clientId)
       .gte("report_month", updated.report_month)
       .neq("id", id);
