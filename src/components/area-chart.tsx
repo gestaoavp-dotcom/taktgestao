@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+type Day = { date: string; value: number };
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -23,6 +25,14 @@ function formatDateShort(date: string) {
   return `${d}/${m}`;
 }
 
+/** Built from the parts, so the day never slips a timezone on the way in. */
+function weekdayOf(date: string) {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(y, m - 1, d)
+    .toLocaleDateString("pt-BR", { weekday: "short" })
+    .replace(".", "");
+}
+
 function niceMax(value: number) {
   if (value <= 0) return 100;
   const magnitude = Math.pow(10, Math.floor(Math.log10(value)));
@@ -31,37 +41,79 @@ function niceMax(value: number) {
   return step * magnitude;
 }
 
+/**
+ * About eight dates across the axis, with the last day always among them: it's
+ * the end of the period, and a chart that stops labelling ten days early reads
+ * as if it ended there. A neighbour too close to it is dropped instead.
+ */
+function labelledDays(count: number): Set<number> {
+  const step = Math.max(1, Math.ceil(count / 8));
+  const labels = new Set<number>();
+  for (let i = 0; i < count; i += step) labels.add(i);
+
+  const last = count - 1;
+  if (last > 0) {
+    const previous = Math.floor(last / step) * step;
+    if (last - previous < step * 0.6) labels.delete(previous);
+    labels.add(last);
+  }
+  return labels;
+}
+
 const WIDTH = 1000;
 const HEIGHT = 280;
-const PAD_LEFT = 64;
+const PAD_LEFT = 68;
 const PAD_RIGHT = 16;
-const PAD_TOP = 24;
+const PAD_TOP = 28;
 const PAD_BOTTOM = 32;
 
-export function AreaChart({ data }: { data: { date: string; value: number }[] }) {
+export function AreaChart({ data }: { data: Day[] }) {
   const [hover, setHover] = useState<number | null>(null);
 
-  const max = niceMax(Math.max(...data.map((d) => d.value)));
+  const peak = data.reduce((best, d) => (d.value > best ? d.value : best), 0);
+  const max = niceMax(peak);
   const plotW = WIDTH - PAD_LEFT - PAD_RIGHT;
   const plotH = HEIGHT - PAD_TOP - PAD_BOTTOM;
+  const baseline = PAD_TOP + plotH;
 
   const points = data.map((d, i) => ({
-    x: PAD_LEFT + (data.length === 1 ? 0 : (i / (data.length - 1)) * plotW),
-    y: PAD_TOP + plotH - (d.value / max) * plotH,
+    x: PAD_LEFT + (data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW),
+    y: baseline - (d.value / max) * plotH,
     ...d,
   }));
 
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaPath = `${linePath} L ${points[points.length - 1]?.x ?? PAD_LEFT} ${
-    PAD_TOP + plotH
-  } L ${points[0]?.x ?? PAD_LEFT} ${PAD_TOP + plotH} Z`;
+  const areaPath = `${linePath} L ${points[points.length - 1]?.x ?? PAD_LEFT} ${baseline} L ${
+    points[0]?.x ?? PAD_LEFT
+  } ${baseline} Z`;
 
   const gridLines = [0, 0.25, 0.5, 0.75, 1];
-  const labelEvery = Math.ceil(data.length / 7);
+  const labels = labelledDays(data.length);
+  const band = plotW / Math.max(data.length, 1);
+
+  // The best day, named on the chart: without it the only numbers are the axis,
+  // and the shape says nothing about how big the high point actually was.
+  const peakIndex = peak > 0 ? points.findIndex((p) => p.value === peak) : -1;
+
+  if (data.length === 0 || peak === 0) {
+    return (
+      <div className="flex h-[200px] items-center justify-center text-sm text-[#94A0BD]">
+        Nenhum faturamento nesse período.
+      </div>
+    );
+  }
+
+  const active = hover !== null ? points[hover] : null;
+  const activeLeft = active ? (active.x / WIDTH) * 100 : 0;
 
   return (
     <div className="relative w-full">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="w-full" style={{ height: "auto" }}>
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="w-full"
+        style={{ height: "auto" }}
+        onMouseLeave={() => setHover(null)}
+      >
         <defs>
           <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#2B5FF1" stopOpacity="0.18" />
@@ -70,7 +122,7 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
         </defs>
 
         {gridLines.map((g) => {
-          const y = PAD_TOP + plotH * (1 - g);
+          const y = baseline - plotH * g;
           return (
             <g key={g}>
               <line
@@ -78,10 +130,10 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
                 x2={WIDTH - PAD_RIGHT}
                 y1={y}
                 y2={y}
-                stroke="#E8EBEF"
+                stroke={g === 0 ? "#D8DEE8" : "#E8EBEF"}
                 strokeWidth={1}
               />
-              <text x={PAD_LEFT - 10} y={y} textAnchor="end" dy="3" fontSize="11" fill="#94A0BD">
+              <text x={PAD_LEFT - 12} y={y} textAnchor="end" dy="3" fontSize="11" fill="#94A0BD">
                 {formatAxis(max * g)}
               </text>
             </g>
@@ -89,31 +141,33 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
         })}
 
         <path d={areaPath} fill="url(#areaFill)" />
-        <path d={linePath} fill="none" stroke="#2B5FF1" strokeWidth={2} />
+        <path
+          d={linePath}
+          fill="none"
+          stroke="#2B5FF1"
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
 
-        {points.map((p, i) => (
-          <g key={p.date}>
-            <rect
-              x={p.x - plotW / data.length / 2}
-              y={PAD_TOP}
-              width={plotW / data.length}
-              height={plotH}
-              fill="transparent"
-              onMouseEnter={() => setHover(i)}
-              onMouseLeave={() => setHover(null)}
-            />
-            {hover === i && (
-              <line
-                x1={p.x}
-                x2={p.x}
-                y1={PAD_TOP}
-                y2={PAD_TOP + plotH}
-                stroke="#132249"
-                strokeOpacity={0.15}
-                strokeDasharray="3,3"
-              />
-            )}
+        {active && (
+          <line
+            x1={active.x}
+            x2={active.x}
+            y1={PAD_TOP}
+            y2={baseline}
+            stroke="#132249"
+            strokeOpacity={0.18}
+            strokeDasharray="3,3"
+          />
+        )}
+
+        {/* A day with no sale gets no marker: ninety dots sitting on the
+            baseline read as data, when they are the absence of it. */}
+        {points.map((p, i) =>
+          p.value > 0 ? (
             <circle
+              key={`dot-${p.date}`}
               cx={p.x}
               cy={p.y}
               r={hover === i ? 5 : 3}
@@ -121,14 +175,35 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
               stroke="#2B5FF1"
               strokeWidth={2}
             />
-            {i % labelEvery === 0 && (
-              <text
-                x={p.x}
-                y={HEIGHT - 8}
-                textAnchor="middle"
-                fontSize="11"
-                fill="#94A0BD"
-              >
+          ) : null,
+        )}
+
+        {peakIndex >= 0 && hover === null && (
+          <text
+            x={Math.min(Math.max(points[peakIndex].x, PAD_LEFT + 40), WIDTH - PAD_RIGHT - 40)}
+            y={Math.max(points[peakIndex].y - 12, PAD_TOP - 8)}
+            textAnchor="middle"
+            fontSize="11"
+            fontWeight="600"
+            fill="#132249"
+          >
+            {formatAxis(peak)}
+          </text>
+        )}
+
+        {points.map((p, i) => (
+          <g key={p.date}>
+            <rect
+              x={p.x - band / 2}
+              y={PAD_TOP}
+              width={band}
+              height={plotH}
+              fill="transparent"
+              onMouseEnter={() => setHover(i)}
+              onTouchStart={() => setHover(i)}
+            />
+            {labels.has(i) && (
+              <text x={p.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="#94A0BD">
                 {formatDateShort(p.date)}
               </text>
             )}
@@ -136,16 +211,20 @@ export function AreaChart({ data }: { data: { date: string; value: number }[] })
         ))}
       </svg>
 
-      {hover !== null && points[hover] && (
+      {active && (
         <div
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded bg-navy px-2.5 py-1.5 text-xs font-medium text-white shadow-lg"
+          className={`pointer-events-none absolute -translate-y-full rounded-md bg-navy px-2.5 py-1.5 text-xs font-medium text-white shadow-lg ${
+            activeLeft < 10 ? "" : activeLeft > 90 ? "-translate-x-full" : "-translate-x-1/2"
+          }`}
           style={{
-            left: `${(points[hover].x / WIDTH) * 100}%`,
-            top: `${(points[hover].y / HEIGHT) * 100}%`,
+            left: `${activeLeft}%`,
+            top: `${((active.value > 0 ? active.y - 10 : baseline - 10) / HEIGHT) * 100}%`,
           }}
         >
-          <div className="text-white/70">{formatDateShort(points[hover].date)}</div>
-          <div className="font-display">{formatCurrency(points[hover].value)}</div>
+          <div className="text-white/70">
+            {weekdayOf(active.date)}, {formatDateShort(active.date)}
+          </div>
+          <div className="font-display">{formatCurrency(active.value)}</div>
         </div>
       )}
     </div>
