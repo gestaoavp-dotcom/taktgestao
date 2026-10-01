@@ -56,17 +56,50 @@ async function readAll(table: string, columns: string, clientId?: string) {
 
 const { data: clients } = await db.from("clients").select("id, name").order("name");
 
-const checks: { page: string; run: () => ReturnType<typeof readAll> }[] = [
+type Check = { rows: number; ms: number; kb: number };
+
+const checks: { page: string; run: () => Promise<Check> }[] = [
   { page: "Produtos", run: () => readAll("sales_products", "*") },
   { page: "Ads", run: () => readAll("sales_ads", "*") },
   { page: "Tráfego", run: () => readAll("sales_traffic", "*") },
   { page: "Controle", run: () => readAll("client_changes", "*") },
 ];
 
+// What opening Pedidos actually costs: its totals and its first page, in
+// parallel. Measuring every order a client has measured something the page
+// stopped doing, and reported a problem that no longer existed.
 for (const c of clients ?? []) {
   checks.push({
     page: `Pedidos · ${c.name}`,
-    run: () => readAll("sales_orders", ORDER_LIST_COLUMNS, c.id),
+    run: async () => {
+      const started = Date.now();
+      const { data: months } = await db.rpc("order_months", { p_client_id: c.id });
+      const month = (months as { report_month: string }[] | null)?.[0]?.report_month ?? null;
+      if (!month) return { rows: 0, ms: 0, kb: 0 };
+
+      const [totals, missing, page] = await Promise.all([
+        db.rpc("orders_totals", {
+          p_client_id: c.id, p_month: month, p_marketplace: null,
+          p_account_id: null, p_missing_cost: null,
+        }),
+        db.rpc("orders_missing_cost", { p_client_id: c.id, p_month: month }),
+        db
+          .from("sales_orders")
+          .select(ORDER_LIST_COLUMNS)
+          .eq("client_id", c.id)
+          .eq("report_month", month)
+          .order("created_on", { ascending: false })
+          .order("id")
+          .range(0, 199),
+      ]);
+
+      const payload = [totals.data, missing.data, page.data];
+      return {
+        rows: page.data?.length ?? 0,
+        ms: Date.now() - started,
+        kb: Math.round(Buffer.byteLength(JSON.stringify(payload)) / 1024),
+      };
+    },
   });
 }
 

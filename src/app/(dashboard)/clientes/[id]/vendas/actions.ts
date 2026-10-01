@@ -307,8 +307,6 @@ export async function updateOrderCosts(
   formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
-  const clientId = formData.get("client_id") as string;
-  const id = formData.get("id") as string;
 
   function toNumberOrNull(value: FormDataEntryValue | null) {
     if (value === null || value === "") return null;
@@ -316,90 +314,23 @@ export async function updateOrderCosts(
     return Number.isFinite(n) ? n : null;
   }
 
-  const cost = toNumberOrNull(formData.get("cost"));
-  const taxPercent = toNumberOrNull(formData.get("tax_percent"));
-  const affiliatePercent = toNumberOrNull(formData.get("affiliate_percent"));
+  const clientId = formData.get("client_id") as string;
 
-  const { data: before } = await supabase
-    .from("sales_orders")
-    .select("cost, sku, product_name, report_month")
-    .eq("id", id)
-    .maybeSingle<{
-      cost: number | null;
-      sku: string | null;
-      product_name: string | null;
-      report_month: string;
-    }>();
-
-  const { data: updated, error } = await supabase
-    .from("sales_orders")
-    .update({
-      cost,
-      extra_costs: toNumberOrNull(formData.get("extra_costs")),
-      tax_percent: taxPercent,
-      affiliate_percent: affiliatePercent,
-    })
-    .eq("id", id)
-    .select("sku, product_name, report_month, marketplace")
-    .single();
+  // One call: the database reads the line it is about to write, spreads the
+  // cost across that product and the tax across the client, and recomputes
+  // what the affiliate leaves — without coming back here between steps. Those
+  // were four queries in sequence, and at 150 ms each way that was most of a
+  // second before the database did any work.
+  const { error } = await supabase.rpc("save_order_costs", {
+    p_order_id: formData.get("id") as string,
+    p_client_id: clientId,
+    p_cost: toNumberOrNull(formData.get("cost")),
+    p_extra: toNumberOrNull(formData.get("extra_costs")),
+    p_tax: toNumberOrNull(formData.get("tax_percent")),
+    p_affiliate: toNumberOrNull(formData.get("affiliate_percent")),
+  });
 
   if (error) return { error: error.message };
-
-  // The cost belongs to the SKU, not to one order — but to the SKU *from this
-  // month on*. Earlier months keep what the product cost at the time, so a
-  // closed month's result never moves because today's price changed.
-  // Filed under the SKU when there is one, under the exact title when there is
-  // not — so a marketplace that omits SKUs does not mean typing the same cost
-  // on every line of the same product.
-  if (updated) {
-    let spread = supabase
-      .from("sales_orders")
-      .update({ cost, affiliate_percent: affiliatePercent })
-      .eq("client_id", clientId)
-      .gte("report_month", updated.report_month)
-      .neq("id", id);
-
-    if (updated.sku) spread = spread.eq("sku", updated.sku);
-    else if (updated.product_name) {
-      spread = spread.is("sku", null).eq("product_name", updated.product_name);
-    } else spread = spread.eq("id", id);
-
-    const { error: spreadError } = await spread;
-    if (spreadError) return { error: spreadError.message };
-  }
-
-  // One statement for the whole product: the pieces are stored, so the
-  // database does the arithmetic. Rewriting each line from here took two of
-  // the three seconds it cost to leave the field.
-  if (updated?.marketplace === "tiktok") {
-    const { error: affiliateError } = await supabase.rpc("set_affiliate_percent", {
-      p_client_id: clientId,
-      p_sku: updated.sku,
-      p_product_name: updated.product_name,
-      p_from_month: updated.report_month,
-      p_percent: affiliatePercent,
-    });
-    if (affiliateError) return { error: affiliateError.message };
-  }
-
-  // The tax rate is one number for the client, and changes the same way.
-  const { error: taxError } = await supabase
-    .from("sales_orders")
-    .update({ tax_percent: taxPercent })
-    .eq("client_id", clientId)
-    .gte("report_month", updated.report_month)
-    .neq("id", id);
-
-  if (taxError) return { error: taxError.message };
-
-  await noteCostChange(supabase, {
-    clientId,
-    sku: before?.sku ?? null,
-    productName: before?.product_name ?? null,
-    effectiveMonth: before?.report_month ?? updated.report_month,
-    previous: before?.cost ?? null,
-    next: cost,
-  });
 
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
   return { ok: true };
