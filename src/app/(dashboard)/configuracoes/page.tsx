@@ -1,21 +1,22 @@
 import { ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import type { Client, Profile } from "@/lib/types";
+import { currentUser } from "@/lib/profile";
 import { AccessSettings } from "@/components/access-settings";
 import { EmailSettings } from "@/components/email-settings";
 import { emailSender } from "@/lib/email";
 
 export default async function ConfiguracoesPage() {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const user = await currentUser();
 
-  if (auth.user) await supabase.rpc("ensure_profile", { user_name: null });
+  if (user) await supabase.rpc("ensure_profile", { user_name: null });
 
   const [{ data: me }, { data: profiles }, { data: clients }] = await Promise.all([
     supabase
       .from("profiles")
       .select("*")
-      .eq("id", auth.user?.id ?? "")
+      .eq("id", user?.id ?? "")
       .maybeSingle<Profile>(),
     supabase.from("profiles").select("*").order("role").returns<Profile[]>(),
     supabase.from("clients").select("*").order("name").returns<Client[]>(),
@@ -38,12 +39,12 @@ export default async function ConfiguracoesPage() {
       <h1 className="mb-1 font-display text-2xl font-bold text-navy">Configurações</h1>
       <p className="mb-6 text-sm text-[#5B647E]">Quem entra no sistema e até onde cada um vê.</p>
 
-      <EmailSettings sender={emailSender()} adminEmail={auth.user?.email ?? ""} />
+      <EmailSettings sender={emailSender()} adminEmail={user?.email ?? ""} />
 
       <AccessSettings
         profiles={profiles ?? []}
         clients={clients ?? []}
-        currentUserId={auth.user?.id ?? ""}
+        currentUserId={user?.id ?? ""}
       />
     </div>
   );

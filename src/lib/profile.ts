@@ -11,15 +11,28 @@ import type { Profile } from "@/lib/types";
 // Cached per request, so a layout, a page and a tab bar asking the same
 // question cost one query between them.
 
-export const getProfile = cache(async (): Promise<Profile | null> => {
+/**
+ * Who is logged in, asked once per request.
+ *
+ * `getUser()` is a round trip to the auth server every time it is called, and
+ * the layout, this file and a page each used to call it on the way to the same
+ * answer — three waits of about 200 ms before any page query had started.
+ */
+export const currentUser = cache(async () => {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return null;
+  const { data } = await supabase.auth.getUser();
+  return data.user;
+});
 
+export const getProfile = cache(async (): Promise<Profile | null> => {
+  const user = await currentUser();
+  if (!user) return null;
+
+  const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
     .select("*")
-    .eq("id", auth.user.id)
+    .eq("id", user.id)
     .maybeSingle<Profile>();
 
   return data;

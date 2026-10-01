@@ -1,14 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Client, Profile, Task } from "@/lib/types";
+import { currentUser } from "@/lib/profile";
 import { TasksBoard } from "@/components/tasks-board";
 
 export default async function TarefasPage() {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const user = await currentUser();
 
   // Stands in for a trigger on auth.users, which cannot be created from the
   // SQL editor. Inserts nothing when a profile already exists.
-  if (auth.user) await supabase.rpc("ensure_profile", { user_name: null });
+  if (user) await supabase.rpc("ensure_profile", { user_name: null });
 
   const [{ data: tasks }, { data: clients }, { data: profiles }] = await Promise.all([
     supabase
@@ -29,7 +30,7 @@ export default async function TarefasPage() {
         tasks={tasks ?? []}
         clients={clients ?? []}
         profiles={profiles ?? []}
-        currentUserId={auth.user?.id ?? ""}
+        currentUserId={user?.id ?? ""}
       />
     </div>
   );
