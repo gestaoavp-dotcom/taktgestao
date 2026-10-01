@@ -302,38 +302,54 @@ export async function getSalesReportUrl(path: string) {
   return data?.signedUrl ?? null;
 }
 
+export type SavedTotals = {
+  orders: number; lines: number; sold: number; net: number;
+  cost: number; extra: number; tax: number; margin: number;
+};
+
 export async function updateOrderCosts(
-  _prevState: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
+  input: {
+    id: string;
+    clientId: string;
+    cost: string;
+    extra: string;
+    tax: string;
+    affiliate: string;
+    filters: {
+      month: string | null;
+      marketplace: string | null;
+      accountId: string | null;
+      missingCost: boolean | null;
+    };
+  },
+): Promise<{ totals: SavedTotals } | { error: string }> {
   const supabase = await createClient();
 
-  function toNumberOrNull(value: FormDataEntryValue | null) {
-    if (value === null || value === "") return null;
-    const n = Number(String(value).replace(",", "."));
+  const toNumberOrNull = (value: string) => {
+    if (!value.trim()) return null;
+    const n = Number(value.replace(",", "."));
     return Number.isFinite(n) ? n : null;
-  }
+  };
 
-  const clientId = formData.get("client_id") as string;
-
-  // One call: the database reads the line it is about to write, spreads the
-  // cost across that product and the tax across the client, and recomputes
-  // what the affiliate leaves — without coming back here between steps. Those
-  // were four queries in sequence, and at 150 ms each way that was most of a
-  // second before the database did any work.
-  const { error } = await supabase.rpc("save_order_costs", {
-    p_order_id: formData.get("id") as string,
-    p_client_id: clientId,
-    p_cost: toNumberOrNull(formData.get("cost")),
-    p_extra: toNumberOrNull(formData.get("extra_costs")),
-    p_tax: toNumberOrNull(formData.get("tax_percent")),
-    p_affiliate: toNumberOrNull(formData.get("affiliate_percent")),
+  // One call that writes and answers: the database spreads the cost across the
+  // product and the tax across the client, then hands back the totals for the
+  // filter on screen. Without them the page had to be rebuilt to move one
+  // number in the footer.
+  const { data, error } = await supabase.rpc("save_order_costs", {
+    p_order_id: input.id,
+    p_client_id: input.clientId,
+    p_cost: toNumberOrNull(input.cost),
+    p_extra: toNumberOrNull(input.extra),
+    p_tax: toNumberOrNull(input.tax),
+    p_affiliate: toNumberOrNull(input.affiliate),
+    p_month: input.filters.month,
+    p_marketplace: input.filters.marketplace,
+    p_account_id: input.filters.accountId,
+    p_missing_cost: input.filters.missingCost,
   });
 
   if (error) return { error: error.message };
-
-  revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
-  return { ok: true };
+  return { totals: (data as SavedTotals[])[0] };
 }
 
 export async function importSalesProducts(input: {

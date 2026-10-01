@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { SalesOrder } from "@/lib/types";
@@ -188,7 +188,6 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
 }
 
 function OrderRow({
-  clientId,
   order,
   nets,
   cost,
@@ -198,14 +197,21 @@ function OrderRow({
   showAffiliate,
   tax,
   onTaxChange,
+  onSave,
   share,
 }: {
-  clientId: string;
   order: SlimOrder;
   nets: Record<string, number>;
   affiliate: string;
   onAffiliateChange: (value: string) => void;
   showAffiliate: boolean;
+  onSave: (values: {
+    id: string;
+    cost: string;
+    extra: string;
+    tax: string;
+    affiliate: string;
+  }) => void;
   cost: string;
   onCostChange: (value: string) => void;
   tax: string;
@@ -214,7 +220,6 @@ function OrderRow({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [extra, setExtra] = useState(order.extra_costs != null ? String(order.extra_costs) : "");
-  const [, formAction] = useActionState(updateOrderCosts, null);
 
   const net = nets[order.id] ?? order.net_settlement;
   const costNum = parseFloat(cost.replace(",", ".")) || 0;
@@ -281,13 +286,14 @@ function OrderRow({
           {formatCurrency(net)}
         </td>
         <td className="px-2 py-2">
-          <form
-            action={formAction}
-            onBlur={(e) => e.currentTarget.requestSubmit()}
+          {/* Saved on blur, without a form post: the page is not rebuilt, so
+              the typed value stays put and only the footer moves. */}
+          <div
+            onBlur={() =>
+              onSave({ id: order.id, cost, extra, tax, affiliate })
+            }
             className="flex items-center gap-1"
           >
-            <input type="hidden" name="id" value={order.id} />
-            <input type="hidden" name="client_id" value={clientId} />
             <input
               name="cost"
               value={cost}
@@ -328,7 +334,7 @@ function OrderRow({
               title="Imposto — vale para todos os pedidos do cliente"
               className={`${CELL_INPUT_CLASS} w-16`}
             />
-          </form>
+          </div>
         </td>
         <td
           className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${
@@ -353,7 +359,7 @@ export function SalesOrdersTable({
   clientId,
   orders: firstPage,
   error,
-  totals,
+  totals: initialTotals,
   missing,
   months,
   accounts,
@@ -378,6 +384,10 @@ export function SalesOrdersTable({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [navigating, startNavigation] = useTransition();
+  // The footer covers the whole filter, not the rows on screen, so the browser
+  // cannot work it out — it comes back from the save instead.
+  const [totals, setTotals] = useState(initialTotals);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Rows beyond the first page, fetched as they are asked for. The first page
   // comes with the document, so the table draws before any of this runs.
@@ -443,6 +453,30 @@ export function SalesOrdersTable({
   const nets = Object.fromEntries(
     rows.map((o) => [o.id, Number(o.net_amount ?? o.net_settlement)]),
   );
+
+  async function save(values: {
+    id: string;
+    cost: string;
+    extra: string;
+    tax: string;
+    affiliate: string;
+  }) {
+    const result = await updateOrderCosts({
+      ...values,
+      clientId,
+      filters: {
+        month: month === "todos" ? null : month,
+        marketplace: marketplace === "todos" ? null : marketplace,
+        accountId: account === "todas" ? null : account,
+        missingCost: cost === "falta" ? true : cost === "preenchido" ? false : null,
+      },
+    });
+    if ("error" in result) setSaveError(result.error);
+    else {
+      setSaveError(null);
+      setTotals(result.totals);
+    }
+  }
 
   async function loadMore() {
     setLoadingMore(true);
@@ -555,6 +589,12 @@ export function SalesOrdersTable({
         </div>
       </div>
 
+      {saveError && (
+        <p className="mb-4 rounded-lg bg-red-50 px-4 py-2.5 text-xs text-red-700">
+          Não consegui salvar: {saveError}
+        </p>
+      )}
+
       {missing.lines > 0 && cost !== "preenchido" && (
         <p className="mb-4 rounded-lg bg-yellow/10 px-4 py-2.5 text-xs text-[#5B647E]">
           <button
@@ -595,7 +635,6 @@ export function SalesOrdersTable({
             {rows.map((order) => (
               <OrderRow
                 key={order.id}
-                clientId={clientId}
                 order={order}
                 nets={nets}
                 cost={costOf(order)}
@@ -605,6 +644,7 @@ export function SalesOrdersTable({
                 showAffiliate={hasAffiliates}
                 tax={tax}
                 onTaxChange={setTax}
+                onSave={save}
                 share={1}
               />
             ))}
