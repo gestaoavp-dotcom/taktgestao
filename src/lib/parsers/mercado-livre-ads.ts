@@ -51,10 +51,20 @@ function toNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+const MONTHS: Record<string, string> = {
+  jan: "01", fev: "02", mar: "03", abr: "04", mai: "05", jun: "06",
+  jul: "07", ago: "08", set: "09", out: "10", nov: "11", dez: "12",
+};
+
+/** "2026-09-21", or "03-ago-2026" as the placement report writes it. */
 function toDateOnly(value: unknown): string | null {
   if (value instanceof Date) return value.toISOString().slice(0, 10);
-  const match = String(value ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return match ? match[0] : null;
+  const s = String(value ?? "").trim().toLowerCase();
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[0];
+  const pt = s.match(/^(\d{1,2})-([a-z]{3})-(\d{4})/);
+  if (pt && MONTHS[pt[2]]) return `${pt[3]}-${MONTHS[pt[2]]}-${pt[1].padStart(2, "0")}`;
+  return null;
 }
 
 export function parseMercadoLivreAds(rows: unknown[][]): ParsedMercadoLivreAd[] {

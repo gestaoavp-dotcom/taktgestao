@@ -34,6 +34,18 @@ const MONTHS = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
+/** The month a row belongs to, or the whole window of a multi-month report. */
+function periodKey(p: SalesProduct) {
+  return p.period ? `${p.period.start}|${p.period.end}` : p.report_month;
+}
+
+function periodLabel(key: string) {
+  if (!key.includes("|")) return monthLabel(key);
+  const br = (iso: string) => iso.split("-").reverse().join("/");
+  const [start, end] = key.split("|");
+  return `${br(start)} a ${br(end)}`;
+}
+
 function monthLabel(reportMonth: string) {
   const [y, m] = reportMonth.split("-").map(Number);
   return `${MONTHS[m - 1]} de ${y}`;
@@ -328,7 +340,7 @@ export function SalesProductsTable({
   };
 
   const months = useMemo(
-    () => [...new Set(products.map((p) => p.report_month))].sort().reverse(),
+    () => [...new Set(products.map(periodKey))].sort().reverse(),
     [products],
   );
   const [month, setMonth] = useState<string>("all");
@@ -341,7 +353,7 @@ export function SalesProductsTable({
 
   const scoped = products.filter(
     (p) =>
-      (month === "all" || p.report_month === month) &&
+      (month === "all" || periodKey(p) === month) &&
       (marketplace === "all" || p.marketplace === marketplace),
   );
   const rows = scoped.filter((p) => !p.is_total);
@@ -400,7 +412,7 @@ export function SalesProductsTable({
           <option value="all">Todos os meses</option>
           {months.map((m) => (
             <option key={m} value={m}>
-              {monthLabel(m)}
+              {periodLabel(m)}
             </option>
           ))}
         </select>

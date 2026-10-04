@@ -40,6 +40,7 @@ export default async function ClienteVendasPage({
     previousTicket,
     chartData,
     monthlyRevenue,
+    productsLeftOut,
     platformRows,
     returns,
     paid,
@@ -86,7 +87,7 @@ export default async function ClienteVendasPage({
         <h2 className="mb-1 font-bold text-navy">Faturamento por dia</h2>
         <p className="mb-4 text-xs text-[#94A0BD]">Só os marketplaces que reportam por pedido.</p>
         <AreaChart data={chartData} />
-        <MonthlyRevenueNote value={monthlyRevenue} />
+        <MonthlyRevenueNote value={monthlyRevenue} leftOut={productsLeftOut} />
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-sm">

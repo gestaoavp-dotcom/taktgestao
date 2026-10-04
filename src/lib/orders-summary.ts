@@ -2,6 +2,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DateRange } from "@/lib/sales-summary";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { isReturnedOrder } from "@/lib/parsers/order-breakdown";
+import {
+  loadReportPeriods,
+  monthEnd,
+  periodOverlaps,
+  periodWithin,
+  type ReportPeriod,
+} from "@/lib/report-periods";
 
 export type OrdersSummary = {
   revenue: number;
@@ -13,6 +20,11 @@ export type OrdersSummary = {
   chartData: { date: string; value: number }[];
   /** Revenue from monthly product reports (Amazon): in the totals, not in the day chart. */
   monthlyRevenue: number;
+  /**
+   * Product reports (Amazon) that cover more than the period on screen, so
+   * they cannot count in it: their total has no day to split by.
+   */
+  productsLeftOut: (ReportPeriod & { value: number })[];
   /**
    * What buyers actually paid for the same sales — the product price less
    * discounts and coupons, plus shipping. Null until the database returns it.
@@ -47,6 +59,7 @@ type DayRow = {
 };
 
 type ProductRow = {
+  sales_report_id: string;
   marketplace: string;
   report_month: string;
   net_sales: number;
@@ -111,17 +124,6 @@ function fromISO(value: string) {
   return new Date(y, m - 1, d);
 }
 
-/**
- * A product report settles a whole month at once and says nothing about days,
- * so it counts only when the period contains that month end to end. Splitting
- * it across a partial range would mean inventing a distribution the report
- * never gave.
- */
-function monthWithin(reportMonth: string, start: string, end: string) {
-  const [y, m] = reportMonth.split("-").map(Number);
-  const last = toISO(new Date(y, m, 0));
-  return reportMonth >= start && last <= end;
-}
 
 function revenueOf(rows: DayRow[]) {
   return rows.reduce((sum, r) => sum + Number(r.revenue), 0);
@@ -178,9 +180,10 @@ export async function getOrdersSummary(
   const products = await fetchAll<ProductRow>((from, to) => {
     let q = supabase
       .from("sales_products")
-      .select("marketplace, report_month, net_sales, units_net")
+      .select("sales_report_id, marketplace, report_month, net_sales, units_net")
       .eq("is_total", false)
-      .gte("report_month", `${toISO(prevStart).slice(0, 7)}-01`)
+      // A year back, for a report spanning several months that only overlaps.
+      .gte("report_month", `${Number(toISO(prevStart).slice(0, 4)) - 1}${toISO(prevStart).slice(4, 7)}-01`)
       .lte("report_month", range.end);
     if (filters.clientId) q = q.eq("client_id", filters.clientId);
     if (filters.marketplace) q = q.eq("marketplace", filters.marketplace);
@@ -194,12 +197,38 @@ export async function getOrdersSummary(
     marketplace: filters.marketplace,
   });
 
+  // A product report settles its whole window at once and says nothing about
+  // days, so it counts only when the period holds that window end to end —
+  // usually one month, more when a first import brings several together.
+  // Splitting it would mean inventing a distribution the report never gave.
+  const periods = await loadReportPeriods(
+    supabase,
+    products.map((p) => p.sales_report_id),
+  );
+  const periodOf = (p: ProductRow): ReportPeriod =>
+    periods.get(p.sales_report_id) ?? { start: p.report_month, end: monthEnd(p.report_month) };
+  const dayBefore = (iso: string) => {
+    const d = fromISO(iso);
+    d.setDate(d.getDate() - 1);
+    return toISO(d);
+  };
+
   const currentProducts = products.filter((p) =>
-    monthWithin(p.report_month, range.start, range.end),
+    periodWithin(periodOf(p), range.start, range.end),
   );
   const previousProducts = products.filter((p) =>
-    monthWithin(p.report_month, toISO(prevStart), range.start),
+    periodWithin(periodOf(p), toISO(prevStart), dayBefore(range.start)),
   );
+
+  const leftOut = new Map<string, ReportPeriod & { value: number }>();
+  for (const p of products) {
+    const period = periodOf(p);
+    if (periodWithin(period, range.start, range.end)) continue;
+    if (!periodOverlaps(period, range.start, range.end)) continue;
+    const e = leftOut.get(p.sales_report_id) ?? { ...period, value: 0 };
+    e.value += Number(p.net_sales);
+    leftOut.set(p.sales_report_id, e);
+  }
 
   const productRevenue = (rows: ProductRow[]) =>
     rows.reduce((s, p) => s + Number(p.net_sales), 0);
@@ -285,6 +314,7 @@ export async function getOrdersSummary(
     previousTicket: previousOrders > 0 ? previousRevenue / previousOrders : 0,
     chartData,
     monthlyRevenue: productRevenue(currentProducts),
+    productsLeftOut: [...leftOut.values()],
     paid,
     returns: returnsOf(returned),
     platformRows,

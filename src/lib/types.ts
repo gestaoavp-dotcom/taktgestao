@@ -281,6 +281,8 @@ export type SalesProduct = {
   is_total: boolean;
   raw: Record<string, unknown> | null;
   created_at: string;
+  /** Set by the page when the report covers more than one month. */
+  period?: { start: string; end: string } | null;
 };
 
 /** A login, and how far it reaches. */

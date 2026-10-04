@@ -144,6 +144,15 @@ const MONTHS = [
   "Dezembro",
 ];
 
+/**
+ * Amazon has no orders report the app reads: what it exports is the sales by
+ * product, read as Produtos whichever tab it was sent from. Sent as Pedidos,
+ * it used to be kept and never read.
+ */
+function readKind(kind: SalesReportKind, marketplace: string): SalesReportKind {
+  return kind === "pedidos" && marketplace === "amazon" ? "produtos" : kind;
+}
+
 /** Marketplaces whose report we know how to read, per kind of report. */
 const READABLE: Record<SalesReportKind, string[]> = {
   pedidos: ["shopee", "mercado_livre", "shein", "tiktok"],
@@ -227,9 +236,12 @@ export function SalesReportsCard({
     setUploading(true);
     setError(null);
 
-    const reportKind = replaceReport?.kind ?? kind;
     const reportMarketplace = replaceReport?.marketplace ?? marketplace;
-    const byPeriod = reportKind === "pedidos";
+    const reportKind = readKind(replaceReport?.kind ?? kind, reportMarketplace);
+    // Orders carry a date per sale; Amazon's product report carries none, but
+    // covers whatever window it was exported for — one month or, on a first
+    // import, several.
+    const byPeriod = reportKind === "pedidos" || reportKind === "produtos";
     const reportMonth =
       replaceReport?.report_month ??
       (byPeriod ? `${from.slice(0, 7)}-01` : `${year}-${String(month).padStart(2, "0")}-01`);
@@ -515,6 +527,13 @@ export function SalesReportsCard({
             "O arquivo ficou salvo, mas sem os dados — use o botão de substituir para tentar de novo.",
         );
       }
+    } else {
+      // Said at the moment of upload: a file kept but never read looked like a
+      // success, and its numbers were simply missing from every screen.
+      setError(
+        "O arquivo ficou salvo, mas a leitura automática desse tipo de relatório ainda não existe: " +
+          "os números dele não aparecem nos gráficos.",
+      );
     }
 
     setUploading(false);
@@ -542,7 +561,11 @@ export function SalesReportsCard({
     else setError("Não consegui gerar o link do arquivo.");
   }
 
-  const hasParser = READABLE[kind].includes(marketplace);
+  const effectiveKind = readKind(kind, marketplace);
+  const hasParser = READABLE[effectiveKind].includes(marketplace);
+  const byPeriod = effectiveKind === "pedidos" || effectiveKind === "produtos";
+  const amazonSpansMonths =
+    effectiveKind === "produtos" && from.slice(0, 7) !== to.slice(0, 7);
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -568,7 +591,7 @@ export function SalesReportsCard({
       <p className="mb-4 text-xs text-[#94A0BD]">
         {KINDS.find((k) => k.value === kind)?.hint}
         {hasParser
-          ? ` — os dados são lidos automaticamente e aparecem na aba ${kind === "ads" ? "Ads" : kind === "trafego" ? "Tráfego" : "Pedidos"}.`
+          ? ` — os dados são lidos automaticamente e aparecem na aba ${effectiveKind === "ads" ? "Ads" : effectiveKind === "trafego" ? "Tráfego" : effectiveKind === "produtos" ? "Produtos" : "Pedidos"}.`
           : " — a leitura automática desse tipo ainda não está pronta: o arquivo fica salvo, mas os dados não são extraídos."}
       </p>
 
@@ -620,7 +643,7 @@ export function SalesReportsCard({
       )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {kind === "pedidos" ? (
+        {byPeriod ? (
           <>
             <span className="text-sm text-[#5B647E]">De</span>
             <div className="w-36">
@@ -674,8 +697,8 @@ export function SalesReportsCard({
           <Upload className="h-4 w-4" />
           {uploading && !replacingId
             ? "Enviando..."
-            : kind === "pedidos"
-              ? "Enviar documento de pedidos deste período"
+            : byPeriod
+              ? `Enviar documento de ${effectiveKind === "produtos" ? "produtos" : "pedidos"} deste período`
               : `Enviar documento de ${KINDS.find((k) => k.value === kind)?.label.toLowerCase()} deste mês`}
           <input
             ref={inputRef}
@@ -695,6 +718,26 @@ export function SalesReportsCard({
         onChange={handleReplace}
         className="sr-only"
       />
+
+      {/* What happens to a file holding more than one month — common on a
+          client's first import — differs by report, so it is said up front. */}
+      {amazonSpansMonths && (
+        <p className="mb-3 rounded bg-yellow/10 px-3 py-2 text-xs text-[#5B647E]">
+          Esse relatório da Amazon não separa as vendas por mês: com mais de um mês, ele só entra
+          nos totais quando o período escolhido no Dashboard cobrir essas datas inteiras. Para ver
+          mês a mês, envie um arquivo por mês.
+        </p>
+      )}
+      {effectiveKind === "ads" && marketplace === "mercado_livre" && (
+        <p className="mb-3 text-xs text-[#94A0BD]">
+          Arquivo com mais de um mês? Escolha o primeiro mês dele: cada semana vai para o seu mês.
+        </p>
+      )}
+      {(effectiveKind === "trafego" || (effectiveKind === "ads" && marketplace !== "mercado_livre")) && (
+        <p className="mb-3 text-xs text-[#94A0BD]">
+          Esse relatório soma o período inteiro sem separar por mês: envie um arquivo por mês.
+        </p>
+      )}
 
       {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
 

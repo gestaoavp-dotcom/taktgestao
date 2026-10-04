@@ -197,6 +197,20 @@ export async function importSalesOrders(input: {
   return { ok: true };
 }
 
+/**
+ * Mercado Livre's reports come one row per campaign and week, so a file
+ * exported for several months spreads over them: each week goes to its own
+ * month, from the month the upload was filed under onward. A week that began
+ * in the month before belongs to the chosen one — that is how a monthly
+ * export trims it. Shopee's start date is the ad's, not the period's, so its
+ * rows stay in the chosen month.
+ */
+function adMonth(marketplace: string, startedOn: string | null, reportMonth: string) {
+  if (marketplace !== "mercado_livre" || !startedOn) return reportMonth;
+  const own = `${startedOn.slice(0, 7)}-01`;
+  return own > reportMonth ? own : reportMonth;
+}
+
 export async function importSalesAds(input: {
   clientId: string;
   reportId: string;
@@ -212,7 +226,7 @@ export async function importSalesAds(input: {
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
     account_id: input.accountId,
-    report_month: input.reportMonth,
+    report_month: adMonth(input.marketplace, a.started_on, input.reportMonth),
     ...a,
   }));
 

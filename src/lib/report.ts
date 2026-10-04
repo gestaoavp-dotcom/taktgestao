@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isBilledOrder, isReturnedOrder } from "@/lib/parsers/order-breakdown";
 import { returnsOf } from "@/lib/orders-summary";
+import { loadReportPeriods, monthEnd, periodWithin } from "@/lib/report-periods";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Assembles the monthly report from the four sources the team imports:
@@ -179,6 +180,7 @@ function addDays(iso: string, days: number) {
 }
 
 type ProductReportRow = {
+  sales_report_id: string;
   marketplace: string;
   sku: string | null;
   product_name: string | null;
@@ -229,11 +231,23 @@ export async function buildMonthlyReport(
 
   // Amazon settles by product for the whole month, so its revenue lives in the
   // product report, not in sales_orders. The dashboard counts it; so must this.
-  const productQuery = (m: string) =>
+  // A report covering several months (a first import) belongs to none of
+  // them alone: it has no day to split by, so it stays out of a monthly report.
+  const productQuery = async (m: string) => {
+    const rows = await productRows(m);
+    const periods = await loadReportPeriods(
+      supabase,
+      rows.map((p) => p.sales_report_id),
+    );
+    return rows.filter((p) =>
+      periodWithin(periods.get(p.sales_report_id) ?? { start: m, end: monthEnd(m) }, m, monthEnd(m)),
+    );
+  };
+  const productRows = (m: string) =>
     fetchAll<ProductReportRow>((a, b) => {
       let q = supabase
         .from("sales_products")
-        .select("marketplace, sku, product_name, net_sales, units_net")
+        .select("sales_report_id, marketplace, sku, product_name, net_sales, units_net")
         .eq("client_id", clientId)
         .eq("report_month", m)
         .eq("is_total", false);

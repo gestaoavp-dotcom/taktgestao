@@ -5,6 +5,7 @@ import type { ProductCostChange, SalesOrder, SalesProduct } from "@/lib/types";
 import { productsFromOrders } from "@/lib/products-from-orders";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesProductsTable } from "@/components/sales-products-table";
+import { loadReportPeriods, spansMonths } from "@/lib/report-periods";
 
 /** PostgREST caps a response at 1000 rows. */
 const PAGE = 1000;
@@ -66,7 +67,18 @@ export default async function ProdutosPage({
   // wire instead of a few thousand orders.
   const derived = productsFromOrders(orders);
 
-  const products = [...(reported ?? []), ...derived].sort(
+  // A first import can bring several months in one product report; it is
+  // listed under its own window, not under the month it starts in.
+  const periods = await loadReportPeriods(
+    supabase,
+    (reported ?? []).map((p) => p.sales_report_id),
+  );
+  const withPeriods = (reported ?? []).map((p) => {
+    const period = periods.get(p.sales_report_id);
+    return period && spansMonths(period) ? { ...p, period } : p;
+  });
+
+  const products = [...withPeriods, ...derived].sort(
     (a, b) =>
       b.report_month.localeCompare(a.report_month) ||
       Number(b.net_revenue) - Number(a.net_revenue),
