@@ -6,6 +6,7 @@ import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
+import { returnsNote } from "@/lib/returns-note";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
@@ -77,6 +78,7 @@ export default async function ClienteDashboardPage({
             value={formatCurrency(revenue)}
             trend={trendOf(revenue, previousRevenue)}
             icon="wallet"
+            note={returnsNote(revenue, sales.returns)}
           />
           <KpiCard
             label="Pedidos"
@@ -109,6 +111,7 @@ export default async function ClienteDashboardPage({
                   <th className="px-5 py-2 font-semibold text-navy">Marketplace</th>
                   <th className="px-5 py-2 font-semibold text-navy">Faturamento</th>
                   <th className="px-5 py-2 font-semibold text-navy">Pedidos</th>
+                  <th className="px-5 py-2 font-semibold text-navy">Devoluções</th>
                 </tr>
               </thead>
               <tbody>
@@ -119,6 +122,11 @@ export default async function ClienteDashboardPage({
                     </td>
                     <td className="px-5 py-2.5 text-navy">{formatCurrency(data.revenue)}</td>
                     <td className="px-5 py-2.5 text-[#5B647E]">{data.orders}</td>
+                    <td className="px-5 py-2.5 text-[#5B647E]">
+                      {data.returns.orders
+                        ? `${formatCurrency(data.returns.value)} (${data.returns.orders})`
+                        : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>

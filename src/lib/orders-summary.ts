@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DateRange } from "@/lib/sales-summary";
 import { fetchAll } from "@/lib/supabase/fetch-all";
+import { isReturnedOrder } from "@/lib/parsers/order-breakdown";
 
 export type OrdersSummary = {
   revenue: number;
@@ -12,7 +13,23 @@ export type OrdersSummary = {
   chartData: { date: string; value: number }[];
   /** Revenue from monthly product reports (Amazon): in the totals, not in the day chart. */
   monthlyRevenue: number;
-  platformRows: [string, { revenue: number; orders: number }][];
+  /** Sales sent back in the period: out of revenue, shown beside it. */
+  returns: Returns;
+  platformRows: [string, PlatformTotals][];
+};
+
+export type Returns = { value: number; orders: number };
+type PlatformTotals = { revenue: number; orders: number; returns: Returns };
+
+type ReturnRow = {
+  order_id: string;
+  marketplace: string;
+  status: string | null;
+  refund_status: string | null;
+  subtotal: number;
+  total_value: number;
+  net_settlement: number | null;
+  net_amount: number | null;
 };
 
 type DayRow = {
@@ -28,6 +45,53 @@ type ProductRow = {
   net_sales: number;
   units_net: number;
 };
+
+/**
+ * The sales sent back within a scope — a period, or a report month as the
+ * Pedidos tab filters. Returns are few, so the rows come back as they are and
+ * the rule that tells a return from a cancellation runs here, the one the
+ * report uses too.
+ */
+export async function loadReturnedOrders(
+  supabase: SupabaseClient,
+  scope: {
+    start?: string;
+    end?: string;
+    month?: string | null;
+    clientId?: string;
+    marketplace?: string | null;
+    accountId?: string | null;
+  },
+): Promise<ReturnRow[]> {
+  const rows = await fetchAll<ReturnRow>((from, to) => {
+    let q = supabase
+      .from("sales_orders")
+      .select(
+        "order_id, marketplace, status, refund_status, subtotal, total_value, net_settlement, net_amount",
+      )
+      .gt("subtotal", 0)
+      .or(
+        "status.ilike.*devolu*,status.ilike.*devolvid*,status.ilike.*reembols*," +
+          "refund_status.ilike.*devolu*,refund_status.ilike.*reembols*," +
+          "refund_status.ilike.*aprovada*,refund_status.ilike.*return*,refund_status.ilike.*refund*",
+      );
+    if (scope.start) q = q.gte("created_on", scope.start);
+    if (scope.end) q = q.lte("created_on", scope.end);
+    if (scope.month) q = q.eq("report_month", scope.month);
+    if (scope.clientId) q = q.eq("client_id", scope.clientId);
+    if (scope.marketplace) q = q.eq("marketplace", scope.marketplace);
+    if (scope.accountId) q = q.eq("account_id", scope.accountId);
+    return q.order("id").range(from, to).returns<ReturnRow[]>();
+  });
+  return rows.filter(isReturnedOrder);
+}
+
+export function returnsOf(rows: { order_id: string; subtotal: number }[]): Returns {
+  return {
+    value: rows.reduce((s, r) => s + Number(r.subtotal), 0),
+    orders: new Set(rows.map((r) => r.order_id)).size,
+  };
+}
 
 function toISO(d: Date) {
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -116,6 +180,13 @@ export async function getOrdersSummary(
     return q.order("id").range(from, to).returns<ProductRow[]>();
   });
 
+  const returned = await loadReturnedOrders(supabase, {
+    start: range.start,
+    end: range.end,
+    clientId: filters.clientId,
+    marketplace: filters.marketplace,
+  });
+
   const currentProducts = products.filter((p) =>
     monthWithin(p.report_month, range.start, range.end),
   );
@@ -167,6 +238,11 @@ export async function getOrdersSummary(
     );
   }
 
+  // A marketplace whose every sale came back still gets its row.
+  for (const r of returned) {
+    if (!byPlatform.has(r.marketplace)) byPlatform.set(r.marketplace, { revenue: 0, orders: 0 });
+  }
+
   const platformRows = Array.from(byPlatform.entries())
     .map(
       ([platform, v]) =>
@@ -175,11 +251,12 @@ export async function getOrdersSummary(
           {
             revenue: v.revenue,
             orders: v.orders + (productUnitsByPlatform.get(platform) ?? 0),
+            returns: returnsOf(returned.filter((r) => r.marketplace === platform)),
           },
         ] as const,
     )
     .sort((a, b) => b[1].revenue - a[1].revenue)
-    .map((entry) => entry as [string, { revenue: number; orders: number }]);
+    .map((entry) => entry as [string, PlatformTotals]);
 
   return {
     revenue,
@@ -190,6 +267,7 @@ export async function getOrdersSummary(
     previousTicket: previousOrders > 0 ? previousRevenue / previousOrders : 0,
     chartData,
     monthlyRevenue: productRevenue(currentProducts),
+    returns: returnsOf(returned),
     platformRows,
   };
 }

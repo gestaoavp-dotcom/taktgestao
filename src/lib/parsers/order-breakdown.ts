@@ -130,3 +130,27 @@ export function isBilledOrder(row: {
   }
   return Number(row.total_value) > 0;
 }
+
+/** Words every marketplace uses for a sale that came back, in status or detail. */
+const RETURN_WORDS = /devolu|devolvid|reembols|solicitação aprovada|return|refund/i;
+
+/**
+ * A sale the buyer sent back or was refunded for — out of revenue like a
+ * cancellation, but shown on its own: it was sold, and losing it says
+ * something a cancellation does not. A cancellation never left the shelf, so
+ * it is neither. The database applies the same rule in orders_totals.
+ */
+export function isReturnedOrder(row: {
+  marketplace: string;
+  status?: string | null;
+  refund_status?: string | null;
+  subtotal: number | string;
+  total_value: number | string;
+  net_settlement?: number | string | null;
+  net_amount?: number | string | null;
+}): boolean {
+  if (isBilledOrder(row)) return false;
+  if (!(Number(row.subtotal) > 0)) return false;
+  if (/cancel/i.test(row.status ?? "")) return false;
+  return RETURN_WORDS.test(`${row.status ?? ""} ${row.refund_status ?? ""}`);
+}

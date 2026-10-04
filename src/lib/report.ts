@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { isBilledOrder } from "@/lib/parsers/order-breakdown";
+import { isBilledOrder, isReturnedOrder } from "@/lib/parsers/order-breakdown";
+import { returnsOf } from "@/lib/orders-summary";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Assembles the monthly report from the four sources the team imports:
@@ -59,6 +60,8 @@ export type MonthlyReport = {
     prevRevenue: number;
     prevOrders: number;
     prevTicket: number;
+    /** Sales sent back in the month: out of revenue, shown beside it. */
+    returns: { value: number; orders: number };
     byMarketplace: { marketplace: string; revenue: number; orders: number }[];
   };
   products: {
@@ -192,6 +195,8 @@ type OrderRow = {
   total_value: number;
   net_settlement: number;
   net_amount: number | null;
+  status: string | null;
+  refund_status: string | null;
 };
 
 export async function buildMonthlyReport(
@@ -211,7 +216,7 @@ export async function buildMonthlyReport(
       let q = supabase
         .from("sales_orders")
         .select(
-          "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement, net_amount",
+          "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement, net_amount, status, refund_status",
         )
         .eq("client_id", clientId)
         .gte("created_on", from)
@@ -543,6 +548,7 @@ export async function buildMonthlyReport(
       prevRevenue,
       prevOrders,
       prevTicket: prevOrders > 0 ? prevRevenue / prevOrders : 0,
+      returns: returnsOf(current.filter(isReturnedOrder)),
       byMarketplace,
     },
     products,

@@ -166,6 +166,14 @@ export function MonthlyReportView({
           />
         </div>
 
+        {sales.returns.orders > 0 && (
+          <p className="mt-3 text-sm text-[#5B647E]">
+            Devoluções: {formatCurrency(sales.returns.value)} em {sales.returns.orders}{" "}
+            pedido{sales.returns.orders === 1 ? "" : "s"}, fora do faturamento. Com elas, o mês
+            somaria {formatCurrency(sales.revenue + sales.returns.value)}.
+          </p>
+        )}
+
         {sales.byMarketplace.length > 1 && (
           <table className="mt-5 w-full text-left text-sm">
             <thead className="bg-brand-gray">

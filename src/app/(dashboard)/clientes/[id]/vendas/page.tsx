@@ -9,6 +9,7 @@ import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
+import { returnsNote } from "@/lib/returns-note";
 
 
 function formatBR(iso: string) {
@@ -40,6 +41,7 @@ export default async function ClienteVendasPage({
     chartData,
     monthlyRevenue,
     platformRows,
+    returns,
   } = await getOrdersSummary(supabase, range, { clientId: id });
 
   return (
@@ -62,6 +64,7 @@ export default async function ClienteVendasPage({
           value={formatCurrency(revenue)}
           trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
+          note={returnsNote(revenue, returns)}
         />
         <KpiCard
           label="Pedidos"
@@ -96,6 +99,7 @@ export default async function ClienteVendasPage({
                 <th className="px-5 py-2 font-semibold text-navy">Faturamento</th>
                 <th className="px-5 py-2 font-semibold text-navy">Pedidos</th>
                 <th className="px-5 py-2 font-semibold text-navy">Ticket médio</th>
+                <th className="px-5 py-2 font-semibold text-navy">Devoluções</th>
               </tr>
             </thead>
             <tbody>
@@ -108,6 +112,11 @@ export default async function ClienteVendasPage({
                   <td className="px-5 py-2.5 text-[#5B647E]">{data.orders}</td>
                   <td className="px-5 py-2.5 text-[#5B647E]">
                     {formatCurrency(data.orders > 0 ? data.revenue / data.orders : 0)}
+                  </td>
+                  <td className="px-5 py-2.5 text-[#5B647E]">
+                    {data.returns.orders
+                      ? `${formatCurrency(data.returns.value)} (${data.returns.orders})`
+                      : "—"}
                   </td>
                 </tr>
               ))}
@@ -122,7 +131,8 @@ export default async function ClienteVendasPage({
 
       <p className="mt-3 text-xs text-[#94A0BD]">
         Faturamento é o valor vendido aos compradores, vindo dos documentos importados. Pedidos
-        cancelados e reembolsados ficam de fora. Marketplaces que reportam por produto e não por
+        cancelados ficam de fora; devoluções também, e aparecem à parte, embaixo do
+        faturamento e na coluna Devoluções. Marketplaces que reportam por produto e não por
         pedido — a Amazon — entram por mês inteiro, e só quando o período escolhido cobre o mês
         do começo ao fim; deles vêm unidades no lugar de pedidos, e eles não aparecem no gráfico
         por dia, porque o relatório não diz em que dia cada venda aconteceu.

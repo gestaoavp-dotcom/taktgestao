@@ -360,6 +360,7 @@ export function SalesOrdersTable({
   orders: firstPage,
   error,
   totals: initialTotals,
+  returns,
   missing,
   months,
   accounts,
@@ -370,6 +371,8 @@ export function SalesOrdersTable({
   /** Set when the database refused the query, rather than returned nothing. */
   error: string | null;
   totals: OrderTotals;
+  /** Sales sent back under the same filters: out of "vendido", shown apart. */
+  returns: { value: number; orders: number };
   missing: MissingCost;
   months: { report_month: string; orders: number }[];
   accounts: ClientAccount[];
@@ -566,6 +569,19 @@ export function SalesOrdersTable({
               vendido
             </div>
           </div>
+          {returns.orders > 0 && (
+            <div
+              className="rounded-lg bg-red-50 px-4 py-2 text-right"
+              title={`Fora do vendido. Com as devoluções: ${formatCurrency(Number(totals.sold) + returns.value)}`}
+            >
+              <div className="font-display text-xl font-bold leading-none text-red-700">
+                {formatCurrency(returns.value)}
+              </div>
+              <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+                devoluções ({returns.orders})
+              </div>
+            </div>
+          )}
           <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
             <div className="font-display text-xl font-bold leading-none text-navy">
               {formatCurrency(Number(totals.net))}

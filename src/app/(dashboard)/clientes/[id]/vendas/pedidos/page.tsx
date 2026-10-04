@@ -5,6 +5,7 @@ import { ORDER_LIST_COLUMNS } from "@/lib/sales-columns";
 import { ORDERS_PAGE } from "@/lib/sales-columns";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { SalesOrdersTable } from "@/components/sales-orders-table";
+import { loadReturnedOrders, returnsOf } from "@/lib/orders-summary";
 
 export type OrderTotals = {
   orders: number;
@@ -46,7 +47,7 @@ export default async function PedidosPage({
   const accountId = loja && loja !== "todas" ? loja : null;
   const missingCost = custo === "falta" ? true : custo === "preenchido" ? false : null;
 
-  const [{ data: accounts }, { data: totalsRows }, { data: pendingRows }, ordersResult] =
+  const [{ data: accounts }, { data: totalsRows }, { data: pendingRows }, ordersResult, returned] =
     await Promise.all([
       supabase
         .from("client_accounts")
@@ -78,6 +79,9 @@ export default async function PedidosPage({
         if (missingCost === false) q = q.not("cost", "is", null);
         return q.returns<SalesOrder[]>();
       })(),
+      // Out of "vendido", shown beside it — the same rule as every dashboard.
+      // Without the cost filter: a returned sale is not waiting for a cost.
+      loadReturnedOrders(supabase, { month, clientId: id, marketplace, accountId }),
     ]);
 
   // A refused query is not an empty month. Saying so beats a table that reads
@@ -98,6 +102,7 @@ export default async function PedidosPage({
         orders={orders}
         error={ordersError}
         totals={totals}
+        returns={returnsOf(returned)}
         missing={(pendingRows?.[0] ?? { skus: 0, loose: 0, lines: 0 }) as MissingCost}
         months={available}
         accounts={accounts ?? []}

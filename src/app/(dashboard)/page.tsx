@@ -12,6 +12,7 @@ import { MARKETPLACES, MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/mar
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange, todayInBrazil } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
+import { returnsNote } from "@/lib/returns-note";
 
 
 type FeeStatus = "em_dia" | "a_vencer" | "atrasada" | "sem_valor";
@@ -28,6 +29,16 @@ function dueDateFor(month: string, paymentDay: number) {
   const [y, m] = month.split("-").map(Number);
   const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return `${month}-${String(Math.min(Math.max(paymentDay, 1), lastDay)).padStart(2, "0")}`;
+}
+
+function ReturnsCell({ returns }: { returns: { value: number; orders: number } }) {
+  if (!returns.orders) return <span className="text-[#94A0BD]">—</span>;
+  return (
+    <>
+      {formatCurrency(returns.value)}{" "}
+      <span className="text-xs text-[#94A0BD]">({returns.orders})</span>
+    </>
+  );
 }
 
 function Trend({ value }: { value: number }) {
@@ -159,12 +170,17 @@ export default async function DashboardPage({
   const rows = perClient
     .filter(
       ({ client, summary: s }) =>
-        !marketplace || marketplacesOf(client.id).includes(marketplace) || s.revenue > 0 || s.orders > 0,
+        !marketplace ||
+        marketplacesOf(client.id).includes(marketplace) ||
+        s.revenue > 0 ||
+        s.orders > 0 ||
+        s.returns.orders > 0,
     )
     .map(({ client, summary: s }) => ({
       ...client,
       revenue: s.revenue,
       orders: s.orders,
+      returns: s.returns,
       ticket: s.ticket,
       trend: trendOf(s.revenue, s.previousRevenue),
     }))
@@ -213,6 +229,7 @@ export default async function DashboardPage({
           value={formatCurrency(revenue)}
           trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
+          note={returnsNote(revenue, summary.returns)}
         />
         <KpiCard
           label="Pedidos gerados"
@@ -251,6 +268,7 @@ export default async function DashboardPage({
               <th className="px-5 py-2.5 text-right font-semibold text-navy">Variação</th>
               <th className="px-5 py-2.5 text-right font-semibold text-navy">Pedidos</th>
               <th className="px-5 py-2.5 text-right font-semibold text-navy">Ticket</th>
+              <th className="px-5 py-2.5 text-right font-semibold text-navy">Devoluções</th>
               <th className="px-5 py-2.5 text-center font-semibold text-navy">Alterações</th>
               <th className="px-5 py-2.5 text-center font-semibold text-navy">Tarefas</th>
               {isOwner && <th className="px-5 py-2.5 font-semibold text-navy">Mensalidade</th>}
@@ -281,6 +299,9 @@ export default async function DashboardPage({
                   </td>
                   <td className="px-5 py-3 text-right text-[#5B647E]">{r.orders}</td>
                   <td className="px-5 py-3 text-right text-[#5B647E]">{formatCurrency(r.ticket)}</td>
+                  <td className="px-5 py-3 text-right text-[#5B647E]">
+                    <ReturnsCell returns={r.returns} />
+                  </td>
                   <td className="px-5 py-3 text-center">
                     <Link
                       href={`/clientes/${r.id}/controle`}
@@ -311,7 +332,7 @@ export default async function DashboardPage({
             })}
             {!rows.length && (
               <tr>
-                <td colSpan={isOwner ? 9 : 8} className="px-5 py-8 text-center text-[#94A0BD]">
+                <td colSpan={isOwner ? 10 : 9} className="px-5 py-8 text-center text-[#94A0BD]">
                   Nenhum cliente com esses filtros.
                 </td>
               </tr>
@@ -332,6 +353,7 @@ export default async function DashboardPage({
                 <th className="px-5 py-2.5 text-right font-semibold text-navy">Faturamento</th>
                 <th className="px-5 py-2.5 text-right font-semibold text-navy">Pedidos</th>
                 <th className="px-5 py-2.5 text-right font-semibold text-navy">% do total</th>
+                <th className="px-5 py-2.5 text-right font-semibold text-navy">Devoluções</th>
               </tr>
             </thead>
             <tbody>
@@ -347,6 +369,9 @@ export default async function DashboardPage({
                   <td className="px-5 py-3 text-right text-[#5B647E]">
                     {revenue > 0 ? `${((v.revenue / revenue) * 100).toFixed(1)}%` : "—"}
                   </td>
+                  <td className="px-5 py-3 text-right text-[#5B647E]">
+                    <ReturnsCell returns={v.returns} />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -355,8 +380,8 @@ export default async function DashboardPage({
       )}
 
       <p className="mt-3 text-xs text-[#94A0BD]">
-        Faturamento a partir dos documentos de pedidos importados; cancelados e reembolsados
-        ficam de fora.
+        Faturamento a partir dos documentos de pedidos importados. Cancelados ficam de fora;
+        devoluções também, e aparecem à parte, na coluna Devoluções.
       </p>
     </div>
   );

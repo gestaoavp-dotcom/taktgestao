@@ -15,11 +15,14 @@ export function KpiCard({
   value,
   trend,
   icon,
+  note,
 }: {
   label: string;
   value: string;
   trend: number;
   icon: keyof typeof ICONS;
+  /** A line under the figure, for what it leaves out. */
+  note?: string;
 }) {
   const Icon = ICONS[icon];
   const positive = trend >= 0;
@@ -44,6 +47,7 @@ export function KpiCard({
         </span>
         vs período anterior
       </div>
+      {note && <p className="mt-2 text-xs leading-snug text-[#5B647E]">{note}</p>}
     </div>
   );
 }
