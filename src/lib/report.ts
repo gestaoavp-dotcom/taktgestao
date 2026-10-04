@@ -191,6 +191,7 @@ type OrderRow = {
   subtotal: number;
   total_value: number;
   net_settlement: number;
+  net_amount: number | null;
 };
 
 export async function buildMonthlyReport(
@@ -210,7 +211,7 @@ export async function buildMonthlyReport(
       let q = supabase
         .from("sales_orders")
         .select(
-          "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement",
+          "order_id, created_on, marketplace, sku, product_name, quantity, subtotal, total_value, net_settlement, net_amount",
         )
         .eq("client_id", clientId)
         .gte("created_on", from)
