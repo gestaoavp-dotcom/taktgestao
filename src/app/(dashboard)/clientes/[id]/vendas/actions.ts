@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { refreshEverything } from "@/lib/refresh-app";
 import { createClient } from "@/lib/supabase/server";
 import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
 import type { ParsedMercadoLivreOrder } from "@/lib/parsers/mercado-livre-orders";
@@ -178,6 +179,7 @@ export async function importSalesOrders(input: {
 
     revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
     revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
+    refreshEverything();
   }
   return { ok: true };
 }
@@ -214,6 +216,7 @@ export async function importSalesAds(input: {
 
   revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
   revalidatePath(`/clientes/${input.clientId}/vendas/ads`);
+  refreshEverything();
   return { ok: true };
 }
 
@@ -260,6 +263,7 @@ export async function importSalesTraffic(input: {
 
   revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
   revalidatePath(`/clientes/${input.clientId}/vendas/trafego`);
+  refreshEverything();
   return { ok: true };
 }
 
@@ -281,6 +285,7 @@ export async function deleteSalesReportById(input: {
 
   revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
   revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
+  refreshEverything();
 }
 
 export async function deleteSalesReport(formData: FormData) {
@@ -293,6 +298,7 @@ export async function deleteSalesReport(formData: FormData) {
 
   revalidatePath(`/clientes/${clientId}/vendas/importar`);
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
+  refreshEverything();
 }
 
 export async function getSalesReportUrl(path: string) {
@@ -395,6 +401,7 @@ export async function importSalesProducts(input: {
 
   revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
   revalidatePath(`/clientes/${input.clientId}/vendas/produtos`);
+  refreshEverything();
   return { ok: true };
 }
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { logout } from "@/app/logout/actions";
+import { SyncButton } from "@/components/sync-button";
 import type { NotificationItem } from "@/lib/notifications";
 
 function formatDueDate(date: string) {
@@ -66,6 +67,9 @@ export function Header({
       </div>
 
       <div className="ml-auto flex items-center gap-5">
+        {/* The team's: a client login only ever looks at its own folder. */}
+        {showNotifications && <SyncButton />}
+
         {showNotifications && (
         <div className="relative" ref={notifRef}>
           <button
