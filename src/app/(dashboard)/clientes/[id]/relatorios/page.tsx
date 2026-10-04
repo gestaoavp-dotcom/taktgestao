@@ -23,7 +23,7 @@ export default async function ClienteRelatoriosPage({
   const { mes, plataforma, secoes, gerar } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data: client }, { data: accounts }, { data: months }] = await Promise.all([
+  const [{ data: client }, { data: accounts }, { data: months }, { data: orderMonths }] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
     supabase.from("client_accounts").select("marketplace").eq("client_id", id),
     supabase
@@ -33,11 +33,18 @@ export default async function ClienteRelatoriosPage({
       .not("report_month", "is", null)
       .order("report_month", { ascending: false })
       .returns<{ report_month: string }[]>(),
+    // One orders file can span several months; each of them has a report.
+    supabase.rpc("order_months", { p_client_id: id }),
   ]);
 
   if (!client) return null;
 
-  const availableMonths = Array.from(new Set((months ?? []).map((m) => m.report_month)));
+  const availableMonths = Array.from(
+    new Set([
+      ...(months ?? []).map((m) => m.report_month),
+      ...((orderMonths ?? []) as { report_month: string }[]).map((m) => m.report_month),
+    ]),
+  ).sort((a, b) => b.localeCompare(a));
   const month = mes ?? availableMonths[0] ?? currentMonth();
   const marketplace = plataforma ?? "all";
   const sections = (secoes ? (secoes.split(",") as ReportSection[]) : ALL_SECTIONS).filter((s) =>

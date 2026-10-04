@@ -81,6 +81,14 @@ function periodMismatch(
   start: string,
   end: string,
 ): string | null {
+  const undated = dates.length - dates.filter(Boolean).length;
+  if (undated) {
+    return (
+      `${undated} venda${undated === 1 ? "" : "s"} desse arquivo sem data de venda — ` +
+      "sem ela nenhum gráfico as contaria. O formato do relatório pode ter mudado: avise a equipe."
+    );
+  }
+
   const known = dates.filter((d): d is string => !!d).sort();
   if (!known.length) return null;
 

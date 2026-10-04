@@ -122,7 +122,9 @@ export function parseMercadoLivreOrders(
         order_id: String(row["N.º de venda"]).trim(),
         status: toText(row["Estado"]),
         refund_status: toText(row["Descrição do status"]),
-        created_on: toDateOnly(row["Data da venda"]),
+        // Mercado Livre has titled this column both ways; missing it left a
+        // whole file of sales without a date, invisible to every chart.
+        created_on: toDateOnly(row["Data da venda"] ?? row["Data de venda"]),
         product_name: toText(row["Título do anúncio"]),
         sku: toText(row["SKU"]),
         quantity: toNumber(row["Unidades"]),

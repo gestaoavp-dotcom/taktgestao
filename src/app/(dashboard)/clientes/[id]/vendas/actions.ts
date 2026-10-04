@@ -108,6 +108,17 @@ export async function importSalesOrders(input: {
   /** False while more batches are still coming. */
   finalize?: boolean;
 }): Promise<ActionState> {
+  // A sale without a date is counted by no chart, no filter and no month —
+  // better to refuse the file than to store revenue nobody will ever see.
+  const undated = input.orders.filter((o) => !o.created_on).length;
+  if (undated) {
+    return {
+      error:
+        `${undated} venda${undated === 1 ? "" : "s"} desse arquivo sem data de venda. ` +
+        "O formato do relatório pode ter mudado — avise a equipe antes de importar.",
+    };
+  }
+
   const supabase = await createClient();
 
   // Clear the window before the first batch lands, so uploading the 1st to the
@@ -153,7 +164,9 @@ export async function importSalesOrders(input: {
     sales_report_id: input.reportId,
     marketplace: input.marketplace,
     account_id: input.accountId,
-    report_month: input.reportMonth,
+    // Each sale under its own month: a file covering June to October fills
+    // all five, not just the month it was uploaded under.
+    report_month: `${o.created_on!.slice(0, 7)}-01`,
     ...o,
     net_amount: orderNet(
       { ...o, id: String(i), marketplace: input.marketplace } as never,
