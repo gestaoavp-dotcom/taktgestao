@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { isTeam } from "@/lib/profile";
 import type { ProductCostChange, SalesOrder, SalesProduct } from "@/lib/types";
 import { productsFromOrders } from "@/lib/products-from-orders";
@@ -38,19 +39,27 @@ export default async function ProdutosPage({
   const supabase = await createClient();
   const team = await isTeam();
 
-  const [{ data: reported }, orders, { data: costChanges }] = await Promise.all([
-    supabase
-      .from("sales_products")
-      .select("*")
-      .eq("client_id", id)
-      .returns<SalesProduct[]>(),
+  const [reported, orders, costChanges] = await Promise.all([
+    fetchAll<SalesProduct>((from, to) =>
+      supabase
+        .from("sales_products")
+        .select("*")
+        .eq("client_id", id)
+        .order("id")
+        .range(from, to)
+        .returns<SalesProduct[]>(),
+    ),
     fetchOrders(supabase, id),
-    supabase
-      .from("product_cost_changes")
-      .select("*")
-      .eq("client_id", id)
-      .order("changed_at", { ascending: false })
-      .returns<ProductCostChange[]>(),
+    fetchAll<ProductCostChange>((from, to) =>
+      supabase
+        .from("product_cost_changes")
+        .select("*")
+        .eq("client_id", id)
+        .order("changed_at", { ascending: false })
+        .order("id")
+        .range(from, to)
+        .returns<ProductCostChange[]>(),
+    ),
   ]);
 
   // Folded here rather than in the browser: a few dozen products cross the

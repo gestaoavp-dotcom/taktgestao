@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { isTeam } from "@/lib/profile";
 import type { SalesTraffic } from "@/lib/types";
 import { distinctMarketplaces } from "@/lib/marketplaces";
@@ -10,14 +11,20 @@ export default async function TrafegoPage({ params }: { params: Promise<{ id: st
   const supabase = await createClient();
   const team = await isTeam();
 
-  const [{ data: accounts }, { data: products }] = await Promise.all([
+  // Every month's products accumulate here: read in pages, past the thousand
+  // rows the API returns per request.
+  const [{ data: accounts }, products] = await Promise.all([
     supabase.from("client_accounts").select("marketplace").eq("client_id", id),
-    supabase
-      .from("sales_traffic")
-      .select("*")
-      .eq("client_id", id)
-      .order("visitors", { ascending: false })
-      .returns<SalesTraffic[]>(),
+    fetchAll<SalesTraffic>((from, to) =>
+      supabase
+        .from("sales_traffic")
+        .select("*")
+        .eq("client_id", id)
+        .order("visitors", { ascending: false })
+        .order("id")
+        .range(from, to)
+        .returns<SalesTraffic[]>(),
+    ),
   ]);
 
   return (

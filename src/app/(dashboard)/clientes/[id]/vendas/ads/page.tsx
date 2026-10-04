@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { isTeam } from "@/lib/profile";
 import type { SalesAd } from "@/lib/types";
 import { distinctMarketplaces } from "@/lib/marketplaces";
@@ -10,14 +11,20 @@ export default async function AdsPage({ params }: { params: Promise<{ id: string
   const supabase = await createClient();
   const team = await isTeam();
 
-  const [{ data: accounts }, { data: ads }] = await Promise.all([
+  // Every month's ads accumulate here: read in pages, past the thousand rows
+  // the API returns per request.
+  const [{ data: accounts }, ads] = await Promise.all([
     supabase.from("client_accounts").select("marketplace").eq("client_id", id),
-    supabase
-      .from("sales_ads")
-      .select("*")
-      .eq("client_id", id)
-      .order("expense", { ascending: false })
-      .returns<SalesAd[]>(),
+    fetchAll<SalesAd>((from, to) =>
+      supabase
+        .from("sales_ads")
+        .select("*")
+        .eq("client_id", id)
+        .order("expense", { ascending: false })
+        .order("id")
+        .range(from, to)
+        .returns<SalesAd[]>(),
+    ),
   ]);
 
   return (
