@@ -84,7 +84,14 @@ export function parseMercadoLivreAds(rows: unknown[][]): ParsedMercadoLivreAd[] 
       clicks: Math.round(toNumber(at(row, "Cliques"))),
       // Mercado Livre does not report adds to cart.
       add_to_cart: 0,
-      conversions: Math.round(toNumber(at(row, "Vendas atribuídas (Diretas + Indiretas)"))),
+      // The placement report, one row per campaign, week and ad space, calls
+      // the same figure "Vendas por publicidade".
+      conversions: Math.round(
+        toNumber(
+          at(row, "Vendas atribuídas (Diretas + Indiretas)") ??
+            at(row, "Vendas por publicidade (Diretas + Indiretas)"),
+        ),
+      ),
       direct_conversions: Math.round(toNumber(at(row, "Vendas diretas"))),
       items_sold: Math.round(toNumber(at(row, "Unidades vendidas atribuídas"))),
       direct_items_sold: 0,

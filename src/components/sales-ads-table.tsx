@@ -40,6 +40,39 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 /** Ratios always divide the sums — never an average of each ad's own ratio. */
+/**
+ * One row per campaign. Some reports split a campaign by week and by ad space
+ * — Mercado Livre's placement report runs to 165 rows for 20 campaigns — and
+ * listing the slices reads as the same ad repeated. The figures are absolute,
+ * so the slices add up; the status is the newest slice's.
+ */
+function byCampaign(ads: SalesAd[]): SalesAd[] {
+  const map = new Map<string, SalesAd>();
+  for (const a of ads) {
+    const key = `${a.marketplace}|${a.ad_name}`;
+    const e = map.get(key);
+    if (!e) {
+      map.set(key, { ...a, id: key });
+      continue;
+    }
+    const newer = (a.ended_on ?? a.started_on ?? "") >= (e.ended_on ?? e.started_on ?? "");
+    map.set(key, {
+      ...e,
+      status: newer ? a.status : e.status,
+      ended_on: newer ? a.ended_on : e.ended_on,
+      started_on: newer ? a.started_on : e.started_on,
+      impressions: e.impressions + a.impressions,
+      clicks: e.clicks + a.clicks,
+      add_to_cart: e.add_to_cart + a.add_to_cart,
+      conversions: e.conversions + a.conversions,
+      items_sold: e.items_sold + a.items_sold,
+      gmv: Number(e.gmv) + Number(a.gmv),
+      expense: Number(e.expense) + Number(a.expense),
+    });
+  }
+  return [...map.values()].sort((x, y) => Number(y.expense) - Number(x.expense));
+}
+
 function totalsOf(ads: SalesAd[]) {
   const t = ads.reduce(
     (acc, a) => {
@@ -96,6 +129,7 @@ export function SalesAdsTable({
   );
 
   const t = totalsOf(filtered);
+  const campaigns = byCampaign(filtered);
 
   return (
     <div>
@@ -127,7 +161,7 @@ export function SalesAdsTable({
       </div>
 
       <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
-        Todos os anúncios somados ({filtered.length})
+        Todos os anúncios somados ({campaigns.length})
       </h2>
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat label="Investimento" value={formatCurrency(t.expense)} />
@@ -165,7 +199,7 @@ export function SalesAdsTable({
             </tr>
           </thead>
           <tbody>
-            {filtered.map((ad) => {
+            {campaigns.map((ad) => {
               const expense = Number(ad.expense);
               const gmv = Number(ad.gmv);
               const roas = expense > 0 ? gmv / expense : 0;

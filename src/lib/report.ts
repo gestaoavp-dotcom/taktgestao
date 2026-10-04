@@ -347,7 +347,25 @@ export async function buildMonthlyReport(
       const prevExpense = adsPrev?.length ? sum(adsPrev, "expense") : 0;
       const prevGmv = adsPrev?.length ? sum(adsPrev, "gmv") : 0;
 
-      const spending = adsNow.filter((a) => Number(a.expense) > 0);
+      // A campaign can come split by week and ad space; judged slice by slice,
+      // the "worst ad" would be one week of one placement.
+      const campaigns = new Map<string, AdRow>();
+      for (const a of adsNow) {
+        const e = campaigns.get(a.ad_name);
+        campaigns.set(
+          a.ad_name,
+          e
+            ? {
+                ...e,
+                expense: Number(e.expense) + Number(a.expense),
+                gmv: Number(e.gmv) + Number(a.gmv),
+                clicks: Number(e.clicks) + Number(a.clicks),
+                conversions: Number(e.conversions) + Number(a.conversions),
+              }
+            : { ...a },
+        );
+      }
+      const spending = [...campaigns.values()].filter((a) => Number(a.expense) > 0);
       const byRoas = [...spending].sort(
         (a, b) => Number(a.gmv) / Number(a.expense) - Number(b.gmv) / Number(b.expense),
       );
