@@ -6,7 +6,7 @@ import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
-import { returnsNote } from "@/lib/returns-note";
+import { paidNote, returnsNote } from "@/lib/returns-note";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
@@ -78,6 +78,7 @@ export default async function ClienteDashboardPage({
             value={formatCurrency(revenue)}
             trend={trendOf(revenue, previousRevenue)}
             icon="wallet"
+            sub={paidNote(sales.paid)}
             note={returnsNote(revenue, sales.returns)}
           />
           <KpiCard
@@ -120,7 +121,14 @@ export default async function ClienteDashboardPage({
                     <td className="px-5 py-2.5 text-navy">
                       {MARKETPLACE_LABEL[platform] ?? platform}
                     </td>
-                    <td className="px-5 py-2.5 text-navy">{formatCurrency(data.revenue)}</td>
+                    <td className="px-5 py-2.5 text-navy">
+                      {formatCurrency(data.revenue)}
+                      {data.paid != null && (
+                        <div className="text-[11px] text-[#94A0BD]">
+                          pago {formatCurrency(data.paid)}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-5 py-2.5 text-[#5B647E]">{data.orders}</td>
                     <td className="px-5 py-2.5 text-[#5B647E]">
                       {data.returns.orders

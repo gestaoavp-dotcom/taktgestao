@@ -60,6 +60,8 @@ export type MonthlyReport = {
     prevRevenue: number;
     prevOrders: number;
     prevTicket: number;
+    /** What buyers paid for the same sales; revenue is the product price. */
+    paid: number;
     /** Sales sent back in the month: out of revenue, shown beside it. */
     returns: { value: number; orders: number };
     byMarketplace: { marketplace: string; revenue: number; orders: number }[];
@@ -548,6 +550,8 @@ export async function buildMonthlyReport(
       prevRevenue,
       prevOrders,
       prevTicket: prevOrders > 0 ? prevRevenue / prevOrders : 0,
+      paid:
+        billed.reduce((s, o) => s + Number(o.total_value), 0) + productRevenue(productsNow),
       returns: returnsOf(current.filter(isReturnedOrder)),
       byMarketplace,
     },

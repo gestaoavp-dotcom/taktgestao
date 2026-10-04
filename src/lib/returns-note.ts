@@ -1,6 +1,11 @@
 import type { Returns } from "@/lib/orders-summary";
 import { formatCurrency } from "@/lib/sales-summary";
 
+/** Under the revenue, which is the product price: what buyers really paid. */
+export function paidNote(paid: number | null): string | undefined {
+  return paid == null ? undefined : `Pago pelos compradores: ${formatCurrency(paid)}`;
+}
+
 /**
  * Said under every revenue figure: returns stay out of it, and this is where
  * they show — with the figure as it would be counting them, so neither number

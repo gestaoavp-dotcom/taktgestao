@@ -15,12 +15,15 @@ export function KpiCard({
   value,
   trend,
   icon,
+  sub,
   note,
 }: {
   label: string;
   value: string;
   trend: number;
   icon: keyof typeof ICONS;
+  /** A smaller figure right under the main one. */
+  sub?: string;
   /** A line under the figure, for what it leaves out. */
   note?: string;
 }) {
@@ -36,6 +39,7 @@ export function KpiCard({
         </div>
       </div>
       <p className="font-display text-2xl font-bold text-navy">{value}</p>
+      {sub && <p className="mt-0.5 text-xs font-semibold text-[#5B647E]">{sub}</p>}
       <div className="mt-2 flex items-center gap-1.5 text-xs text-[#94A0BD]">
         <span
           className={`inline-flex items-center gap-0.5 font-medium ${

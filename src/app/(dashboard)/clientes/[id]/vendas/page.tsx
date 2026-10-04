@@ -9,7 +9,7 @@ import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
-import { returnsNote } from "@/lib/returns-note";
+import { paidNote, returnsNote } from "@/lib/returns-note";
 
 
 function formatBR(iso: string) {
@@ -42,6 +42,7 @@ export default async function ClienteVendasPage({
     monthlyRevenue,
     platformRows,
     returns,
+    paid,
   } = await getOrdersSummary(supabase, range, { clientId: id });
 
   return (
@@ -64,6 +65,7 @@ export default async function ClienteVendasPage({
           value={formatCurrency(revenue)}
           trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
+          sub={paidNote(paid)}
           note={returnsNote(revenue, returns)}
         />
         <KpiCard
@@ -108,7 +110,14 @@ export default async function ClienteVendasPage({
                   <td className="px-5 py-2.5 text-navy">
                     {MARKETPLACE_LABEL[platform] ?? platform}
                   </td>
-                  <td className="px-5 py-2.5 text-navy">{formatCurrency(data.revenue)}</td>
+                  <td className="px-5 py-2.5 text-navy">
+                    {formatCurrency(data.revenue)}
+                    {data.paid != null && (
+                      <div className="text-[11px] text-[#94A0BD]">
+                        pago {formatCurrency(data.paid)}
+                      </div>
+                    )}
+                  </td>
                   <td className="px-5 py-2.5 text-[#5B647E]">{data.orders}</td>
                   <td className="px-5 py-2.5 text-[#5B647E]">
                     {formatCurrency(data.orders > 0 ? data.revenue / data.orders : 0)}

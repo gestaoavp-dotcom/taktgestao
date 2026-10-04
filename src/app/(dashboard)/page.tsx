@@ -12,7 +12,7 @@ import { MARKETPLACES, MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/mar
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange, todayInBrazil } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
-import { returnsNote } from "@/lib/returns-note";
+import { paidNote, returnsNote } from "@/lib/returns-note";
 
 
 type FeeStatus = "em_dia" | "a_vencer" | "atrasada" | "sem_valor";
@@ -29,6 +29,14 @@ function dueDateFor(month: string, paymentDay: number) {
   const [y, m] = month.split("-").map(Number);
   const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return `${month}-${String(Math.min(Math.max(paymentDay, 1), lastDay)).padStart(2, "0")}`;
+}
+
+/** What buyers paid, small under a revenue figure that is the product price. */
+function PaidLine({ paid }: { paid: number | null }) {
+  if (paid == null) return null;
+  return (
+    <div className="text-[11px] font-normal text-[#94A0BD]">pago {formatCurrency(paid)}</div>
+  );
 }
 
 function ReturnsCell({ returns }: { returns: { value: number; orders: number } }) {
@@ -180,6 +188,7 @@ export default async function DashboardPage({
       ...client,
       revenue: s.revenue,
       orders: s.orders,
+      paid: s.paid,
       returns: s.returns,
       ticket: s.ticket,
       trend: trendOf(s.revenue, s.previousRevenue),
@@ -229,6 +238,7 @@ export default async function DashboardPage({
           value={formatCurrency(revenue)}
           trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
+          sub={paidNote(summary.paid)}
           note={returnsNote(revenue, summary.returns)}
         />
         <KpiCard
@@ -293,6 +303,7 @@ export default async function DashboardPage({
                   </td>
                   <td className="px-5 py-3 text-right font-semibold text-navy">
                     {formatCurrency(r.revenue)}
+                    <PaidLine paid={r.paid} />
                   </td>
                   <td className="px-5 py-3 text-right text-xs font-semibold">
                     <Trend value={r.trend} />
@@ -364,6 +375,7 @@ export default async function DashboardPage({
                   </td>
                   <td className="px-5 py-3 text-right font-semibold text-navy">
                     {formatCurrency(v.revenue)}
+                    <PaidLine paid={v.paid} />
                   </td>
                   <td className="px-5 py-3 text-right text-[#5B647E]">{v.orders}</td>
                   <td className="px-5 py-3 text-right text-[#5B647E]">

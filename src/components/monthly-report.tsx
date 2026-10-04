@@ -28,9 +28,12 @@ function Metric({
   value,
   previous,
   previousLabel,
+  sub,
 }: {
   label: string;
   value: string;
+  /** A smaller figure right under the main one. */
+  sub?: string;
   previous?: number | null;
   previousLabel?: string;
 }) {
@@ -38,6 +41,7 @@ function Metric({
     <div className="rounded-lg border border-navy/[.08] p-4">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">{label}</p>
       <p className="mt-1 font-display text-2xl font-bold text-navy">{value}</p>
+      {sub && <p className="text-xs font-semibold text-[#5B647E]">{sub}</p>}
       {previous != null && (
         <p
           className={`mt-1 text-xs font-semibold ${previous >= 0 ? "text-green-700" : "text-red-600"}`}
@@ -156,6 +160,7 @@ export function MonthlyReportView({
           <Metric
             label="Faturamento"
             value={formatCurrency(sales.revenue)}
+            sub={`Pago pelos compradores: ${formatCurrency(sales.paid)}`}
             previous={revenueDelta?.change}
           />
           <Metric label="Pedidos" value={int(sales.orders)} previous={ordersDelta?.change} />

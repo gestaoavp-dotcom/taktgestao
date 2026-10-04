@@ -13,13 +13,18 @@ export type OrdersSummary = {
   chartData: { date: string; value: number }[];
   /** Revenue from monthly product reports (Amazon): in the totals, not in the day chart. */
   monthlyRevenue: number;
+  /**
+   * What buyers actually paid for the same sales — the product price less
+   * discounts and coupons, plus shipping. Null until the database returns it.
+   */
+  paid: number | null;
   /** Sales sent back in the period: out of revenue, shown beside it. */
   returns: Returns;
   platformRows: [string, PlatformTotals][];
 };
 
 export type Returns = { value: number; orders: number };
-type PlatformTotals = { revenue: number; orders: number; returns: Returns };
+type PlatformTotals = { revenue: number; orders: number; paid: number | null; returns: Returns };
 
 type ReturnRow = {
   order_id: string;
@@ -37,6 +42,8 @@ type DayRow = {
   marketplace: string;
   revenue: number;
   orders: number;
+  /** Absent until migration 0040 has run. */
+  paid?: number | null;
 };
 
 type ProductRow = {
@@ -205,6 +212,12 @@ export async function getOrdersSummary(
   const previousRevenue = revenueOf(previous) + productRevenue(previousProducts);
   const previousOrders = countOrders(previous) + productUnits(previousProducts);
 
+  // A product report has one figure per sale, so it is both the price and
+  // what was paid.
+  const paidKnown = current.every((r) => r.paid != null);
+  const paidOf = (rows: DayRow[]) => rows.reduce((s, r) => s + Number(r.paid ?? 0), 0);
+  const paid = paidKnown ? paidOf(current) + productRevenue(currentProducts) : null;
+
   const byDate = new Map<string, number>();
   for (const r of current) {
     byDate.set(r.day, (byDate.get(r.day) ?? 0) + Number(r.revenue));
@@ -217,17 +230,19 @@ export async function getOrdersSummary(
     return { date: iso, value: byDate.get(iso) ?? 0 };
   });
 
-  const byPlatform = new Map<string, { revenue: number; orders: number }>();
+  const byPlatform = new Map<string, { revenue: number; orders: number; paid: number }>();
   for (const r of current) {
-    const entry = byPlatform.get(r.marketplace) ?? { revenue: 0, orders: 0 };
+    const entry = byPlatform.get(r.marketplace) ?? { revenue: 0, orders: 0, paid: 0 };
     entry.revenue += Number(r.revenue);
+    entry.paid += Number(r.paid ?? 0);
     entry.orders += Number(r.orders);
     byPlatform.set(r.marketplace, entry);
   }
 
   for (const p of currentProducts) {
-    const entry = byPlatform.get(p.marketplace) ?? { revenue: 0, orders: 0 };
+    const entry = byPlatform.get(p.marketplace) ?? { revenue: 0, orders: 0, paid: 0 };
     entry.revenue += Number(p.net_sales);
+    entry.paid += Number(p.net_sales);
     byPlatform.set(p.marketplace, entry);
   }
   const productUnitsByPlatform = new Map<string, number>();
@@ -240,7 +255,9 @@ export async function getOrdersSummary(
 
   // A marketplace whose every sale came back still gets its row.
   for (const r of returned) {
-    if (!byPlatform.has(r.marketplace)) byPlatform.set(r.marketplace, { revenue: 0, orders: 0 });
+    if (!byPlatform.has(r.marketplace)) {
+      byPlatform.set(r.marketplace, { revenue: 0, orders: 0, paid: 0 });
+    }
   }
 
   const platformRows = Array.from(byPlatform.entries())
@@ -251,6 +268,7 @@ export async function getOrdersSummary(
           {
             revenue: v.revenue,
             orders: v.orders + (productUnitsByPlatform.get(platform) ?? 0),
+            paid: paidKnown ? v.paid : null,
             returns: returnsOf(returned.filter((r) => r.marketplace === platform)),
           },
         ] as const,
@@ -267,6 +285,7 @@ export async function getOrdersSummary(
     previousTicket: previousOrders > 0 ? previousRevenue / previousOrders : 0,
     chartData,
     monthlyRevenue: productRevenue(currentProducts),
+    paid,
     returns: returnsOf(returned),
     platformRows,
   };
