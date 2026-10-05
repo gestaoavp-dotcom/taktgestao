@@ -1,7 +1,13 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isBilledOrder, isReturnedOrder } from "@/lib/parsers/order-breakdown";
 import { returnsOf } from "@/lib/orders-summary";
-import { loadReportPeriods, monthEnd, periodWithin } from "@/lib/report-periods";
+import {
+  coveredByAmazonOrders,
+  loadAmazonOrderPeriods,
+  loadReportPeriods,
+  monthEnd,
+  periodWithin,
+} from "@/lib/report-periods";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 
 // Assembles the monthly report from the four sources the team imports:
@@ -235,13 +241,19 @@ export async function buildMonthlyReport(
   // them alone: it has no day to split by, so it stays out of a monthly report.
   const productQuery = async (m: string) => {
     const rows = await productRows(m);
-    const periods = await loadReportPeriods(
-      supabase,
-      rows.map((p) => p.sales_report_id),
-    );
-    return rows.filter((p) =>
-      periodWithin(periods.get(p.sales_report_id) ?? { start: m, end: monthEnd(m) }, m, monthEnd(m)),
-    );
+    const [periods, amazonOrders] = await Promise.all([
+      loadReportPeriods(
+        supabase,
+        rows.map((p) => p.sales_report_id),
+      ),
+      loadAmazonOrderPeriods(supabase, clientId),
+    ]);
+    return rows.filter((p) => {
+      const period = periods.get(p.sales_report_id) ?? { start: m, end: monthEnd(m) };
+      // Amazon's dated orders, when sent, are already in the revenue.
+      if (coveredByAmazonOrders(amazonOrders, clientId, period)) return false;
+      return periodWithin(period, m, monthEnd(m));
+    });
   };
   const productRows = (m: string) =>
     fetchAll<ProductReportRow>((a, b) => {

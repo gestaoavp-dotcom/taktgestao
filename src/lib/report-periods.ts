@@ -57,3 +57,42 @@ export async function loadReportPeriods(
   }
   return periods;
 }
+
+/**
+ * The windows each client's Amazon orders reports cover. Where one exists, the
+ * orders are the revenue — dated, day by day — and a product report over the
+ * same days would count the same sales twice; it stays for Amazon's fees.
+ */
+export async function loadAmazonOrderPeriods(
+  supabase: SupabaseClient,
+  clientId?: string,
+): Promise<Map<string, ReportPeriod[]>> {
+  let q = supabase
+    .from("sales_reports")
+    .select("client_id, report_month, period_start, period_end")
+    .eq("marketplace", "amazon")
+    .eq("kind", "pedidos")
+    .eq("status", "processado");
+  if (clientId) q = q.eq("client_id", clientId);
+  const { data } = await q.returns<
+    { client_id: string; report_month: string | null; period_start: string | null; period_end: string | null }[]
+  >();
+
+  const byClient = new Map<string, ReportPeriod[]>();
+  for (const r of data ?? []) {
+    const start = r.period_start ?? r.report_month;
+    if (!start) continue;
+    const end = r.period_end ?? monthEnd(r.report_month ?? start);
+    byClient.set(r.client_id, [...(byClient.get(r.client_id) ?? []), { start, end }]);
+  }
+  return byClient;
+}
+
+/** Whether a client's Amazon orders already cover any of these days. */
+export function coveredByAmazonOrders(
+  periods: Map<string, ReportPeriod[]>,
+  clientId: string,
+  p: ReportPeriod,
+) {
+  return (periods.get(clientId) ?? []).some((o) => periodOverlaps(o, p.start, p.end));
+}

@@ -7,6 +7,7 @@ import type { ParsedShopeeOrder } from "@/lib/parsers/shopee-orders";
 import type { ParsedMercadoLivreOrder } from "@/lib/parsers/mercado-livre-orders";
 import type { ParsedSheinOrder } from "@/lib/parsers/shein-orders";
 import type { ParsedTikTokOrder } from "@/lib/parsers/tiktok-orders";
+import type { ParsedAmazonOrder } from "@/lib/parsers/amazon-orders";
 import type { ParsedAmazonProduct } from "@/lib/parsers/amazon-products";
 import type { ParsedShopeeAd } from "@/lib/parsers/shopee-ads";
 import type { ParsedMercadoLivreAd } from "@/lib/parsers/mercado-livre-ads";
@@ -102,6 +103,7 @@ export async function importSalesOrders(input: {
     | ParsedMercadoLivreOrder
     | ParsedSheinOrder
     | ParsedTikTokOrder
+    | ParsedAmazonOrder
   )[];
   /** The window this document covers; set on the first batch only. */
   replace?: { start: string; end: string } | null;

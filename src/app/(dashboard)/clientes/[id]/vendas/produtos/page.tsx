@@ -63,10 +63,6 @@ export default async function ProdutosPage({
     ),
   ]);
 
-  // Folded here rather than in the browser: a few dozen products cross the
-  // wire instead of a few thousand orders.
-  const derived = productsFromOrders(orders);
-
   // A first import can bring several months in one product report; it is
   // listed under its own window, not under the month it starts in.
   const periods = await loadReportPeriods(
@@ -77,6 +73,20 @@ export default async function ProdutosPage({
     const period = periods.get(p.sales_report_id);
     return period && spansMonths(period) ? { ...p, period } : p;
   });
+
+  // Amazon's orders fold into products like any marketplace's — except for the
+  // days its product report covers: that one has Amazon's fees, and listing
+  // both would show the same sales twice. Folded here rather than in the
+  // browser: a few dozen products cross the wire instead of thousands of orders.
+  const amazonReported = [...periods.values()];
+  const derived = productsFromOrders(
+    orders.filter(
+      (o) =>
+        o.marketplace !== "amazon" ||
+        !o.created_on ||
+        !amazonReported.some((p) => o.created_on! >= p.start && o.created_on! <= p.end),
+    ),
+  );
 
   const products = [...withPeriods, ...derived].sort(
     (a, b) =>

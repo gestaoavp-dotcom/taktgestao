@@ -3,6 +3,8 @@ import type { DateRange } from "@/lib/sales-summary";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 import { isReturnedOrder } from "@/lib/parsers/order-breakdown";
 import {
+  coveredByAmazonOrders,
+  loadAmazonOrderPeriods,
   loadReportPeriods,
   monthEnd,
   periodOverlaps,
@@ -60,6 +62,7 @@ type DayRow = {
 
 type ProductRow = {
   sales_report_id: string;
+  client_id: string;
   marketplace: string;
   report_month: string;
   net_sales: number;
@@ -180,7 +183,7 @@ export async function getOrdersSummary(
   const products = await fetchAll<ProductRow>((from, to) => {
     let q = supabase
       .from("sales_products")
-      .select("sales_report_id, marketplace, report_month, net_sales, units_net")
+      .select("sales_report_id, client_id, marketplace, report_month, net_sales, units_net")
       .eq("is_total", false)
       // A year back, for a report spanning several months that only overlaps.
       .gte("report_month", `${Number(toISO(prevStart).slice(0, 4)) - 1}${toISO(prevStart).slice(4, 7)}-01`)
@@ -201,10 +204,13 @@ export async function getOrdersSummary(
   // days, so it counts only when the period holds that window end to end —
   // usually one month, more when a first import brings several together.
   // Splitting it would mean inventing a distribution the report never gave.
-  const periods = await loadReportPeriods(
-    supabase,
-    products.map((p) => p.sales_report_id),
-  );
+  const [periods, amazonOrders] = await Promise.all([
+    loadReportPeriods(
+      supabase,
+      products.map((p) => p.sales_report_id),
+    ),
+    loadAmazonOrderPeriods(supabase, filters.clientId),
+  ]);
   const periodOf = (p: ProductRow): ReportPeriod =>
     periods.get(p.sales_report_id) ?? { start: p.report_month, end: monthEnd(p.report_month) };
   const dayBefore = (iso: string) => {
@@ -213,16 +219,19 @@ export async function getOrdersSummary(
     return toISO(d);
   };
 
-  const currentProducts = products.filter((p) =>
-    periodWithin(periodOf(p), range.start, range.end),
+  // Where the client's Amazon orders cover the days, they are the revenue.
+  const counted = (p: ProductRow) => !coveredByAmazonOrders(amazonOrders, p.client_id, periodOf(p));
+  const currentProducts = products.filter(
+    (p) => counted(p) && periodWithin(periodOf(p), range.start, range.end),
   );
-  const previousProducts = products.filter((p) =>
-    periodWithin(periodOf(p), toISO(prevStart), dayBefore(range.start)),
+  const previousProducts = products.filter(
+    (p) => counted(p) && periodWithin(periodOf(p), toISO(prevStart), dayBefore(range.start)),
   );
 
   const leftOut = new Map<string, ReportPeriod & { value: number }>();
   for (const p of products) {
     const period = periodOf(p);
+    if (!counted(p)) continue;
     if (periodWithin(period, range.start, range.end)) continue;
     if (!periodOverlaps(period, range.start, range.end)) continue;
     const e = leftOut.get(p.sales_report_id) ?? { ...period, value: 0 };

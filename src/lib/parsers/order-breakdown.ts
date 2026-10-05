@@ -35,6 +35,8 @@ import {
 export function orderNet(order: SalesOrder, share = 1): number {
   if (order.net_amount != null) return Number(order.net_amount);
   if (!order.raw) return order.net_settlement;
+  // Amazon's orders report carries no fees; what was paid is all it knows.
+  if (order.marketplace === "amazon") return Number(order.net_settlement);
   if (order.marketplace === "mercado_livre") return computeMercadoLivreNet(order.raw);
   if (order.marketplace === "shein") return computeSheinNet(order.raw);
   if (order.marketplace === "tiktok") {
@@ -45,6 +47,8 @@ export function orderNet(order: SalesOrder, share = 1): number {
 
 export function buildOrderBreakdown(order: SalesOrder, share = 1): OrderBreakdown | null {
   if (!order.raw) return null;
+  // No fees in Amazon's orders report to break down; they are in Produtos.
+  if (order.marketplace === "amazon") return null;
   if (order.marketplace === "mercado_livre") return buildMercadoLivreBreakdown(order.raw);
   if (order.marketplace === "shein") return buildSheinBreakdown(order.raw);
   if (order.marketplace === "tiktok") {

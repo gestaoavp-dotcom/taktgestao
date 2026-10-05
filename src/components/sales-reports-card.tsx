@@ -7,6 +7,7 @@ import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { DateField } from "@/components/date-field";
 import { createClient } from "@/lib/supabase/client";
 import { parseShopeeOrders } from "@/lib/parsers/shopee-orders";
+import { isAmazonOrdersText, parseAmazonOrders } from "@/lib/parsers/amazon-orders";
 import { parseShopeeAds, stripAdsPreamble } from "@/lib/parsers/shopee-ads";
 import { parseShopeeTraffic } from "@/lib/parsers/shopee-traffic";
 import {
@@ -145,17 +146,28 @@ const MONTHS = [
 ];
 
 /**
- * Amazon has no orders report the app reads: what it exports is the sales by
- * product, read as Produtos whichever tab it was sent from. Sent as Pedidos,
- * it used to be kept and never read.
+ * Amazon exports two reports: the orders, as a tab-separated .txt, and the
+ * sales by product, as a spreadsheet. Each is read as what it is, whichever
+ * tab it was sent from — the spreadsheet sent as Pedidos used to be kept and
+ * never read.
  */
-function readKind(kind: SalesReportKind, marketplace: string): SalesReportKind {
-  return kind === "pedidos" && marketplace === "amazon" ? "produtos" : kind;
+function readKind(kind: SalesReportKind, marketplace: string, fileName?: string): SalesReportKind {
+  if (marketplace !== "amazon" || (kind !== "pedidos" && kind !== "produtos")) return kind;
+  if (fileName) return /\.txt$/i.test(fileName) ? "pedidos" : "produtos";
+  return kind;
+}
+
+/** Amazon's two reports are listed together: either tab may have sent them. */
+function listedUnder(reportKind: SalesReportKind, kind: SalesReportKind, marketplace: string) {
+  if (marketplace === "amazon" && kind !== "ads" && kind !== "trafego") {
+    return reportKind === "pedidos" || reportKind === "produtos";
+  }
+  return reportKind === kind;
 }
 
 /** Marketplaces whose report we know how to read, per kind of report. */
 const READABLE: Record<SalesReportKind, string[]> = {
-  pedidos: ["shopee", "mercado_livre", "shein", "tiktok"],
+  pedidos: ["shopee", "mercado_livre", "shein", "tiktok", "amazon"],
   produtos: ["amazon"],
   ads: ["shopee", "mercado_livre"],
   trafego: ["shopee"],
@@ -220,7 +232,7 @@ export function SalesReportsCard({
   const visible = reports.filter(
     (r) =>
       r.marketplace === marketplace &&
-      readKind(r.kind ?? "pedidos", r.marketplace) === readKind(kind, marketplace),
+      listedUnder(r.kind ?? "pedidos", kind, marketplace),
   );
 
   const grouped = useMemo(() => {
@@ -239,7 +251,7 @@ export function SalesReportsCard({
     setError(null);
 
     const reportMarketplace = replaceReport?.marketplace ?? marketplace;
-    const reportKind = readKind(replaceReport?.kind ?? kind, reportMarketplace);
+    const reportKind = readKind(replaceReport?.kind ?? kind, reportMarketplace, file.name);
     // Orders carry a date per sale; Amazon's product report carries none, but
     // covers whatever window it was exported for — one month or, on a first
     // import, several.
@@ -484,6 +496,46 @@ export function SalesReportsCard({
               break;
             }
           }
+        } else if (reportMarketplace === "amazon") {
+          // Tab-separated text, read as is: SheetJS would guess at the dates.
+          const text = await file.text();
+          if (!isAmazonOrdersText(text)) {
+            await markSalesReportError(registered.id, clientId);
+            setError(
+              "Esse .txt não é o relatório de pedidos da Amazon. Em Seller Central, baixe " +
+                "Relatórios → Atendimento/Pedidos → Todos os pedidos.",
+            );
+            setUploading(false);
+            return;
+          }
+          const orders = parseAmazonOrders(text);
+
+          const mismatch = periodEnd
+            ? periodMismatch(orders.map((o) => o.created_on), periodStart, periodEnd)
+            : null;
+          if (mismatch) {
+            await markSalesReportError(registered.id, clientId);
+            setError(mismatch);
+            setUploading(false);
+            return;
+          }
+
+          for (let i = 0; i < orders.length; i += ORDERS_PER_BATCH) {
+            const result = await importSalesOrders({
+              clientId,
+              reportId: registered.id,
+              marketplace: reportMarketplace,
+              accountId: reportAccountId,
+              reportMonth,
+              orders: orders.slice(i, i + ORDERS_PER_BATCH),
+              replace: i === 0 && periodEnd ? { start: periodStart, end: periodEnd } : null,
+              finalize: i + ORDERS_PER_BATCH >= orders.length,
+            });
+            if (result && "error" in result) {
+              setError(result.error);
+              break;
+            }
+          }
         } else {
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
@@ -567,7 +619,9 @@ export function SalesReportsCard({
   const hasParser = READABLE[effectiveKind].includes(marketplace);
   const byPeriod = effectiveKind === "pedidos" || effectiveKind === "produtos";
   const amazonSpansMonths =
-    effectiveKind === "produtos" && from.slice(0, 7) !== to.slice(0, 7);
+    effectiveKind === "produtos" &&
+    marketplace === "amazon" &&
+    from.slice(0, 7) !== to.slice(0, 7);
 
   return (
     <div className="rounded-lg bg-white p-6 shadow-sm">
@@ -705,7 +759,7 @@ export function SalesReportsCard({
           <input
             ref={inputRef}
             type="file"
-            accept=".xlsx,.xls,.csv"
+            accept=".xlsx,.xls,.csv,.txt"
             onChange={handleUpload}
             disabled={uploading}
             className="sr-only"
@@ -716,13 +770,20 @@ export function SalesReportsCard({
       <input
         ref={replaceInputRef}
         type="file"
-        accept=".xlsx,.xls,.csv"
+        accept=".xlsx,.xls,.csv,.txt"
         onChange={handleReplace}
         className="sr-only"
       />
 
       {/* What happens to a file holding more than one month — common on a
           client's first import — differs by report, so it is said up front. */}
+      {marketplace === "amazon" && byPeriod && (
+        <p className="mb-3 text-xs text-[#94A0BD]">
+          Amazon: o relatório de pedidos (.txt, em Relatórios → Pedidos → Todos os pedidos) traz
+          cada venda com a data — é o que alimenta o faturamento dia a dia e pode ter vários meses.
+          A planilha de produtos traz as tarifas da Amazon, para a margem.
+        </p>
+      )}
       {amazonSpansMonths && (
         <p className="mb-3 rounded bg-yellow/10 px-3 py-2 text-xs text-[#5B647E]">
           Esse relatório da Amazon não separa as vendas por mês: com mais de um mês, ele só entra
