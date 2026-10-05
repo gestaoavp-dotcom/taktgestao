@@ -218,7 +218,9 @@ export function SalesReportsCard({
 
   // Reports uploaded before the kind column existed are order reports.
   const visible = reports.filter(
-    (r) => r.marketplace === marketplace && (r.kind ?? "pedidos") === kind,
+    (r) =>
+      r.marketplace === marketplace &&
+      readKind(r.kind ?? "pedidos", r.marketplace) === readKind(kind, marketplace),
   );
 
   const grouped = useMemo(() => {
