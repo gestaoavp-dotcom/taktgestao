@@ -98,7 +98,7 @@ export default async function ClienteDashboardPage({
         <div className="mb-5 rounded-lg bg-white p-6 shadow-sm">
           <h3 className="mb-4 font-bold text-navy">Faturamento por dia</h3>
           <AreaChart data={chartData} />
-          <MonthlyRevenueNote value={sales.monthlyRevenue} leftOut={sales.productsLeftOut} />
+          <MonthlyRevenueNote value={sales.monthlyRevenue} />
         </div>
 
         <div className="overflow-hidden rounded-lg bg-white shadow-sm">

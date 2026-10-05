@@ -7,8 +7,8 @@ import {
   loadAmazonOrderPeriods,
   loadReportPeriods,
   monthEnd,
-  periodOverlaps,
-  periodWithin,
+  daysIn,
+  shareOfPeriod,
   type ReportPeriod,
 } from "@/lib/report-periods";
 
@@ -20,13 +20,8 @@ export type OrdersSummary = {
   previousOrders: number;
   previousTicket: number;
   chartData: { date: string; value: number }[];
-  /** Revenue from monthly product reports (Amazon): in the totals, not in the day chart. */
+  /** Revenue from product reports (Amazon without its orders file), spread evenly over their days. */
   monthlyRevenue: number;
-  /**
-   * Product reports (Amazon) that cover more than the period on screen, so
-   * they cannot count in it: their total has no day to split by.
-   */
-  productsLeftOut: (ReportPeriod & { value: number })[];
   /**
    * What buyers actually paid for the same sales — the product price less
    * discounts and coupons, plus shipping. Null until the database returns it.
@@ -200,10 +195,13 @@ export async function getOrdersSummary(
     marketplace: filters.marketplace,
   });
 
-  // A product report settles its whole window at once and says nothing about
-  // days, so it counts only when the period holds that window end to end —
-  // usually one month, more when a first import brings several together.
-  // Splitting it would mean inventing a distribution the report never gave.
+  // A product report (Amazon without its orders file) settles its whole
+  // window in one figure, with no date per sale. Counting it only when the
+  // period held the whole window made Amazon vanish from every rolling view
+  // ("last 30 days" rarely holds a calendar month). So it is spread evenly over
+  // its days: a period gets the share of the days it covers, and a whole month
+  // still adds up to exactly the report. The orders file, when sent, replaces
+  // the estimate with each sale's own day.
   const [periods, amazonOrders] = await Promise.all([
     loadReportPeriods(
       supabase,
@@ -220,41 +218,34 @@ export async function getOrdersSummary(
   };
 
   // Where the client's Amazon orders cover the days, they are the revenue.
-  const counted = (p: ProductRow) => !coveredByAmazonOrders(amazonOrders, p.client_id, periodOf(p));
-  const currentProducts = products.filter(
-    (p) => counted(p) && periodWithin(periodOf(p), range.start, range.end),
+  const counted = products.filter(
+    (p) => !coveredByAmazonOrders(amazonOrders, p.client_id, periodOf(p)),
   );
-  const previousProducts = products.filter(
-    (p) => counted(p) && periodWithin(periodOf(p), toISO(prevStart), dayBefore(range.start)),
-  );
+  const sharesIn = (start: string, end: string) =>
+    counted
+      .map((p) => ({ p, share: shareOfPeriod(periodOf(p), start, end) }))
+      .filter((x) => x.share > 0);
+  const currentShares = sharesIn(range.start, range.end);
+  const previousShares = sharesIn(toISO(prevStart), dayBefore(range.start));
 
-  const leftOut = new Map<string, ReportPeriod & { value: number }>();
-  for (const p of products) {
-    const period = periodOf(p);
-    if (!counted(p)) continue;
-    if (periodWithin(period, range.start, range.end)) continue;
-    if (!periodOverlaps(period, range.start, range.end)) continue;
-    const e = leftOut.get(p.sales_report_id) ?? { ...period, value: 0 };
-    e.value += Number(p.net_sales);
-    leftOut.set(p.sales_report_id, e);
-  }
-
-  const productRevenue = (rows: ProductRow[]) =>
-    rows.reduce((s, p) => s + Number(p.net_sales), 0);
+  type Share = { p: ProductRow; share: number };
+  const productRevenue = (rows: Share[]) =>
+    rows.reduce((s, x) => s + Number(x.p.net_sales) * x.share, 0);
   // A product report counts units, not orders — and units are what its own
   // average price divides by, so the ticket comes out right.
-  const productUnits = (rows: ProductRow[]) => rows.reduce((s, p) => s + p.units_net, 0);
+  const productUnits = (rows: Share[]) =>
+    Math.round(rows.reduce((s, x) => s + Number(x.p.units_net) * x.share, 0));
 
-  const revenue = revenueOf(current) + productRevenue(currentProducts);
-  const orders = countOrders(current) + productUnits(currentProducts);
-  const previousRevenue = revenueOf(previous) + productRevenue(previousProducts);
-  const previousOrders = countOrders(previous) + productUnits(previousProducts);
+  const revenue = revenueOf(current) + productRevenue(currentShares);
+  const orders = countOrders(current) + productUnits(currentShares);
+  const previousRevenue = revenueOf(previous) + productRevenue(previousShares);
+  const previousOrders = countOrders(previous) + productUnits(previousShares);
 
   // A product report has one figure per sale, so it is both the price and
   // what was paid.
   const paidKnown = current.every((r) => r.paid != null);
   const paidOf = (rows: DayRow[]) => rows.reduce((s, r) => s + Number(r.paid ?? 0), 0);
-  const paid = paidKnown ? paidOf(current) + productRevenue(currentProducts) : null;
+  const paid = paidKnown ? paidOf(current) + productRevenue(currentShares) : null;
 
   const byDate = new Map<string, number>();
   for (const r of current) {
@@ -265,7 +256,13 @@ export async function getOrdersSummary(
     const d = new Date(periodStart);
     d.setDate(d.getDate() + i);
     const iso = toISO(d);
-    return { date: iso, value: byDate.get(iso) ?? 0 };
+    // Each product report's even share of this day.
+    const estimated = currentShares.reduce((s, x) => {
+      const period = periodOf(x.p);
+      if (iso < period.start || iso > period.end) return s;
+      return s + Number(x.p.net_sales) / daysIn(period);
+    }, 0);
+    return { date: iso, value: (byDate.get(iso) ?? 0) + estimated };
   });
 
   const byPlatform = new Map<string, { revenue: number; orders: number; paid: number }>();
@@ -277,18 +274,14 @@ export async function getOrdersSummary(
     byPlatform.set(r.marketplace, entry);
   }
 
-  for (const p of currentProducts) {
-    const entry = byPlatform.get(p.marketplace) ?? { revenue: 0, orders: 0, paid: 0 };
-    entry.revenue += Number(p.net_sales);
-    entry.paid += Number(p.net_sales);
-    byPlatform.set(p.marketplace, entry);
-  }
-  const productUnitsByPlatform = new Map<string, number>();
-  for (const p of currentProducts) {
-    productUnitsByPlatform.set(
-      p.marketplace,
-      (productUnitsByPlatform.get(p.marketplace) ?? 0) + p.units_net,
-    );
+  const productMarketplaces = [...new Set(currentShares.map((x) => x.p.marketplace))];
+  for (const m of productMarketplaces) {
+    const rows = currentShares.filter((x) => x.p.marketplace === m);
+    const entry = byPlatform.get(m) ?? { revenue: 0, orders: 0, paid: 0 };
+    entry.revenue += productRevenue(rows);
+    entry.paid += productRevenue(rows);
+    entry.orders += productUnits(rows);
+    byPlatform.set(m, entry);
   }
 
   // A marketplace whose every sale came back still gets its row.
@@ -305,7 +298,7 @@ export async function getOrdersSummary(
           platform,
           {
             revenue: v.revenue,
-            orders: v.orders + (productUnitsByPlatform.get(platform) ?? 0),
+            orders: v.orders,
             paid: paidKnown ? v.paid : null,
             returns: returnsOf(returned.filter((r) => r.marketplace === platform)),
           },
@@ -322,8 +315,7 @@ export async function getOrdersSummary(
     previousOrders,
     previousTicket: previousOrders > 0 ? previousRevenue / previousOrders : 0,
     chartData,
-    monthlyRevenue: productRevenue(currentProducts),
-    productsLeftOut: [...leftOut.values()],
+    monthlyRevenue: productRevenue(currentShares),
     paid,
     returns: returnsOf(returned),
     platformRows,

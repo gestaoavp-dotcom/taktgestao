@@ -40,7 +40,6 @@ export default async function ClienteVendasPage({
     previousTicket,
     chartData,
     monthlyRevenue,
-    productsLeftOut,
     platformRows,
     returns,
     paid,
@@ -84,10 +83,9 @@ export default async function ClienteVendasPage({
       </div>
 
       <div className="mb-5 rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Faturamento por dia</h2>
-        <p className="mb-4 text-xs text-[#94A0BD]">Só os marketplaces que reportam por pedido.</p>
+        <h2 className="mb-4 font-bold text-navy">Faturamento por dia</h2>
         <AreaChart data={chartData} />
-        <MonthlyRevenueNote value={monthlyRevenue} leftOut={productsLeftOut} />
+        <MonthlyRevenueNote value={monthlyRevenue} />
       </div>
 
       <div className="overflow-hidden rounded-lg bg-white shadow-sm">
@@ -142,10 +140,9 @@ export default async function ClienteVendasPage({
       <p className="mt-3 text-xs text-[#94A0BD]">
         Faturamento é o valor vendido aos compradores, vindo dos documentos importados. Pedidos
         cancelados ficam de fora; devoluções também, e aparecem à parte, embaixo do
-        faturamento e na coluna Devoluções. Marketplaces que reportam por produto e não por
-        pedido — a Amazon — entram por mês inteiro, e só quando o período escolhido cobre o mês
-        do começo ao fim; deles vêm unidades no lugar de pedidos, e eles não aparecem no gráfico
-        por dia, porque o relatório não diz em que dia cada venda aconteceu.
+        faturamento e na coluna Devoluções. A Amazon entra pelo relatório de pedidos (.txt),
+        venda a venda; sem ele, pelo relatório por produto, cujo valor do mês é dividido por igual
+        entre os dias — e dele vêm unidades no lugar de pedidos.
       </p>
     </div>
   );

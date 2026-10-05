@@ -96,3 +96,24 @@ export function coveredByAmazonOrders(
 ) {
   return (periods.get(clientId) ?? []).some((o) => periodOverlaps(o, p.start, p.end));
 }
+
+function dayNumber(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return Date.UTC(y, m - 1, d) / 86_400_000;
+}
+
+/** How many days a period holds, both ends included. */
+export function daysIn(p: ReportPeriod) {
+  return dayNumber(p.end) - dayNumber(p.start) + 1;
+}
+
+/**
+ * The part of a report's window that falls between two days, as a fraction of
+ * the window: a report with no date per sale is taken as spread evenly over it.
+ */
+export function shareOfPeriod(p: ReportPeriod, start: string, end: string) {
+  const from = p.start > start ? p.start : start;
+  const to = p.end < end ? p.end : end;
+  if (from > to) return 0;
+  return daysIn({ start: from, end: to }) / daysIn(p);
+}

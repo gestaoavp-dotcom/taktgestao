@@ -6,7 +6,7 @@ import {
   loadAmazonOrderPeriods,
   loadReportPeriods,
   monthEnd,
-  periodWithin,
+  shareOfPeriod,
 } from "@/lib/report-periods";
 import { fetchAll } from "@/lib/supabase/fetch-all";
 
@@ -237,8 +237,8 @@ export async function buildMonthlyReport(
 
   // Amazon settles by product for the whole month, so its revenue lives in the
   // product report, not in sales_orders. The dashboard counts it; so must this.
-  // A report covering several months (a first import) belongs to none of
-  // them alone: it has no day to split by, so it stays out of a monthly report.
+  // A report covering several months (a first import) has no date per sale,
+  // so each month takes the share of its days — as the dashboards do.
   const productQuery = async (m: string) => {
     const rows = await productRows(m);
     const [periods, amazonOrders] = await Promise.all([
@@ -248,11 +248,15 @@ export async function buildMonthlyReport(
       ),
       loadAmazonOrderPeriods(supabase, clientId),
     ]);
-    return rows.filter((p) => {
+    return rows.flatMap((p) => {
       const period = periods.get(p.sales_report_id) ?? { start: m, end: monthEnd(m) };
       // Amazon's dated orders, when sent, are already in the revenue.
-      if (coveredByAmazonOrders(amazonOrders, clientId, period)) return false;
-      return periodWithin(period, m, monthEnd(m));
+      if (coveredByAmazonOrders(amazonOrders, clientId, period)) return [];
+      const share = shareOfPeriod(period, m, monthEnd(m));
+      if (share <= 0) return [];
+      return [
+        { ...p, net_sales: Number(p.net_sales) * share, units_net: Number(p.units_net) * share },
+      ];
     });
   };
   const productRows = (m: string) =>
@@ -261,7 +265,9 @@ export async function buildMonthlyReport(
         .from("sales_products")
         .select("sales_report_id, marketplace, sku, product_name, net_sales, units_net")
         .eq("client_id", clientId)
-        .eq("report_month", m)
+        // A year back: a report starting earlier may still cover this month.
+        .gte("report_month", `${Number(m.slice(0, 4)) - 1}${m.slice(4, 7)}-01`)
+        .lte("report_month", m)
         .eq("is_total", false);
       if (marketplace) q = q.eq("marketplace", marketplace);
       return q.order("id").range(a, b).returns<ProductReportRow[]>();
