@@ -23,7 +23,7 @@ export function DashboardShell({
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-surface">
+    <div className="glow flex min-h-screen bg-surface">
       <aside
         className={`flex-shrink-0 overflow-hidden border-r border-line bg-rail transition-[width] duration-200 ${
           collapsed ? "w-0" : "w-60"

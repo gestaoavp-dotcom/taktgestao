@@ -85,7 +85,7 @@ export function ClientsView({
           {visible.map((client) => (
             <div key={client.id} className="group">
               <div className="h-3 w-24 rounded-t-lg bg-accent/20" />
-              <div className="relative rounded-lg rounded-tl-none bg-panel p-5 shadow-sm transition-shadow hover:shadow-md">
+              <div className="lift relative rounded-2xl rounded-tl-none bg-panel p-5 shadow-sm transition-shadow hover:shadow-md">
                 <Link
                   href={`/clientes/${client.id}`}
                   aria-label={`Abrir ${client.name}`}
@@ -148,7 +148,7 @@ export function ClientsView({
           ))}
         </div>
       ) : (
-        <div className="rounded-lg bg-panel py-16 text-center shadow-sm">
+        <div className="lift rounded-2xl bg-panel py-16 text-center shadow-sm">
           <Folder className="mx-auto h-10 w-10 text-ink-3" />
           <p className="mt-3 text-sm text-ink-2">
             {term

@@ -95,13 +95,13 @@ export default async function ClienteDashboardPage({
           />
         </div>
 
-        <div className="mb-5 rounded-lg bg-panel p-6 shadow-sm">
+        <div className="lift mb-5 rounded-2xl bg-panel p-6 shadow-sm">
           <h3 className="mb-4 font-bold text-ink">Faturamento por dia</h3>
           <AreaChart data={chartData} />
           <MonthlyRevenueNote value={sales.monthlyRevenue} />
         </div>
 
-        <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+        <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
           <div className="border-b border-line px-5 py-4">
             <h3 className="font-bold text-ink">Por marketplace</h3>
           </div>

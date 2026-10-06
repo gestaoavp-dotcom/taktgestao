@@ -125,7 +125,7 @@ function PendingRow({ client }: { client: PendingClient }) {
  */
 export function PendingAccess({ clients }: { clients: PendingClient[] }) {
   return (
-    <section className="mb-6 rounded-lg border border-gold/60 bg-panel p-5 shadow-sm">
+    <section className="lift mb-6 rounded-2xl border border-gold/60 bg-panel p-5 shadow-sm">
       <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
         <KeyRound className="h-4 w-4 text-ink-3" />
         Clientes sem acesso ({clients.length})

@@ -52,7 +52,7 @@ export default async function BoasVindasPage() {
 
   return (
     <div className="flex min-h-screen items-start justify-center bg-surface px-4 py-10 sm:items-center">
-      <div className="w-full max-w-md rounded-xl border border-line bg-panel p-6 shadow-sm sm:p-8">
+      <div className="lift w-full max-w-md rounded-2xl border border-line bg-panel p-6 shadow-sm sm:p-8">
         <div className="mb-6">
           <Logo height={36} />
         </div>

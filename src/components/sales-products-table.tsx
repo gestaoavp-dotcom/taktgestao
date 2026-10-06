@@ -381,7 +381,7 @@ export function SalesProductsTable({
 
   if (!products.length) {
     return (
-      <p className="rounded-lg bg-panel px-5 py-10 text-center text-sm text-ink-3 shadow-sm">
+      <p className="lift rounded-2xl bg-panel px-5 py-10 text-center text-sm text-ink-3 shadow-sm">
         Nenhum relatório de produtos importado ainda. Envie um em &quot;Importar
         documentos&quot; escolhendo o tipo Produtos.
       </p>
@@ -456,7 +456,7 @@ export function SalesProductsTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
+      <div className="lift overflow-x-auto rounded-2xl bg-panel shadow-sm">
         <table className="w-full min-w-[900px] text-left text-sm">
           <thead className="bg-panel-2">
             <tr>

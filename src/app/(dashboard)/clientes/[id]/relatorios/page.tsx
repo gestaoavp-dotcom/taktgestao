@@ -74,7 +74,7 @@ export default async function ClienteRelatoriosPage({
       {report ? (
         <MonthlyReportView report={report} clientName={client.name} />
       ) : (
-        <div className="rounded-lg bg-panel py-16 text-center shadow-sm">
+        <div className="lift rounded-2xl bg-panel py-16 text-center shadow-sm">
           <p className="text-sm text-ink-2">
             Escolha o mês e a plataforma acima e clique em &quot;Gerar relatório&quot;.
           </p>

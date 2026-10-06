@@ -132,7 +132,7 @@ export function ExpensesView({
       <form
         ref={formRef}
         action={formAction}
-        className="mb-5 grid grid-cols-5 gap-2 rounded-lg bg-panel p-5 shadow-sm"
+        className="lift mb-5 grid grid-cols-5 gap-2 rounded-2xl bg-panel p-5 shadow-sm"
       >
         <input
           name="description"
@@ -175,7 +175,7 @@ export function ExpensesView({
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+      <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
         <table className="w-full text-left text-sm">
           <thead className="bg-panel-2">
             <tr>

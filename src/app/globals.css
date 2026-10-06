@@ -13,10 +13,10 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --surface: #edf0f6;
+  --surface: #e7ecf6;
   --panel: #ffffff;
-  --panel-2: #f4f6fa;
-  --rail: #ffffff;
+  --panel-2: #f1f4fb;
+  --rail: #f3f6fc;
 
   --ink: #132249;
   --ink-2: #5b647e;
@@ -150,6 +150,18 @@ body {
 
 /* The moodboard's panels are lit from the top edge, not dropped on a shadow.
  * In light mode that reflex would be invisible, so it only exists in dark. */
+:root:not([data-theme="dark"]) .shadow-sm {
+  box-shadow:
+    0 0 0 1px rgba(19, 34, 73, 0.05),
+    0 1px 2px rgba(19, 34, 73, 0.04),
+    0 12px 28px -16px rgba(19, 34, 73, 0.22);
+}
+:root:not([data-theme="dark"]) .shadow-lg {
+  box-shadow:
+    0 0 0 1px rgba(19, 34, 73, 0.06),
+    0 18px 48px -20px rgba(19, 34, 73, 0.3);
+}
+
 :root[data-theme="dark"] .shadow-sm,
 :root[data-theme="dark"] .shadow,
 :root[data-theme="dark"] .shadow-md,
@@ -173,14 +185,55 @@ body {
 
 /* One blue focus per screen, as the moodboard asks — and nothing at all in
  * light, where a glow on a pale surface just reads as a smudge. */
-.glow { position: relative; isolation: isolate; }
-:root[data-theme="dark"] .glow::before {
+.glow {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Two focuses of light and a 26 px dot grid that fades out at the edges —
+ * the moodboard's texture. Light gets the same arrangement an order of
+ * magnitude weaker: enough that the page is lit rather than flat, not enough
+ * to compete with anything sitting on it. */
+.glow::before,
+.glow::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+}
+
+.glow::before {
+  background:
+    radial-gradient(ellipse 75% 55% at 85% -5%, rgba(43, 95, 241, 0.17), transparent 68%),
+    radial-gradient(ellipse 65% 50% at 5% 105%, rgba(226, 164, 32, 0.16), transparent 70%);
+}
+
+.glow::after {
+  background-image: radial-gradient(rgba(19, 34, 73, 0.1) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000, transparent 75%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000, transparent 75%);
+}
+
+:root[data-theme="dark"] .glow::before {
   background:
     radial-gradient(ellipse 55% 45% at 50% 12%, rgba(47, 85, 228, 0.28), transparent 70%),
     radial-gradient(ellipse 45% 40% at 50% 100%, rgba(245, 184, 46, 0.08), transparent 70%);
+}
+
+:root[data-theme="dark"] .glow::after {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+}
+
+/* A panel is the brightest thing on the page, lit from the top.
+ *
+ * In light that is a wash of the page's own blue fading up into white; in
+ * dark it is the moodboard's 1 px reflex. Either way a card looks placed on
+ * the surface rather than cut out of it, which flat white never does. */
+.lift {
+  background-image: linear-gradient(180deg, rgba(43, 95, 241, 0.045), rgba(43, 95, 241, 0) 55%);
+}
+:root[data-theme="dark"] .lift {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 55%);
 }

@@ -140,7 +140,7 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
   }
 
   return (
-    <div className="rounded-lg bg-panel p-4 shadow-sm">
+    <div className="lift rounded-2xl bg-panel p-4 shadow-sm">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-ink">Cliente</label>

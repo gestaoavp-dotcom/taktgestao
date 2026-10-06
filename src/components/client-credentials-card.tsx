@@ -239,7 +239,7 @@ function CredentialCard({
   }
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-line bg-panel p-4 shadow-sm">
+    <li className="lift flex flex-col gap-3 rounded-2xl border border-line bg-panel p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-bold text-ink">{credential.store_name}</p>
@@ -372,7 +372,7 @@ export function ClientCredentialsCard({
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="rounded-lg bg-panel p-5 shadow-sm">
+      <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="flex items-center gap-2 font-bold text-ink">
@@ -409,7 +409,7 @@ export function ClientCredentialsCard({
       </div>
 
       {credentials.length === 0 && !adding ? (
-        <p className="rounded-lg bg-panel px-5 py-10 text-center text-sm text-ink-3 shadow-sm">
+        <p className="lift rounded-2xl bg-panel px-5 py-10 text-center text-sm text-ink-3 shadow-sm">
           Nenhum acesso cadastrado ainda.
         </p>
       ) : (
@@ -418,7 +418,7 @@ export function ClientCredentialsCard({
             editingId === credential.id ? (
               <li
                 key={credential.id}
-                className="rounded-lg border border-accent/30 bg-panel p-4 shadow-sm"
+                className="lift rounded-2xl border border-accent/30 bg-panel p-4 shadow-sm"
               >
                 <CredentialForm
                   clientId={clientId}

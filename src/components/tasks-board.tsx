@@ -339,7 +339,7 @@ export function TasksBoard({
       )}
 
       {view === "lista" && (
-        <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+        <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="bg-panel-2">
               <tr>
@@ -478,7 +478,7 @@ function CalendarView({
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+      <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
         <div className="grid grid-cols-7 border-b border-line bg-panel-2">
           {WEEKDAYS.map((d) => (
             <div key={d} className="px-2 py-2 text-center text-xs font-bold text-ink-2">

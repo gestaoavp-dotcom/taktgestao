@@ -65,7 +65,7 @@ export function ChangesActivityCard({
   }, [filtered, view]);
 
   return (
-    <div className="rounded-lg bg-panel p-6 shadow-sm">
+    <div className="lift rounded-2xl bg-panel p-6 shadow-sm">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h3 className="font-bold text-ink">Gráfico de Controle de Alterações</h3>

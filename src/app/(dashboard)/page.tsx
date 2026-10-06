@@ -255,13 +255,13 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="mb-6 rounded-lg bg-panel p-6 shadow-sm">
+      <div className="lift mb-6 rounded-2xl bg-panel p-6 shadow-sm">
         <h2 className="mb-4 font-display text-base font-semibold text-ink">Faturamento por dia</h2>
         <AreaChart data={chartData} />
         <MonthlyRevenueNote value={summary.monthlyRevenue} />
       </div>
 
-      <div className="mb-6 overflow-x-auto rounded-lg bg-panel shadow-sm">
+      <div className="lift mb-6 overflow-x-auto rounded-2xl bg-panel shadow-sm">
         <div className="px-5 pt-5">
           <h2 className="font-display text-base font-semibold text-ink">Por cliente</h2>
           <p className="text-xs text-ink-3">
@@ -353,7 +353,7 @@ export default async function DashboardPage({
       </div>
 
       {summary.platformRows.length > 0 && (
-        <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+        <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
           <h2 className="px-5 pt-5 font-display text-base font-semibold text-ink">
             Por marketplace
           </h2>

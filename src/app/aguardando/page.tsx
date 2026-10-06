@@ -19,7 +19,7 @@ export default async function AguardandoPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-10">
-      <div className="w-full max-w-sm rounded-xl border border-line bg-panel p-8 text-center shadow-sm">
+      <div className="lift w-full max-w-sm rounded-2xl border border-line bg-panel p-8 text-center shadow-sm">
         <div className="mb-6 flex justify-center">
           <Logo height={40} />
         </div>

@@ -104,7 +104,7 @@ function DayCard({ day, tone }: { day: DayDetail; tone: "alta" | "baixa" }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="break-inside-avoid rounded-lg bg-panel p-6 shadow-sm">
+    <section className="lift break-inside-avoid rounded-2xl bg-panel p-6 shadow-sm">
       <h2 className="mb-4 font-display text-lg font-bold text-ink">{title}</h2>
       {children}
     </section>

@@ -192,7 +192,7 @@ export function ClientBillingCard({
   const total = cnpjs.reduce((sum, c) => sum + Number(c.monthly_fee ?? 0), 0);
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <div className="mb-1 flex items-baseline justify-between">
         <h2 className="font-bold text-ink">Financeiro</h2>
         {total > 0 && (

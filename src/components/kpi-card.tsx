@@ -3,13 +3,13 @@
 import { Users, Wallet, Package, Receipt, ArrowUp, ArrowDown } from "lucide-react";
 
 const ICONS = { users: Users, wallet: Wallet, package: Package, receipt: Receipt };
-// Blue carries data, gold carries what was left over — and nothing else on
-// the card is allowed a third accent.
+// One accent on the card. Gold belongs to profit, and none of these figures
+// is profit — "receipt" is the average ticket.
 const ICON_STYLES = {
   users: "bg-accent/10 text-accent-ink",
   wallet: "bg-accent/10 text-accent-ink",
   package: "bg-accent/10 text-accent-ink",
-  receipt: "bg-gold/15 text-gold-ink",
+  receipt: "bg-accent/10 text-accent-ink",
 };
 
 export function KpiCard({
@@ -33,19 +33,23 @@ export function KpiCard({
   const positive = trend >= 0;
 
   return (
-    <div className="rounded-lg bg-panel p-5 shadow-sm">
-      <div className="mb-3 flex items-start justify-between">
-        <p className="text-sm text-ink-2">{label}</p>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-full ${ICON_STYLES[icon]}`}>
+    <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        {/* Small label in caps, big bold figure — the moodboard's rule for
+            every number in the app. */}
+        <p className="pt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-3">{label}</p>
+        <div className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${ICON_STYLES[icon]}`}>
           <Icon className="h-[18px] w-[18px]" />
         </div>
       </div>
-      <p className="font-display text-2xl font-bold text-ink">{value}</p>
-      {sub && <p className="mt-0.5 text-xs font-semibold text-ink-2">{sub}</p>}
-      <div className="mt-2 flex items-center gap-1.5 text-xs text-ink-3">
+      <p className="font-display text-[28px] font-extrabold leading-none tracking-[-0.02em] text-ink">
+        {value}
+      </p>
+      {sub && <p className="mt-1.5 text-xs font-semibold text-ink-2">{sub}</p>}
+      <div className="mt-3 flex items-center gap-2 text-xs text-ink-3">
         <span
-          className={`inline-flex items-center gap-0.5 font-medium ${
-            positive ? "text-pos" : "text-danger"
+          className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${
+            positive ? "bg-pos/10 text-pos" : "bg-danger/10 text-danger"
           }`}
         >
           {positive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}

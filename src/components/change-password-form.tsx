@@ -54,7 +54,7 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg bg-panel p-5 shadow-sm">
+    <form onSubmit={submit} className="lift flex flex-col gap-3 rounded-2xl bg-panel p-5 shadow-sm">
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
           Nova senha

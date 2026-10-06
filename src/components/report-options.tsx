@@ -61,7 +61,7 @@ export function ReportOptions({
   const monthOptions = availableMonths.length ? availableMonths : [month];
 
   return (
-    <div className="mb-6 rounded-lg bg-panel p-5 shadow-sm print:hidden">
+    <div className="lift mb-6 rounded-2xl bg-panel p-5 shadow-sm print:hidden">
       <h2 className="mb-1 font-bold text-ink">Gerar relatório</h2>
       <p className="mb-4 text-xs text-ink-3">
         Escolha o mês e a plataforma. O relatório é montado com os documentos já importados.

@@ -134,27 +134,27 @@ export default async function DespesasPage({
       </div>
 
       <div className="mb-6 grid grid-cols-3 gap-4">
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Total do mês</p>
           <p className="text-2xl font-bold text-ink">{formatCurrency(total)}</p>
         </div>
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Já pago</p>
           <p className="text-2xl font-bold text-pos">{formatCurrency(paid)}</p>
         </div>
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Atrasado</p>
           <p className="text-2xl font-bold text-danger">{formatCurrency(overdue)}</p>
         </div>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4">
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Despesas fixas</p>
           <p className="text-2xl font-bold text-ink">{formatCurrency(fixedTotal)}</p>
           <p className="mt-1 text-xs text-ink-3">Impostos, assinaturas e outros custos recorrentes</p>
         </div>
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Despesas variáveis</p>
           <p className="text-2xl font-bold text-ink">{formatCurrency(variableTotal)}</p>
           <p className="mt-1 text-xs text-ink-3">Imprevistos, eventos e investimentos pontuais</p>

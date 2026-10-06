@@ -22,7 +22,7 @@ export function ClientFeeHistoryCard({
   const cnpjById = new Map(cnpjs.map((c) => [c.id, c]));
 
   return (
-    <section className="overflow-hidden rounded-lg bg-panel shadow-sm">
+    <section className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
       <div className="border-b border-line px-5 py-4">
         <h2 className="font-bold text-ink">Histórico de reajustes</h2>
         <p className="text-xs text-ink-3">

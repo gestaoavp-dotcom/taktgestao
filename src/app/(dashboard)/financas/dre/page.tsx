@@ -178,7 +178,7 @@ export default async function DrePage({
         </div>
       </div>
 
-      <div className="rounded-lg bg-panel p-5 shadow-sm">
+      <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
         <h2 className="mb-1 font-bold text-ink">{resultLabel}</h2>
         <p className="mb-4 text-xs text-ink-3">
           Receita, impostos e despesas de {periodLabel}, na ponta do lápis.
@@ -229,7 +229,7 @@ export default async function DrePage({
         </div>
       </div>
 
-      <div className="mt-6 rounded-lg bg-panel p-5 shadow-sm">
+      <div className="lift mt-6 rounded-2xl bg-panel p-5 shadow-sm">
         <h2 className="mb-1 font-bold text-ink">{trendLabel}</h2>
         <p className="mb-4 text-xs text-ink-3">
           Resultado líquido sobre a receita bruta, mês a mês.

@@ -628,7 +628,7 @@ export function SalesOrdersTable({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
+      <div className="lift overflow-x-auto rounded-2xl bg-panel shadow-sm">
         <table className="w-full min-w-[1250px] text-left text-sm">
           <thead className="bg-panel-2">
             <tr>

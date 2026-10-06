@@ -71,7 +71,7 @@ export function ReceivablesTable({
     );
 
   return (
-    <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+    <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
       <table className="w-full text-left text-sm">
         <thead className="bg-panel-2">
           <tr>

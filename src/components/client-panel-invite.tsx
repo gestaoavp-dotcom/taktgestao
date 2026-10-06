@@ -39,7 +39,7 @@ export function ClientPanelInvite({
   }
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
         <MessageCircle className="h-4 w-4" />
         Acesso de {clientName} ao painel

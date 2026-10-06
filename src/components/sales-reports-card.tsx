@@ -624,7 +624,7 @@ export function SalesReportsCard({
     from.slice(0, 7) !== to.slice(0, 7);
 
   return (
-    <div className="rounded-lg bg-panel p-6 shadow-sm">
+    <div className="lift rounded-2xl bg-panel p-6 shadow-sm">
       <h2 className="mb-3 font-bold text-ink">Importar documentos</h2>
 
       <nav className="mb-3 flex gap-1 border-b border-line">

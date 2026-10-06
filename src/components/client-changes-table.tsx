@@ -191,7 +191,7 @@ export function ClientChangesTable({
       )}
 
       {!readOnly && (
-      <div className="mb-5 rounded-lg bg-panel p-5 shadow-sm">
+      <div className="lift mb-5 rounded-2xl bg-panel p-5 shadow-sm">
         <div className="mb-3">
           <h2 className="font-bold text-ink">Registrar alteração</h2>
           <p className="text-xs text-ink-3">
@@ -306,7 +306,7 @@ export function ClientChangesTable({
       </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
+      <div className="lift overflow-x-auto rounded-2xl bg-panel shadow-sm">
         <table className="w-full min-w-[1240px] text-left text-sm">
           <thead className="bg-panel-2">
             <tr>

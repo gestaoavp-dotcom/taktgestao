@@ -63,7 +63,7 @@ export function ClientFilesCard({
   }
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <h2 className="mb-4 font-bold text-ink">Arquivos</h2>
 
       <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line py-4 text-sm font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent-ink">

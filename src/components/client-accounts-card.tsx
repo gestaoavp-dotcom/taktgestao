@@ -121,7 +121,7 @@ export function ClientAccountsCard({
   );
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <h2 className="mb-1 font-bold text-ink">Contas gerenciadas</h2>
       <p className="mb-4 text-xs text-ink-3">
         {accounts.length} {accounts.length === 1 ? "conta" : "contas"} em {linkedCnpjs.size}{" "}

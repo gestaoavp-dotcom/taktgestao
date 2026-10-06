@@ -100,7 +100,7 @@ function totalsOf(ads: SalesAd[]) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg bg-panel p-4 shadow-sm">
+    <div className="lift rounded-2xl bg-panel p-4 shadow-sm">
       <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</p>
       <p className="mt-1 font-display text-xl font-bold text-ink">{value}</p>
       {hint && <p className="mt-0.5 text-[11px] text-ink-3">{hint}</p>}
@@ -181,7 +181,7 @@ export function SalesAdsTable({
       <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
         Por anúncio
       </h2>
-      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
+      <div className="lift overflow-x-auto rounded-2xl bg-panel shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-panel-2">
             <tr>

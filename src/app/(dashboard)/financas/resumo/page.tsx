@@ -157,21 +157,21 @@ export default async function ResumoPage({
       </div>
 
       <div className="mb-6 grid grid-cols-3 gap-4">
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Recebido no mês</p>
           <p className="text-2xl font-bold text-pos">{formatCurrency(current.recebido)}</p>
         </div>
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Despesas fixas</p>
           <p className="text-2xl font-bold text-ink">{formatCurrency(current.fixed)}</p>
         </div>
-        <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
           <p className="text-sm text-ink-2">Despesas variáveis</p>
           <p className="text-2xl font-bold text-ink">{formatCurrency(current.variable)}</p>
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg bg-panel p-5 shadow-sm">
+      <div className="lift mb-6 rounded-2xl bg-panel p-5 shadow-sm">
         <h2 className="mb-1 font-bold text-ink">Recebido x despesas</h2>
         <p className="mb-4 text-xs text-ink-3">
           Últimos 6 meses, despesas separadas entre fixas e variáveis.
@@ -179,7 +179,7 @@ export default async function ResumoPage({
         <CashflowChart months={months} />
       </div>
 
-      <div className="rounded-lg bg-panel p-5 shadow-sm">
+      <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
         <h2 className="mb-1 font-bold text-ink">Sugestão de caixa</h2>
         <p className="mb-4 text-xs text-ink-3">
           Só uma sugestão, não uma obrigação — varia entre 5% e 20% do recebido do mês.

@@ -14,7 +14,7 @@ export function ClientRegistrationCard({ client }: { client: Client }) {
   const [state, formAction, pending] = useActionState(updateClient, null);
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <h2 className="mb-1 font-bold text-ink">Cadastro</h2>
       <p className="mb-4 text-xs text-ink-3">
         Loja, CNPJ e marketplaces ficam no card Financeiro e em Contas gerenciadas,

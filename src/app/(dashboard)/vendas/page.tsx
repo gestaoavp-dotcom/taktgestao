@@ -38,7 +38,7 @@ export default async function VendasPage() {
         <SalesImportForm clients={clients} />
       )}
 
-      <div className="mt-8 overflow-hidden rounded-lg bg-panel shadow-sm">
+      <div className="lift mt-8 overflow-hidden rounded-2xl bg-panel shadow-sm">
         <div className="border-b border-line px-4 py-3">
           <h2 className="font-display text-sm font-semibold text-ink">
             Importações recentes

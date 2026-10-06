@@ -114,7 +114,7 @@ export function TaxSummaryCard({
   const description = `Imposto sobre faturamento (${settings.rate_percent}%)`;
 
   return (
-    <section className="mb-5 overflow-hidden rounded-lg bg-panel shadow-sm">
+    <section className="lift mb-5 overflow-hidden rounded-2xl bg-panel shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div>
           <h2 className="flex items-center gap-2 font-bold text-ink">

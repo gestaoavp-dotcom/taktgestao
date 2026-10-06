@@ -63,7 +63,7 @@ function ProfileRow({
   const Icon = meta.icon;
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-line bg-panel p-4 shadow-sm">
+    <li className="lift flex flex-col gap-3 rounded-2xl border border-line bg-panel p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className={`rounded-lg p-2 ${meta.badge}`}>
@@ -252,7 +252,7 @@ function InviteForm({ clients }: { clients: Client[] }) {
   const [state, formAction, sending] = useActionState(createLoginWithLink, null);
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
         <Mail className="h-4 w-4" />
         Criar acesso

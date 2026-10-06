@@ -34,7 +34,7 @@ export function ClientHistoryCard({
   );
 
   return (
-    <section className="rounded-lg bg-panel p-5 shadow-sm">
+    <section className="lift rounded-2xl bg-panel p-5 shadow-sm">
       <h2 className="mb-4 font-bold text-ink">Histórico</h2>
 
       <form ref={formRef} action={formAction} className="mb-6 flex flex-col gap-3">

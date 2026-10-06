@@ -8,7 +8,7 @@ export function EmailSettings({ sender, adminEmail }: { sender: string | null; a
   const [state, formAction, pending] = useActionState(sendTestEmail, null);
 
   return (
-    <section className="mb-8 rounded-lg border border-line bg-panel p-5 shadow-sm">
+    <section className="lift mb-8 rounded-2xl border border-line bg-panel p-5 shadow-sm">
       <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
         <Mail className="h-4 w-4 text-ink-3" />
         Envio de e-mails
