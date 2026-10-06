@@ -10,6 +10,7 @@ import { paidNote, returnsNote } from "@/lib/returns-note";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
+import { ResultKpis } from "@/components/result-kpis";
 import { ChangesActivityCard } from "@/components/changes-activity-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 
@@ -72,7 +73,7 @@ export default async function ClienteDashboardPage({
           </Link>
         </div>
 
-        <div className="mb-5 grid grid-cols-3 gap-5">
+        <div className="mb-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <KpiCard
             label="Faturamento"
             value={formatCurrency(revenue)}
@@ -90,9 +91,9 @@ export default async function ClienteDashboardPage({
           <KpiCard
             label="Contas gerenciadas"
             value={String(accounts?.length ?? 0)}
-            trend={0}
             icon="users"
           />
+          <ResultKpis summary={sales} />
         </div>
 
         <div className="lift mb-5 rounded-2xl bg-panel p-6 shadow-sm">

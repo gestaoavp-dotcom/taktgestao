@@ -175,7 +175,14 @@ export async function getOrdersSummary(
   supabase: SupabaseClient,
   range: DateRange,
   filters: { clientId?: string; marketplace?: string } = {},
+  /**
+   * The profit and ad figures cost three more reads per call. The agency
+   * dashboard asks for one summary per client to fill a table that shows
+   * neither, so it turns them off there and keeps them for its own totals.
+   */
+  options: { withResult?: boolean } = {},
 ): Promise<OrdersSummary> {
+  const withResult = options.withResult !== false;
   const periodStart = fromISO(range.start);
   const periodEnd = fromISO(range.end);
   const days = Math.round((periodEnd.getTime() - periodStart.getTime()) / 86_400_000) + 1;
@@ -248,9 +255,9 @@ export async function getOrdersSummary(
   // counting a month only when the period holds all of it would show zero for
   // "last 30 days", which almost never holds a calendar month.
   const [orderProfit, previousOrderProfit, ads] = await Promise.all([
-    profitIn(range.start, range.end),
-    profitIn(toISO(prevStart), dayBeforeISO(range.start)),
-    fetchAll<AdRow>((from, to) => {
+    withResult ? profitIn(range.start, range.end) : null,
+    withResult ? profitIn(toISO(prevStart), dayBeforeISO(range.start)) : null,
+    !withResult ? ([] as AdRow[]) : fetchAll<AdRow>((from, to) => {
       let q = supabase
         .from("sales_ads")
         .select("report_month, started_on, ended_on, expense")

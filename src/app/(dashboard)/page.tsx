@@ -5,6 +5,7 @@ import { getProfile } from "@/lib/profile";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
+import { ResultKpis } from "@/components/result-kpis";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { DashboardFilters } from "@/components/dashboard-filters";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
@@ -121,10 +122,14 @@ export default async function DashboardPage({
     Promise.all(
       inView.map(async (c) => ({
         client: c,
-        summary: await getOrdersSummary(supabase, range, {
-          clientId: c.id,
-          marketplace: filters.marketplace,
-        }),
+        summary: await getOrdersSummary(
+          supabase,
+          range,
+          { clientId: c.id, marketplace: filters.marketplace },
+          // The table beside these shows revenue, orders and returns, so the
+          // profit reads would be three requests per client for nothing.
+          { withResult: false },
+        ),
       })),
     ),
   ]);
@@ -226,7 +231,7 @@ export default async function DashboardPage({
         <DateRangePicker start={range.start} end={range.end} />
       </div>
 
-      <div className="mb-6 grid grid-cols-4 gap-4">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Clientes"
           value={String(rows.length)}
@@ -253,6 +258,7 @@ export default async function DashboardPage({
           trend={trendOf(ticket, previousTicket)}
           icon="receipt"
         />
+        <ResultKpis summary={summary} />
       </div>
 
       <div className="lift mb-6 rounded-2xl bg-panel p-6 shadow-sm">

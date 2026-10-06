@@ -3,6 +3,7 @@ import { isTeam } from "@/lib/profile";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
+import { ResultKpis } from "@/components/result-kpis";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
@@ -31,6 +32,7 @@ export default async function ClienteVendasPage({
 
   const range = reportRange(de, ate);
 
+  const summary = await getOrdersSummary(supabase, range, { clientId: id });
   const {
     revenue,
     orders,
@@ -43,16 +45,7 @@ export default async function ClienteVendasPage({
     platformRows,
     returns,
     paid,
-    profit,
-    previousProfit,
-    margin,
-    previousMargin,
-    adSpend,
-    previousAdSpend,
-  } = await getOrdersSummary(supabase, range, { clientId: id });
-
-  const percent = (v: number | null) =>
-    v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
+  } = summary;
 
   return (
     <div>
@@ -89,42 +82,7 @@ export default async function ClienteVendasPage({
           trend={trendOf(ticket, previousTicket)}
           icon="receipt"
         />
-        <KpiCard
-          label="Gasto com Ads"
-          value={formatCurrency(adSpend)}
-          trend={trendOf(adSpend, previousAdSpend)}
-          icon="megaphone"
-          invert
-          note={
-            adSpend > 0
-              ? "Campanhas dos marketplaces, pelos relatórios de Ads importados."
-              : "Nenhum relatório de Ads importado neste período."
-          }
-        />
-        <KpiCard
-          label="Lucro"
-          value={profit == null ? "—" : formatCurrency(profit)}
-          trend={
-            profit != null && previousProfit != null
-              ? trendOf(profit, previousProfit)
-              : undefined
-          }
-          icon="profit"
-          note={
-            profit == null
-              ? "Falta rodar a migration 0042 no banco."
-              : adSpend > 0
-                ? `Depois das taxas, do custo, dos impostos e de ${formatCurrency(adSpend)} de Ads.`
-                : "Depois das taxas do marketplace, do custo do produto e dos impostos."
-          }
-        />
-        <KpiCard
-          label="Margem"
-          value={percent(margin)}
-          icon="percent"
-          sub={previousMargin != null ? `Antes: ${percent(previousMargin)}` : undefined}
-          note="O lucro sobre o faturamento do período."
-        />
+        <ResultKpis summary={summary} />
       </div>
 
       <div className="lift mb-5 rounded-2xl bg-panel p-6 shadow-sm">
