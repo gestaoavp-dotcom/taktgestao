@@ -43,7 +43,16 @@ export default async function ClienteVendasPage({
     platformRows,
     returns,
     paid,
+    profit,
+    previousProfit,
+    margin,
+    previousMargin,
+    adSpend,
+    previousAdSpend,
   } = await getOrdersSummary(supabase, range, { clientId: id });
+
+  const percent = (v: number | null) =>
+    v == null ? "—" : `${(v * 100).toFixed(1).replace(".", ",")}%`;
 
   return (
     <div>
@@ -59,7 +68,7 @@ export default async function ClienteVendasPage({
         <DateRangePicker start={range.start} end={range.end} />
       </div>
 
-      <div className="mb-5 grid grid-cols-3 gap-5">
+      <div className="mb-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard
           label="Faturamento"
           value={formatCurrency(revenue)}
@@ -79,6 +88,42 @@ export default async function ClienteVendasPage({
           value={formatCurrency(ticket)}
           trend={trendOf(ticket, previousTicket)}
           icon="receipt"
+        />
+        <KpiCard
+          label="Gasto com Ads"
+          value={formatCurrency(adSpend)}
+          trend={trendOf(adSpend, previousAdSpend)}
+          icon="megaphone"
+          invert
+          note={
+            adSpend > 0
+              ? "Campanhas dos marketplaces, pelos relatórios de Ads importados."
+              : "Nenhum relatório de Ads importado neste período."
+          }
+        />
+        <KpiCard
+          label="Lucro"
+          value={profit == null ? "—" : formatCurrency(profit)}
+          trend={
+            profit != null && previousProfit != null
+              ? trendOf(profit, previousProfit)
+              : undefined
+          }
+          icon="profit"
+          note={
+            profit == null
+              ? "Falta rodar a migration 0042 no banco."
+              : adSpend > 0
+                ? `Depois das taxas, do custo, dos impostos e de ${formatCurrency(adSpend)} de Ads.`
+                : "Depois das taxas do marketplace, do custo do produto e dos impostos."
+          }
+        />
+        <KpiCard
+          label="Margem"
+          value={percent(margin)}
+          icon="percent"
+          sub={previousMargin != null ? `Antes: ${percent(previousMargin)}` : undefined}
+          note="O lucro sobre o faturamento do período."
         />
       </div>
 

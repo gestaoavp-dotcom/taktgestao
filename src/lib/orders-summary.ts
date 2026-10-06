@@ -29,6 +29,19 @@ export type OrdersSummary = {
   paid: number | null;
   /** Sales sent back in the period: out of revenue, shown beside it. */
   returns: Returns;
+  /**
+   * What the marketplace left after its fees, less cost, extras, tax and ads.
+   * Null until migration 0042 has run — better a dash than a figure that is
+   * only the ad spend with a minus in front of it.
+   */
+  profit: number | null;
+  previousProfit: number | null;
+  /** Profit over revenue, as a fraction. Null when nothing was sold. */
+  margin: number | null;
+  previousMargin: number | null;
+  /** Spent on the marketplaces' own ads in the period. */
+  adSpend: number;
+  previousAdSpend: number;
   platformRows: [string, PlatformTotals][];
 };
 
@@ -62,7 +75,20 @@ type ProductRow = {
   report_month: string;
   net_sales: number;
   units_net: number;
+  net_revenue: number;
+  unit_cost: number | null;
+  extra_costs: number | null;
+  tax_percent: number | null;
 };
+
+type AdRow = {
+  report_month: string;
+  started_on: string | null;
+  ended_on: string | null;
+  expense: number;
+};
+
+type ProfitRow = { net: number; cost: number; extra: number; tax: number; profit: number };
 
 /**
  * The sales sent back within a scope — a period, or a report month as the
@@ -122,6 +148,12 @@ function fromISO(value: string) {
   return new Date(y, m - 1, d);
 }
 
+function dayBeforeISO(iso: string) {
+  const d = fromISO(iso);
+  d.setDate(d.getDate() - 1);
+  return toISO(d);
+}
+
 
 function revenueOf(rows: DayRow[]) {
   return rows.reduce((sum, r) => sum + Number(r.revenue), 0);
@@ -178,7 +210,10 @@ export async function getOrdersSummary(
   const products = await fetchAll<ProductRow>((from, to) => {
     let q = supabase
       .from("sales_products")
-      .select("sales_report_id, client_id, marketplace, report_month, net_sales, units_net")
+      .select(
+        "sales_report_id, client_id, marketplace, report_month, net_sales, units_net, " +
+          "net_revenue, unit_cost, extra_costs, tax_percent",
+      )
       .eq("is_total", false)
       // A year back, for a report spanning several months that only overlaps.
       .gte("report_month", `${Number(toISO(prevStart).slice(0, 4)) - 1}${toISO(prevStart).slice(4, 7)}-01`)
@@ -194,6 +229,47 @@ export async function getOrdersSummary(
     clientId: filters.clientId,
     marketplace: filters.marketplace,
   });
+
+  // What the orders left, added up in the database for the same two windows
+  // the figures above compare. Both at once: one waits on the other otherwise.
+  const profitIn = async (start: string, end: string): Promise<number | null> => {
+    const { data, error } = await supabase.rpc("orders_profit", {
+      p_start: start,
+      p_end: end,
+      p_client_id: filters.clientId ?? null,
+      p_marketplace: filters.marketplace ?? null,
+    });
+    if (error) return null;
+    return Number((data as ProfitRow[] | null)?.[0]?.profit ?? 0);
+  };
+
+  // Ads are reported by month, and some reports by week inside it. Either way
+  // the spend is spread over the days it covers, the way a product report is:
+  // counting a month only when the period holds all of it would show zero for
+  // "last 30 days", which almost never holds a calendar month.
+  const [orderProfit, previousOrderProfit, ads] = await Promise.all([
+    profitIn(range.start, range.end),
+    profitIn(toISO(prevStart), dayBeforeISO(range.start)),
+    fetchAll<AdRow>((from, to) => {
+      let q = supabase
+        .from("sales_ads")
+        .select("report_month, started_on, ended_on, expense")
+        .gte("report_month", `${toISO(prevStart).slice(0, 7)}-01`)
+        .lte("report_month", range.end);
+      if (filters.clientId) q = q.eq("client_id", filters.clientId);
+      if (filters.marketplace) q = q.eq("marketplace", filters.marketplace);
+      return q.order("id").range(from, to).returns<AdRow[]>();
+    }),
+  ]);
+
+  const adSpendIn = (start: string, end: string) =>
+    ads.reduce((sum, a) => {
+      const period: ReportPeriod = {
+        start: a.started_on ?? a.report_month,
+        end: a.ended_on ?? monthEnd(a.report_month),
+      };
+      return sum + Number(a.expense) * shareOfPeriod(period, start, end);
+    }, 0);
 
   // A product report (Amazon without its orders file) settles its whole
   // window in one figure, with no date per sale. Counting it only when the
@@ -211,11 +287,6 @@ export async function getOrdersSummary(
   ]);
   const periodOf = (p: ProductRow): ReportPeriod =>
     periods.get(p.sales_report_id) ?? { start: p.report_month, end: monthEnd(p.report_month) };
-  const dayBefore = (iso: string) => {
-    const d = fromISO(iso);
-    d.setDate(d.getDate() - 1);
-    return toISO(d);
-  };
 
   // Where the client's Amazon orders cover the days, they are the revenue.
   const counted = products.filter(
@@ -226,7 +297,7 @@ export async function getOrdersSummary(
       .map((p) => ({ p, share: shareOfPeriod(periodOf(p), start, end) }))
       .filter((x) => x.share > 0);
   const currentShares = sharesIn(range.start, range.end);
-  const previousShares = sharesIn(toISO(prevStart), dayBefore(range.start));
+  const previousShares = sharesIn(toISO(prevStart), dayBeforeISO(range.start));
 
   type Share = { p: ProductRow; share: number };
   const productRevenue = (rows: Share[]) =>
@@ -236,10 +307,35 @@ export async function getOrdersSummary(
   const productUnits = (rows: Share[]) =>
     Math.round(rows.reduce((s, x) => s + Number(x.p.units_net) * x.share, 0));
 
+  // The same arithmetic the Produtos tab shows per line: what Amazon paid for
+  // the product, less what it cost to buy, the extras and the tax on it.
+  const productProfit = (rows: Share[]) =>
+    rows.reduce((sum, x) => {
+      const net = Number(x.p.net_revenue);
+      const line =
+        net -
+        Number(x.p.unit_cost ?? 0) * x.p.units_net -
+        Number(x.p.extra_costs ?? 0) -
+        (net * Number(x.p.tax_percent ?? 0)) / 100;
+      return sum + line * x.share;
+    }, 0);
+
   const revenue = revenueOf(current) + productRevenue(currentShares);
   const orders = countOrders(current) + productUnits(currentShares);
   const previousRevenue = revenueOf(previous) + productRevenue(previousShares);
   const previousOrders = countOrders(previous) + productUnits(previousShares);
+
+  // Ads are a cost of the sale like any other, so they come out before the
+  // margin — a margin that ignores a known cost flatters the month.
+  const adSpend = adSpendIn(range.start, range.end);
+  const previousAdSpend = adSpendIn(toISO(prevStart), dayBeforeISO(range.start));
+  const profit =
+    orderProfit == null ? null : orderProfit + productProfit(currentShares) - adSpend;
+  const previousProfit =
+    previousOrderProfit == null
+      ? null
+      : previousOrderProfit + productProfit(previousShares) - previousAdSpend;
+  const marginOf = (p: number | null, r: number) => (p != null && r > 0 ? p / r : null);
 
   // A product report has one figure per sale, so it is both the price and
   // what was paid.
@@ -318,6 +414,12 @@ export async function getOrdersSummary(
     monthlyRevenue: productRevenue(currentShares),
     paid,
     returns: returnsOf(returned),
+    profit,
+    previousProfit,
+    margin: marginOf(profit, revenue),
+    previousMargin: marginOf(previousProfit, previousRevenue),
+    adSpend,
+    previousAdSpend,
     platformRows,
   };
 }
