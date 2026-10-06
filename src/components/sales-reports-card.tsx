@@ -185,6 +185,36 @@ function formatDate(date: string) {
   return new Date(date).toLocaleDateString("pt-BR");
 }
 
+/**
+ * Every month a document has data for, not just the one it was filed under.
+ *
+ * A Mercado Livre export can cover four months in one file; the importer
+ * splits the sales by their own dates, but the list showed the file only
+ * under the first month, so the three after it looked empty — which reads as
+ * an import that failed.
+ */
+function monthsCovered(report: SalesReport): string[] {
+  const home = report.report_month ?? "sem-mes";
+  if (!report.report_month || !report.period_start || !report.period_end) return [home];
+
+  const months: string[] = [];
+  const last = report.period_end.slice(0, 7);
+  let [year, month] = report.period_start.slice(0, 7).split("-").map(Number);
+
+  // Bounded: a corrupt period must not spin here.
+  for (let guard = 0; guard < 60; guard++) {
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    months.push(`${key}-01`);
+    if (key >= last) break;
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return months.length > 0 ? months : [home];
+}
+
 function monthLabel(reportMonth: string | null) {
   if (!reportMonth) return "Sem mês definido";
   const [y, m] = reportMonth.split("-").map(Number);
@@ -237,12 +267,18 @@ export function SalesReportsCard({
   );
 
   const grouped = useMemo(() => {
-    const byMonth = new Map<string, SalesReport[]>();
+    const byMonth = new Map<string, { report: SalesReport; filed: boolean }[]>();
     for (const r of visible) {
-      const key = r.report_month ?? "sem-mes";
-      const list = byMonth.get(key) ?? [];
-      list.push(r);
-      byMonth.set(key, list);
+      const home = r.report_month ?? "sem-mes";
+      for (const month of monthsCovered(r)) {
+        const list = byMonth.get(month) ?? [];
+        list.push({ report: r, filed: month === home });
+        byMonth.set(month, list);
+      }
+    }
+    // The month it was filed under first, then the months it reaches into.
+    for (const list of byMonth.values()) {
+      list.sort((a, b) => Number(b.filed) - Number(a.filed));
     }
     return Array.from(byMonth.entries()).sort((a, b) => b[0].localeCompare(a[0]));
   }, [visible]);
@@ -814,65 +850,96 @@ export function SalesReportsCard({
           {grouped.map(([monthKey, monthReports]) => (
             <div key={monthKey} className="py-3">
               <p className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
-                {monthLabel(monthReports[0].report_month)}
+                {monthLabel(monthKey === "sem-mes" ? null : monthKey)}
               </p>
               <ul className="flex flex-col gap-2">
-                {monthReports.map((report) => (
+                {monthReports.map(({ report, filed }) => (
                   <li
-                    key={report.id}
-                    className="group flex items-center gap-3 rounded-lg bg-panel-2/40 px-3 py-2"
+                    key={`${monthKey}-${report.id}`}
+                    className={`group flex items-center gap-3 rounded-lg px-3 py-2 ${
+                      filed ? "bg-panel-2/40" : "border border-dashed border-line"
+                    }`}
                   >
-                    <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-ink-3" />
+                    <FileSpreadsheet
+                      className={`h-4 w-4 flex-shrink-0 ${filed ? "text-ink-3" : "text-ink-3/60"}`}
+                    />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-ink" title={report.name}>
+                      <p
+                        className={`truncate text-sm ${filed ? "text-ink" : "text-ink-2"}`}
+                        title={report.name}
+                      >
                         {report.name}
                       </p>
                       <p className="text-xs text-ink-3">
-                        {formatDate(report.created_at)} · {formatSize(report.size)}
-                        {report.period_start && report.period_end
-                          ? ` · ${formatShort(report.period_start)} a ${formatShort(report.period_end)}`
-                          : ""}
-                        {orderCounts[report.id] ? ` · ${orderCounts[report.id]} pedidos` : ""}
+                        {filed ? (
+                          <>
+                            {formatDate(report.created_at)} · {formatSize(report.size)}
+                            {report.period_start && report.period_end
+                              ? ` · ${formatShort(report.period_start)} a ${formatShort(report.period_end)}`
+                              : ""}
+                            {orderCounts[report.id] ? ` · ${orderCounts[report.id]} pedidos` : ""}
+                          </>
+                        ) : (
+                          // The same file, listed again because its period
+                          // reaches this month: without this the month looked
+                          // empty and the import looked broken.
+                          `Mesmo arquivo de ${monthLabel(report.report_month)} — cobre este mês também`
+                        )}
                       </p>
                     </div>
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE[report.status]}`}
-                    >
-                      {STATUS_LABEL[report.status]}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReplacingId(report.id);
-                        replaceInputRef.current?.click();
-                      }}
-                      disabled={uploading}
-                      aria-label={`Substituir ${report.name}`}
-                      title="Substituir arquivo"
-                      className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink disabled:opacity-40"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(report.path)}
-                      aria-label={`Baixar ${report.name}`}
-                      className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
-                    <form action={deleteSalesReport}>
-                      <input type="hidden" name="id" value={report.id} />
-                      <input type="hidden" name="path" value={report.path} />
-                      <input type="hidden" name="client_id" value={clientId} />
+                    {filed ? (
+                      <>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_BADGE[report.status]}`}
+                        >
+                          {STATUS_LABEL[report.status]}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplacingId(report.id);
+                            replaceInputRef.current?.click();
+                          }}
+                          disabled={uploading}
+                          aria-label={`Substituir ${report.name}`}
+                          title="Substituir arquivo"
+                          className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink disabled:opacity-40"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDownload(report.path)}
+                          aria-label={`Baixar ${report.name}`}
+                          className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        <form action={deleteSalesReport}>
+                          <input type="hidden" name="id" value={report.id} />
+                          <input type="hidden" name="path" value={report.path} />
+                          <input type="hidden" name="client_id" value={clientId} />
+                          <button
+                            type="submit"
+                            aria-label={`Excluir ${report.name}`}
+                            className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </form>
+                      </>
+                    ) : (
+                      // Replacing or deleting happens where the file was
+                      // filed, so there is one place to act on it.
                       <button
-                        type="submit"
-                        aria-label={`Excluir ${report.name}`}
-                        className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
+                        type="button"
+                        onClick={() => handleDownload(report.path)}
+                        aria-label={`Baixar ${report.name}`}
+                        className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Download className="h-4 w-4" />
                       </button>
-                    </form>
+                    )}
                   </li>
                 ))}
               </ul>
