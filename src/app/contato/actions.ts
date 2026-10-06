@@ -9,6 +9,9 @@ export type LeadState = { ok: true } | { error: string } | null;
 
 const KNOWN_MARKETPLACES = new Set<string>(MARKETPLACES.map((m) => m.value));
 
+/** Which page the contact came from, so the list says where to pick it up. */
+const SOURCES = new Set(["instagram", "landing"]);
+
 function text(formData: FormData, key: string, max: number) {
   const value = String(formData.get(key) ?? "").trim();
   return value ? value.slice(0, max) : null;
@@ -36,6 +39,19 @@ export async function submitLead(
     .map(String)
     .filter((m) => KNOWN_MARKETPLACES.has(m));
 
+  // The revenue band is a question the landing page asks and the leads table
+  // has no column for; it belongs with whatever else the person wrote.
+  const revenue = text(formData, "revenue", 60);
+  const notes = text(formData, "message", 1000);
+  const message =
+    [notes, revenue && `Faturamento mensal: ${revenue}`]
+      .filter(Boolean)
+      .join("\n")
+      .slice(0, 1000) || null;
+
+  const from = String(formData.get("source") ?? "");
+  const source = SOURCES.has(from) ? from : "instagram";
+
   // Made here rather than read back after the insert: the anonymous role may
   // add a lead but not read one, not even its own.
   const id = crypto.randomUUID();
@@ -48,7 +64,8 @@ export async function submitLead(
     email,
     company: text(formData, "company", 120),
     marketplaces,
-    message: text(formData, "message", 1000),
+    message,
+    source,
   });
 
   if (error) return { error: "Não conseguimos enviar agora. Tente de novo em instantes." };

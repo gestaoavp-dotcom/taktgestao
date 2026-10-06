@@ -1,0 +1,157 @@
+/* Landing page primitives, taken from the design mockup.
+ *
+ * Imported only by /inicio, but Next.js serves every imported stylesheet
+ * globally — hence the `lp-` prefix on each class, so none of this reaches
+ * the dashboard, which is a light interface with its own tokens.
+ *
+ * The artboard was drawn at 1440px with fixed type sizes. Those become
+ * clamp() here: the top of each range is the mockup's value, so a desktop
+ * render matches it, and a phone gets something readable instead. */
+
+.lp {
+  --lp-ink: #f3f6ff;
+  --lp-ink-soft: #c9d2f2;
+  --lp-ink-dim: #a3aecf;
+  --lp-ink-faint: #7e8ab0;
+  --lp-bg: #060a18;
+  --lp-gold: #f5b82e;
+  --lp-blue: #2f55e4;
+
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  color: var(--lp-ink);
+  background: var(--lp-bg);
+  line-height: 1.55;
+  overflow: hidden;
+  width: 100%;
+}
+
+.lp a { color: #8fa8ff; }
+.lp a:hover { color: #ffffff; }
+
+/* Gold and blue gradient text. */
+.lp-tg {
+  background: linear-gradient(92deg, #e39a00 0%, #ffe29a 48%, #f5b82e 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.lp-tb {
+  background: linear-gradient(92deg, #4c6ff5 0%, #c9d6ff 50%, #5d7dfa 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.lp-glass {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 999px;
+  min-height: 44px;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+.lp-btn-gold {
+  background: linear-gradient(135deg, #ffe08a 0%, #f5b82e 45%, #e39a00 100%);
+  color: #0a1024;
+  box-shadow: 0 10px 32px rgba(245, 184, 46, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.lp-btn-gold:hover {
+  color: #0a1024;
+  box-shadow: 0 14px 40px rgba(245, 184, 46, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.lp-btn-blue {
+  background: linear-gradient(135deg, #6e8bff 0%, #2f55e4 55%, #1f3fb8 100%);
+  color: #ffffff;
+  box-shadow: 0 10px 32px rgba(47, 85, 228, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.lp-btn-blue:hover { color: #ffffff; }
+
+.lp-btn-ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.lp-btn-ghost:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+
+.lp-eyebrow {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--lp-ink-soft);
+}
+.lp-eyebrow::after {
+  content: "";
+  width: 56px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #f5b82e, rgba(245, 184, 46, 0));
+}
+.lp-eyebrow-center { align-items: center; }
+
+.lp-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse at center, #000 10%, transparent 70%);
+}
+
+.lp-ticker {
+  display: flex;
+  gap: 48px;
+  width: max-content;
+  animation: lp-tk 38s linear infinite;
+}
+@keyframes lp-tk {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-ticker { animation: none; }
+}
+
+.lp details summary { cursor: pointer; list-style: none; }
+.lp details summary::-webkit-details-marker { display: none; }
+.lp details[open] .lp-faq-plus { transform: rotate(45deg); }
+
+.lp input::placeholder { color: var(--lp-ink-faint); }
+
+.lp-field {
+  font: inherit;
+  font-size: 16px;
+  padding: 13px 16px;
+  background: rgba(6, 10, 24, 0.6);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  min-height: 50px;
+  box-sizing: border-box;
+  width: 100%;
+}
+.lp-field:focus { outline: none; border-color: rgba(245, 184, 46, 0.7); }
+.lp-select { background: #0a1230; }
+
+/* The artboard's headline sizes, floored for small screens. */
+.lp-h1 { font-size: clamp(38px, 6.6vw, 68px); line-height: 1.02; letter-spacing: -0.035em; }
+.lp-h2 { font-size: clamp(30px, 4.6vw, 48px); line-height: 1.06; letter-spacing: -0.025em; }
+.lp-h2-sm { font-size: clamp(29px, 4.4vw, 46px); line-height: 1.08; letter-spacing: -0.025em; }
+.lp-h2-lg { font-size: clamp(34px, 5.4vw, 56px); line-height: 1.02; letter-spacing: -0.03em; }
+.lp-h2-cta { font-size: clamp(28px, 3.8vw, 40px); line-height: 1.1; letter-spacing: -0.02em; }
+.lp-num-hero { font-size: clamp(48px, 7.6vw, 80px); line-height: 1; letter-spacing: -0.04em; }
+.lp-num-podium { font-size: clamp(44px, 6.6vw, 70px); line-height: 1; letter-spacing: -0.04em; }
+.lp-num-step { font-size: clamp(40px, 5vw, 56px); line-height: 1; letter-spacing: -0.04em; }
+.lp-num-side { font-size: clamp(36px, 4.8vw, 54px); line-height: 1.05; letter-spacing: -0.03em; }
