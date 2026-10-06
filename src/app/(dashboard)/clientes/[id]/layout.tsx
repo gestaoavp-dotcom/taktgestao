@@ -51,13 +51,16 @@ export default async function ClientLayout({
 
   return (
     <div>
-      <Link
-        href="/clientes"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 transition-colors hover:text-ink"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Clientes
-      </Link>
+      {/* A client has one folder and no list to go back to. */}
+      {team && (
+        <Link
+          href="/clientes"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 transition-colors hover:text-ink"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Clientes
+        </Link>
+      )}
 
       <header className="rounded-t-lg bg-panel px-6 pt-6 shadow-sm">
         <h1 className="text-2xl font-bold text-ink">{client.name}</h1>
@@ -76,9 +79,15 @@ export default async function ClientLayout({
           ))}
         </div>
 
-        <div className="mt-5">
-          <ClientTabs clientId={client.id} />
-        </div>
+        {/* For a client these same sections are the sidebar, so the strip
+            would repeat them. The team keeps it: a folder is one of many. */}
+        {team ? (
+          <div className="mt-5">
+            <ClientTabs clientId={client.id} team={team} />
+          </div>
+        ) : (
+          <div className="h-6" />
+        )}
       </header>
 
       <div className="mt-5">{children}</div>

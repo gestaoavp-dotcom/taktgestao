@@ -1,9 +1,10 @@
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ClientCredential } from "@/lib/types";
 import { InformacoesSubTabs } from "@/components/informacoes-sub-tabs";
 import { ClientCredentialsCard } from "@/components/client-credentials-card";
 import { ClientPanelInvite } from "@/components/client-panel-invite";
-import { getProfile } from "@/lib/profile";
+import { getProfile, isTeam } from "@/lib/profile";
 import { keyFingerprint, keyStatus } from "@/lib/credentials-crypto";
 
 export default async function ClienteAcessosPage({
@@ -12,6 +13,10 @@ export default async function ClienteAcessosPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Marketplace logins live here. The rules already refuse a client the
+  // passwords; this refuses it the page.
+  if (!(await isTeam())) notFound();
+
   const supabase = await createClient();
 
   // Every column except password_cipher: the encrypted password never travels

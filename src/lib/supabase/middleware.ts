@@ -144,17 +144,20 @@ export async function updateSession(request: NextRequest) {
     // everything else, so this is not what keeps the data safe — it is what
     // keeps the client from landing on the agency's dashboard and finding it
     // empty, or on a tab of tools that will not work for them.
-    // The Clientes list is allowed too: the database hands a client only its
-    // own row, so the list holds that one folder.
+    //
+    // Its own folder is also where it starts: the Clientes list held exactly
+    // one card, so arriving there was a click between the login and anything
+    // worth reading.
     if (profile?.role === "cliente" && profile.client_id) {
       const own = `/clientes/${profile.client_id}`;
-      if (
-        pathname !== "/clientes" &&
-        !pathname.startsWith("/boas-vindas") &&
-        !pathname.startsWith(own)
-      ) {
+      const allowed = pathname.startsWith("/boas-vindas") || pathname.startsWith(own);
+
+      // Informações is the agency's side of the folder: what the client pays,
+      // and the marketplace logins. The rules already keep the passwords away
+      // from it, and this keeps the page away too.
+      if (!allowed || pathname.startsWith(`${own}/informacoes`)) {
         const url = request.nextUrl.clone();
-        url.pathname = "/clientes";
+        url.pathname = own;
         url.search = "";
         return NextResponse.redirect(url);
       }

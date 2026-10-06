@@ -1,4 +1,6 @@
+import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import type {
   Client,
   ClientAccount,
@@ -19,6 +21,11 @@ export default async function ClienteInformacoesPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // The middleware turns a client away from here, and so does this: a page
+  // that holds what the client pays and which stores the agency operates
+  // should not depend on one redirect being right.
+  if (!(await isTeam())) notFound();
+
   const supabase = await createClient();
 
   const [
