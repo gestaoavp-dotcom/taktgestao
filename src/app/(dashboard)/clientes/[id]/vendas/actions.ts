@@ -92,6 +92,115 @@ export async function registerSalesReport(input: {
   return { id: data.id };
 }
 
+/**
+ * One document row per month the file actually holds.
+ *
+ * A Mercado Livre export can cover June to October, and the sales already go
+ * to their own months — but the document stayed a single row filed under the
+ * first of them, so four months had no entry of their own: no count, no
+ * status, nothing to remove on its own. Each month now has its row, all
+ * pointing at the one uploaded file.
+ */
+async function splitReportByMonth(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  reportId: string,
+) {
+  const { data: report } = await supabase
+    .from("sales_reports")
+    .select(
+      "id, client_id, kind, marketplace, account_id, name, path, size, created_by, period_start, period_end",
+    )
+    .eq("id", reportId)
+    .maybeSingle<{
+      id: string; client_id: string; kind: string; marketplace: string;
+      account_id: string | null; name: string; path: string; size: number;
+      created_by: string | null; period_start: string | null; period_end: string | null;
+    }>();
+
+  if (!report?.period_start || !report.period_end) return;
+
+  const monthsIn = (start: string, end: string) => {
+    const out: string[] = [];
+    const last = end.slice(0, 7);
+    let [year, month] = start.slice(0, 7).split("-").map(Number);
+    for (let guard = 0; guard < 60; guard++) {
+      const key = `${year}-${String(month).padStart(2, "0")}`;
+      out.push(key);
+      if (key >= last) break;
+      month += 1;
+      if (month > 12) { month = 1; year += 1; }
+    }
+    return out;
+  };
+
+  const months = monthsIn(report.period_start, report.period_end);
+  if (months.length <= 1) return;
+
+  // Which of them the file really filled: counted in the database, a handful
+  // of counts rather than every row of a long export.
+  const filled: string[] = [];
+  for (const month of months) {
+    const { count } = await supabase
+      .from("sales_orders")
+      .select("id", { count: "exact", head: true })
+      .eq("sales_report_id", reportId)
+      .eq("report_month", `${month}-01`);
+    if ((count ?? 0) > 0) filled.push(month);
+  }
+  if (filled.length <= 1) return;
+
+  const lastDay = (month: string) => {
+    const [y, m] = month.split("-").map(Number);
+    return `${month}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  };
+  const windowOf = (month: string) => ({
+    start: `${month}-01` > report.period_start! ? `${month}-01` : report.period_start!,
+    end: lastDay(month) < report.period_end! ? lastDay(month) : report.period_end!,
+  });
+
+  // The first month keeps the row that was uploaded, so its storage path and
+  // its history stay put; the rest get rows of their own.
+  const [first, ...rest] = filled;
+  const firstWindow = windowOf(first);
+  await supabase
+    .from("sales_reports")
+    .update({
+      report_month: `${first}-01`,
+      period_start: firstWindow.start,
+      period_end: firstWindow.end,
+    })
+    .eq("id", reportId);
+
+  for (const month of rest) {
+    const w = windowOf(month);
+    const { data: made } = await supabase
+      .from("sales_reports")
+      .insert({
+        client_id: report.client_id,
+        kind: report.kind,
+        marketplace: report.marketplace,
+        account_id: report.account_id,
+        name: report.name,
+        path: report.path,
+        size: report.size,
+        created_by: report.created_by,
+        report_month: `${month}-01`,
+        period_start: w.start,
+        period_end: w.end,
+        status: "processado",
+      })
+      .select("id")
+      .maybeSingle<{ id: string }>();
+
+    if (!made) continue;
+    await supabase
+      .from("sales_orders")
+      .update({ sales_report_id: made.id })
+      .eq("sales_report_id", reportId)
+      .eq("report_month", `${month}-01`);
+  }
+}
+
 export async function importSalesOrders(input: {
   clientId: string;
   reportId: string;
@@ -123,6 +232,21 @@ export async function importSalesOrders(input: {
 
   const supabase = await createClient();
 
+  // Read before the clear below, not after: these costs come out of the
+  // client's own orders, and re-sending a file that covers every month a
+  // client has would empty the table first and find nothing to carry over —
+  // every cost typed by hand, gone on a re-upload.
+  // Arrive filled in: each SKU starts from the newest cost recorded at or
+  // before this report's month, and the tax rate in force then.
+  const costByKey = await knownCosts(
+    supabase,
+    "sales_orders",
+    "cost",
+    input.clientId,
+    input.reportMonth,
+  );
+  const taxPercent = await knownTax(supabase, "sales_orders", input.clientId, input.reportMonth);
+
   // Clear the window before the first batch lands, so uploading the 1st to the
   // 24th after the 1st to the 17th leaves one set of orders and not one and a
   // half. Scoped to this store, so two shops on the same marketplace do not
@@ -144,16 +268,6 @@ export async function importSalesOrders(input: {
     if (clearError) return { error: clearError.message };
   }
 
-  // Arrive filled in: each SKU starts from the newest cost recorded at or
-  // before this report's month, and the tax rate in force then.
-  const costByKey = await knownCosts(
-    supabase,
-    "sales_orders",
-    "cost",
-    input.clientId,
-    input.reportMonth,
-  );
-  const taxPercent = await knownTax(supabase, "sales_orders", input.clientId, input.reportMonth);
 
   // Worked out here, with the report row in hand, instead of on every page
   // load from a JSON blob the database cannot sum.
@@ -191,6 +305,8 @@ export async function importSalesOrders(input: {
       .update({ status: "processado" })
       .eq("id", input.reportId);
     if (statusError) return { error: statusError.message };
+
+    await splitReportByMonth(supabase, input.reportId);
 
     revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
     revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
@@ -302,6 +418,22 @@ export async function markSalesReportError(reportId: string, clientId: string) {
   revalidatePath(`/clientes/${clientId}/vendas/importar`);
 }
 
+/**
+ * One upload can be filed as several months, all pointing at the same stored
+ * file. It is removed with the last of them, never with the first — otherwise
+ * deleting January takes February's download with it.
+ */
+async function removeFileIfLast(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  path: string,
+) {
+  const { count } = await supabase
+    .from("sales_reports")
+    .select("id", { count: "exact", head: true })
+    .eq("path", path);
+  if ((count ?? 0) === 0) await supabase.storage.from("client-files").remove([path]);
+}
+
 export async function deleteSalesReportById(input: {
   id: string;
   clientId: string;
@@ -309,8 +441,8 @@ export async function deleteSalesReportById(input: {
 }) {
   const supabase = await createClient();
 
-  await supabase.storage.from("client-files").remove([input.path]);
   await supabase.from("sales_reports").delete().eq("id", input.id);
+  await removeFileIfLast(supabase, input.path);
 
   revalidatePath(`/clientes/${input.clientId}/vendas/importar`);
   revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
@@ -322,8 +454,8 @@ export async function deleteSalesReport(formData: FormData) {
   const clientId = formData.get("client_id") as string;
   const path = formData.get("path") as string;
 
-  await supabase.storage.from("client-files").remove([path]);
   await supabase.from("sales_reports").delete().eq("id", formData.get("id") as string);
+  await removeFileIfLast(supabase, path);
 
   revalidatePath(`/clientes/${clientId}/vendas/importar`);
   revalidatePath(`/clientes/${clientId}/vendas/pedidos`);
