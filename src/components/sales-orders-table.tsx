@@ -599,7 +599,7 @@ export function SalesOrdersTable({
               {formatCurrency(Number(totals.margin))}
             </div>
             <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
-              sobrou ({totals.orders} pedidos)
+              lucro ({totals.orders} pedidos)
             </div>
           </div>
         </div>
@@ -644,7 +644,7 @@ export function SalesOrdersTable({
               <th className="px-2 py-2 font-semibold text-ink">
                 Custo / Outros{hasAffiliates ? " / Afil.%" : ""} / Imp. %
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-ink">Sobrou</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Lucro</th>
             </tr>
           </thead>
           <tbody>

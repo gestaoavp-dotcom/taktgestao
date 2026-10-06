@@ -280,7 +280,7 @@ function ProductRow({
                 }`}
               >
                 <span className={`font-bold ${profit >= 0 ? "text-pos" : "text-danger"}`}>
-                  Sobrou
+                  Lucro
                 </span>
                 <span className={`font-bold ${profit >= 0 ? "text-pos" : "text-danger"}`}>
                   {formatCurrency(profit)}
@@ -450,7 +450,7 @@ export function SalesProductsTable({
               {formatCurrency(sumProfit)}
             </div>
             <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
-              sobrou ({rows.length} produtos)
+              lucro ({rows.length} produtos)
             </div>
           </div>
         </div>
@@ -467,7 +467,7 @@ export function SalesProductsTable({
               <th className="px-4 py-2 text-right font-semibold text-ink">Vendas líquidas</th>
               <th className="px-4 py-2 text-right font-semibold text-ink">Receita líquida</th>
               <th className="px-2 py-2 font-semibold text-ink">Custo/un · Outros · Imp.%</th>
-              <th className="px-4 py-2 text-right font-semibold text-ink">Sobrou</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Lucro</th>
             </tr>
           </thead>
           <tbody>

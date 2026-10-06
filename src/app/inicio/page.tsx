@@ -79,7 +79,7 @@ const COMPARISON: [string, string, string, string][] = [
   ["Treinamento", "Cursos e vídeos no fim de semana", "Meses até a pessoa andar sozinha", "Nenhum: o time já chega pronto"],
   ["Custo", "O custo das oportunidades perdidas", "Salário, encargos, benefícios e ferramentas", "Uma mensalidade, sem encargos trabalhistas"],
   ["Continuidade", "Para quando você para", "Se a pessoa sai, recomeça do zero", "Um time inteiro, sem depender de uma pessoa"],
-  ["Acompanhamento", "Planilhas e contas no fim do mês", "Relatório quando dá tempo", "App com suas vendas e quanto sobrou"],
+  ["Acompanhamento", "Planilhas e contas no fim do mês", "Relatório quando dá tempo", "App com suas vendas e o seu lucro"],
 ];
 
 const WINS = [
@@ -143,7 +143,7 @@ const TAKT = [
   "Plano feito para o momento e o caixa da sua loja",
   "Especialistas nos 5 canais — incluindo Shein e TikTok Shop",
   "Calculadora própria para precificar com lucro real",
-  "App com login para você acompanhar vendas e quanto sobrou",
+  "App com login para você acompanhar vendas e lucro",
 ];
 
 const APP_BARS: [string, number, string][] = [
@@ -214,7 +214,7 @@ const FAQ: [string, string][] = [
   ],
   [
     "Como funciona o app da Área do cliente?",
-    "Todo cliente TAKT recebe um login para acompanhar as vendas e quanto sobrou da operação, sem depender de planilhas ou de esperar o relatório do mês.",
+    "Todo cliente TAKT recebe um login para acompanhar as vendas e o lucro da operação, sem depender de planilhas ou de esperar o relatório do mês.",
   ],
 ];
 
@@ -674,7 +674,7 @@ export default function InicioPage() {
           <div className="flex min-w-0 flex-1 basis-[400px] flex-col gap-[22px]">
             <span className="lp-eyebrow">Exclusivo para clientes</span>
             <h2 className="lp-h2 m-0 font-light">
-              Veja quanto vendeu — e <span className="lp-tg font-extrabold">quanto sobrou</span>
+              Veja quanto vendeu — e <span className="lp-tg font-extrabold">quanto lucrou</span>
             </h2>
             <p className="m-0 text-lg text-[#A3AECF]">
               Além do serviço, você recebe acesso ao app da TAKT. Com seu login na Área do cliente,
@@ -684,7 +684,7 @@ export default function InicioPage() {
             <div className="flex flex-col gap-3 text-[17px] font-medium">
               {[
                 "Vendas de todos os marketplaces em um só lugar",
-                "O que sobrou de verdade depois de taxas e custos",
+                "O lucro de verdade, depois de taxas e custos",
                 "Transparência total sobre o trabalho da assessoria",
               ].map((line) => (
                 <div key={line} className="flex items-start gap-3">
@@ -724,7 +724,7 @@ export default function InicioPage() {
                   <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(130px,1fr))]">
                     {[
                       ["Vendas", "R$ 184.320", false],
-                      ["Sobrou", "R$ 31.540", true],
+                      ["Lucro", "R$ 31.540", true],
                       ["Margem", "17,1%", false],
                       ["Pedidos", "1.284", false],
                     ].map(([label, value, gold]) => (
@@ -785,7 +785,7 @@ export default function InicioPage() {
                       ))}
                     </div>
                     <span className="text-xs text-[#7E8AB0]">
-                      Barras: vendas no mês · Valor: quanto sobrou
+                      Barras: vendas no mês · Valor: lucro
                     </span>
                   </div>
                 </div>
