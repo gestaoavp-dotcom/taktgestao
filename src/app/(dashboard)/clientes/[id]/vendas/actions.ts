@@ -35,7 +35,7 @@ async function noteCostChange(
     next: number | null;
   },
 ) {
-  if (!input.sku) return;
+  if (!input.sku && !input.productName) return;
   if (Number(input.previous ?? NaN) === Number(input.next ?? NaN)) return;
   if (input.previous == null && input.next == null) return;
 
@@ -636,6 +636,78 @@ export async function updateProductCosts(
   });
 
   revalidatePath(`/clientes/${clientId}/vendas/produtos`);
+  return { ok: true };
+}
+
+/**
+ * Changes what a product costs, from a month forward.
+ *
+ * The Custos tab is where a cost is changed rather than first filled in: the
+ * months before keep what the product cost at the time, which is the whole
+ * reason the figure is stored per month and not once per product. Every call
+ * that moves the number leaves a line in the history — that is what this tab
+ * exists for, and what typing in Pedidos does not do.
+ */
+export async function setProductCost(input: {
+  clientId: string;
+  sku: string | null;
+  productName: string | null;
+  fromMonth: string;
+  cost: string;
+}): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  if (!input.sku && !input.productName) return { error: "Produto sem SKU e sem título." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.fromMonth)) return { error: "Mês inválido." };
+
+  const trimmed = input.cost.trim();
+  const next = trimmed ? Number(trimmed.replace(",", ".")) : null;
+  if (trimmed && !Number.isFinite(next)) return { error: "Custo inválido." };
+
+  // Matched the way costs are filed: by SKU when there is one, by exact title
+  // when the marketplace gave none.
+  const before = await (() => {
+    const q = supabase
+      .from("sales_orders")
+      .select("cost")
+      .eq("client_id", input.clientId)
+      .eq("report_month", input.fromMonth);
+    return (input.sku ? q.eq("sku", input.sku) : q.is("sku", null).eq("product_name", input.productName ?? ""))
+      .limit(1)
+      .maybeSingle<{ cost: number | null }>();
+  })();
+
+  const written = await (() => {
+    const q = supabase
+      .from("sales_orders")
+      .update({ cost: next })
+      .eq("client_id", input.clientId)
+      .gte("report_month", input.fromMonth);
+    return input.sku ? q.eq("sku", input.sku) : q.is("sku", null).eq("product_name", input.productName ?? "");
+  })();
+  if (written.error) return { error: written.error.message };
+
+  // Amazon's own product rows carry the same cost under another name.
+  await (() => {
+    const q = supabase
+      .from("sales_products")
+      .update({ unit_cost: next })
+      .eq("client_id", input.clientId)
+      .gte("report_month", input.fromMonth);
+    return input.sku ? q.eq("sku", input.sku) : q.is("sku", null).eq("product_name", input.productName ?? "");
+  })();
+
+  await noteCostChange(supabase, {
+    clientId: input.clientId,
+    sku: input.sku,
+    productName: input.productName,
+    effectiveMonth: input.fromMonth,
+    previous: before.data?.cost ?? null,
+    next,
+  });
+
+  revalidatePath(`/clientes/${input.clientId}/vendas/custos`);
+  revalidatePath(`/clientes/${input.clientId}/vendas/pedidos`);
+  refreshEverything();
   return { ok: true };
 }
 

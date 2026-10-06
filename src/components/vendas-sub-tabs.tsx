@@ -19,6 +19,7 @@ export function VendasSubTabs({
     ...(team ? [{ href: `${base}/importar`, label: "Importar documentos" }] : []),
     { href: `${base}/pedidos`, label: "Pedidos" },
     { href: `${base}/produtos`, label: "Produtos" },
+    { href: `${base}/custos`, label: "Custos" },
     { href: `${base}/ads`, label: "Ads" },
     { href: `${base}/trafego`, label: "Tráfego" },
   ];
