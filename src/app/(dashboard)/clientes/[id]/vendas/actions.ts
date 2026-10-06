@@ -508,6 +508,91 @@ export async function updateProductCosts(
 }
 
 /**
+ * A cost typed on the Produtos tab for a product that has no row of its own.
+ *
+ * Most products here are folded out of the orders rather than stored, and the
+ * fields were read-only because of it — which from the outside looks like a
+ * table that will not save. The orders are still where the cost lives, so this
+ * finds one line of the product and hands it to the same function the Pedidos
+ * tab uses: one spread, written once, with the TikTok recompute it carries.
+ *
+ * Only the unit cost and the tax travel. "Outros" belongs to a single order by
+ * design, and a figure typed per product has no one order to land on.
+ */
+export async function updateDerivedProductCost(input: {
+  clientId: string;
+  marketplace: string;
+  reportMonth: string;
+  sku: string | null;
+  productName: string | null;
+  unitCost: string;
+  tax: string;
+}): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+
+  const toNumberOrNull = (value: string) => {
+    if (!value.trim()) return null;
+    const n = Number(value.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // The extras and the affiliate share come back unchanged: this screen does
+  // not ask for them, and save_order_costs writes every field it is given —
+  // passing null would quietly erase a TikTok affiliate percentage along with
+  // the net it determines.
+  let query = supabase
+    .from("sales_orders")
+    .select("id, cost, extra_costs, affiliate_percent")
+    .eq("client_id", input.clientId)
+    .eq("marketplace", input.marketplace)
+    .eq("report_month", input.reportMonth);
+
+  query = input.sku
+    ? query.eq("sku", input.sku)
+    : query.is("sku", null).eq("product_name", input.productName ?? "");
+
+  const { data: order } = await query
+    .order("id")
+    .limit(1)
+    .maybeSingle<{
+      id: string;
+      cost: number | null;
+      extra_costs: number | null;
+      affiliate_percent: number | null;
+    }>();
+
+  if (!order) return { error: "Não achei os pedidos desse produto para gravar o custo." };
+
+  const unitCost = toNumberOrNull(input.unitCost);
+
+  const { error } = await supabase.rpc("save_order_costs", {
+    p_order_id: order.id,
+    p_client_id: input.clientId,
+    p_cost: unitCost,
+    p_extra: order.extra_costs,
+    p_tax: toNumberOrNull(input.tax),
+    p_affiliate: order.affiliate_percent,
+    p_month: input.reportMonth,
+    p_marketplace: null,
+    p_account_id: null,
+    p_missing_cost: null,
+  });
+  if (error) return { error: error.message };
+
+  await noteCostChange(supabase, {
+    clientId: input.clientId,
+    sku: input.sku,
+    productName: input.productName,
+    effectiveMonth: input.reportMonth,
+    previous: order.cost,
+    next: unitCost,
+  });
+
+  revalidatePath(`/clientes/${input.clientId}/vendas/produtos`);
+  return { ok: true };
+}
+
+/**
  * The full breakdown of one order, fetched when its row is opened.
  *
  * The raw report row is 66 columns wide and only one order's is ever read at a

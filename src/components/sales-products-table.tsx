@@ -7,7 +7,10 @@ import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
 import { formatCurrency } from "@/lib/sales-summary";
 import { costKey } from "@/lib/product-costs";
-import { updateProductCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
+import {
+  updateDerivedProductCost,
+  updateProductCosts,
+} from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const CELL_INPUT_CLASS =
   "w-16 rounded border border-line bg-panel px-1.5 py-1 text-right text-xs text-ink outline-none focus:border-accent";
@@ -110,7 +113,23 @@ function ProductRow({
 }) {
   const [open, setOpen] = useState(false);
   const [extra, setExtra] = useState(product.extra_costs != null ? String(product.extra_costs) : "");
-  const [, formAction] = useActionState(updateProductCosts, null);
+  const [saveState, formAction] = useActionState(updateProductCosts, null);
+  const [derivedError, setDerivedError] = useState<string | null>(null);
+
+  // A product folded out of the orders has no row to post a form to, so the
+  // cost goes back to the orders it came from.
+  async function saveDerived() {
+    const result = await updateDerivedProductCost({
+      clientId,
+      marketplace: product.marketplace,
+      reportMonth: product.report_month,
+      sku: product.sku,
+      productName: product.product_name,
+      unitCost: cost,
+      tax,
+    });
+    setDerivedError("error" in result ? result.error : null);
+  }
 
   const costs = Object.entries(product.costs ?? {});
   const negative = product.net_revenue < 0;
@@ -169,20 +188,44 @@ function ProductRow({
           </span>
         </td>
         <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
+          {/* Silence is what "it is not saving" looks like from the outside. */}
+          {(derivedError || (saveState && "error" in saveState)) && (
+            <p className="mb-1 text-[11px] font-semibold text-danger">
+              {derivedError ?? (saveState as { error: string }).error}
+            </p>
+          )}
           {isDerived(product) ? (
-            <div
-              className="flex items-center gap-1 text-xs text-ink-3"
-              title="Esse custo vem dos pedidos — edite na aba Pedidos"
-            >
-              <span className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right">
-                {product.unit_cost != null ? formatCurrency(Number(product.unit_cost)) : "—"}
-              </span>
-              <span className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right">
+            <div className="flex items-center gap-1" onBlur={saveDerived}>
+              <input
+                name="unit_cost"
+                value={cost}
+                onChange={(e) => onCostChange(e.target.value)}
+                placeholder="Custo/un"
+                inputMode="decimal"
+                title={
+                  product.sku
+                    ? `Custo por unidade do SKU ${product.sku} — grava nos pedidos, deste mês em diante`
+                    : "Custo por unidade — grava nos pedidos deste produto, deste mês em diante"
+                }
+                className={CELL_INPUT_CLASS}
+              />
+              {/* Extras belong to one order, and a figure typed per product
+                  has no one order to land on. */}
+              <span
+                title="Outros custos ficam por pedido — edite na aba Pedidos"
+                className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right text-xs text-ink-3"
+              >
                 {product.extra_costs ? formatCurrency(Number(product.extra_costs)) : "—"}
               </span>
-              <span className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right">
-                {tax || "—"}
-              </span>
+              <input
+                name="tax_percent"
+                value={tax}
+                onChange={(e) => onTaxChange(e.target.value)}
+                placeholder="Imp.%"
+                inputMode="decimal"
+                title="Imposto do cliente — vale deste mês em diante"
+                className={CELL_INPUT_CLASS}
+              />
             </div>
           ) : (
           <form
