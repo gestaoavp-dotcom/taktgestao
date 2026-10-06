@@ -211,7 +211,7 @@ export function ExpensesView({
                       className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         expense.category === "fixed"
                           ? "bg-action/10 text-ink"
-                          : "bg-gold/20 text-[#8a6a12]"
+                          : "bg-gold/20 text-gold-ink"
                       }`}
                     >
                       {CATEGORY_LABEL[expense.category]}

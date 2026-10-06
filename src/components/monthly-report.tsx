@@ -144,7 +144,7 @@ export function MonthlyReportView({
             {notes.map((note, i) => (
               <li key={i} className="flex gap-2.5 text-sm">
                 {note.kind === "alerta" ? (
-                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c2410c]" />
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warn" />
                 ) : (
                   <TrendingUp className="mt-0.5 h-4 w-4 flex-shrink-0 text-pos" />
                 )}
@@ -251,7 +251,7 @@ export function MonthlyReportView({
               </div>
             </div>
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#c2410c]">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-warn">
                 Dias mais fracos
               </p>
               <div className="flex flex-col gap-3">

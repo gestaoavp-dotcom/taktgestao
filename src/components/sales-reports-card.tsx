@@ -691,7 +691,7 @@ export function SalesReportsCard({
             </button>
           ))}
           {!accountId && (
-            <span className="text-[11px] text-[#c2410c]">
+            <span className="text-[11px] text-warn">
               escolha de qual loja é esse arquivo
             </span>
           )}

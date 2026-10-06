@@ -164,7 +164,7 @@ export function DateField({
                     isSelected
                       ? "bg-action font-semibold text-on-accent"
                       : blocked
-                        ? "cursor-not-allowed text-[#cbd3e1]"
+                        ? "cursor-not-allowed text-ink-3/50"
                         : iso === today
                           ? "font-bold text-accent-ink ring-1 ring-accent/40 hover:bg-panel-2"
                           : "text-ink hover:bg-panel-2"
