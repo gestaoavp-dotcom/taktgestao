@@ -1,9 +1,11 @@
 import Image from "next/image";
 
-// The two files were drawn with different margins, so each keeps its own
-// proportion — sharing one would squash the white mark.
+// Same artwork, same proportion: the white file carried transparent padding
+// (6% at the sides, 17% above), which at a given height drew the mark three
+// tenths smaller than the navy one beside it. Cropped to its artwork, so a
+// height set here means the same mark in either theme.
 const LIGHT = { src: "/takt-logo.png", w: 640, h: 163 };
-const DARK = { src: "/takt-logo-branco.png", w: 360, h: 114 };
+const DARK = { src: "/takt-logo-branco.png", w: 314, h: 80 };
 
 /**
  * Both assets ship and CSS picks one, rather than a client component reading
