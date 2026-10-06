@@ -97,7 +97,13 @@ export default async function PedidosPage({
   return (
     <div>
       <VendasSubTabs clientId={id} team={team} />
+      {/* A different filter is a different table: the footer totals, the rows
+          already paged in and the costs typed but not saved all belong to the
+          filter that asked for them. Keyed, so React drops them together —
+          without this the footer kept the month it first rendered with while
+          the rows underneath changed. */}
       <SalesOrdersTable
+        key={`${mes ?? ""}|${canal ?? ""}|${loja ?? ""}|${custo ?? ""}`}
         clientId={id}
         orders={orders}
         error={ordersError}
