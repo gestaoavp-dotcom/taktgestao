@@ -25,6 +25,11 @@
   width: 100%;
 }
 
+/* Links inside prose. A button is an <a> too, so each button rule below is
+ * written as `.lp .lp-btn-*` — two classes, which outranks this one class
+ * plus an element and keeps the label the colour the button needs. The
+ * mockup got away with a bare `a` selector; scoping it to .lp raised it
+ * above the buttons and painted every label periwinkle. */
 .lp a { color: #8fa8ff; }
 .lp a:hover { color: #ffffff; }
 
@@ -60,29 +65,29 @@
   transition: box-shadow 0.2s, background-color 0.2s;
 }
 
-.lp-btn-gold {
+.lp .lp-btn-gold {
   background: linear-gradient(135deg, #ffe08a 0%, #f5b82e 45%, #e39a00 100%);
   color: #0a1024;
   box-shadow: 0 10px 32px rgba(245, 184, 46, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
-.lp-btn-gold:hover {
+.lp .lp-btn-gold:hover {
   color: #0a1024;
   box-shadow: 0 14px 40px rgba(245, 184, 46, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
-.lp-btn-blue {
+.lp .lp-btn-blue {
   background: linear-gradient(135deg, #6e8bff 0%, #2f55e4 55%, #1f3fb8 100%);
   color: #ffffff;
   box-shadow: 0 10px 32px rgba(47, 85, 228, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
-.lp-btn-blue:hover { color: #ffffff; }
+.lp .lp-btn-blue:hover { color: #ffffff; }
 
-.lp-btn-ghost {
+.lp .lp-btn-ghost {
   background: rgba(255, 255, 255, 0.04);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.22);
 }
-.lp-btn-ghost:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
+.lp .lp-btn-ghost:hover { background: rgba(255, 255, 255, 0.1); color: #ffffff; }
 
 .lp-eyebrow {
   display: inline-flex;
