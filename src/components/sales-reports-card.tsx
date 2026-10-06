@@ -18,7 +18,8 @@ import { parseAmazonProducts } from "@/lib/parsers/amazon-products";
 import { parseSheinOrders } from "@/lib/parsers/shein-orders";
 import { parseTikTokOrders } from "@/lib/parsers/tiktok-orders";
 import {
-  MERCADO_LIVRE_ADS_SHEET,
+  describeMercadoLivreAdsFile,
+  findMercadoLivreAdsSheet,
   parseMercadoLivreAds,
 } from "@/lib/parsers/mercado-livre-ads";
 import {
@@ -305,11 +306,15 @@ export function SalesReportsCard({
           // headers carry line breaks — so the rows come back raw.
           const buffer = await file.arrayBuffer();
           const workbook = XLSX.read(buffer, { type: "array" });
-          const sheet = workbook.Sheets[MERCADO_LIVRE_ADS_SHEET];
+          const sheetName = findMercadoLivreAdsSheet(workbook.SheetNames);
+          const sheet = sheetName ? workbook.Sheets[sheetName] : undefined;
           if (!sheet) {
             await markSalesReportError(registered.id, clientId);
+            const sent = describeMercadoLivreAdsFile(workbook.SheetNames);
             setError(
-              `Esse arquivo não tem a aba "${MERCADO_LIVRE_ADS_SHEET}". Exporte o relatório de campanhas em Publicidade.`,
+              sent
+                ? `Esse é ${sent}: ele traz as vendas e a receita, mas não o investimento, os cliques nem as impressões — que é o que a aba Ads mostra. Em Publicidade, baixe o relatório de campanhas.`
+                : "Esse arquivo não tem a aba de campanhas. Em Publicidade, baixe o relatório de campanhas.",
             );
             setUploading(false);
             return;

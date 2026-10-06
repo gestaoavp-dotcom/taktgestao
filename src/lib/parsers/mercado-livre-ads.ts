@@ -1,10 +1,16 @@
 // Parses the campaign report Mercado Livre's Publicidade section exports.
 //
-// The workbook opens with Ajuda and Glossário sheets; the figures are in
-// "Relatório de campanha", where row 1 is a title, row 2 the headers and the
-// rest one campaign each. Header cells carry line breaks ("CPC \n(Custo por
-// clique)"), so columns are matched on a whitespace-collapsed name rather than
-// read as object keys.
+// The workbook opens with Ajuda and Glossário sheets; the figures are on the
+// campaign sheet, where row 1 is a title, row 2 the headers and the rest one
+// campaign each. Header cells carry line breaks ("CPC \n(Custo por clique)"),
+// so columns are matched on a whitespace-collapsed name rather than read as
+// object keys.
+//
+// Publicidade exports more than this one, and they arrive looking alike: the
+// "Relatório de vendas por publicidade" carries sales and revenue per
+// sponsored listing but no investment, clicks or impressions, so reading it
+// here would fill the Ads tab with campaigns that appear to have cost nothing.
+// It is turned away by name instead.
 //
 // A campaign is not an ad: this report groups by campaign, so one row can cover
 // many listings. Only absolute figures are stored — CPC, CTR, CVR, ACOS and
@@ -33,7 +39,31 @@ export type ParsedMercadoLivreAd = {
   raw: Record<string, unknown>;
 };
 
-export const MERCADO_LIVRE_ADS_SHEET = "Relatório de campanha";
+/**
+ * The sheet holding the campaign figures, however this export spells it.
+ *
+ * Matched on the word rather than the full name: "Relatório de campanha" and
+ * "Relatório de campanhas" are the same report, and a file that is right
+ * should not be refused over a plural.
+ */
+export function findMercadoLivreAdsSheet(names: string[]): string | undefined {
+  return names.find((name) => /campanha/i.test(name));
+}
+
+/**
+ * Publicidade offers more than one export and they look alike from the
+ * download folder. Naming the one that arrived is the difference between
+ * "this file is wrong" and knowing which to fetch instead.
+ */
+export function describeMercadoLivreAdsFile(names: string[]): string | null {
+  if (names.some((name) => /vendas/i.test(name))) {
+    return "o Relatório de vendas por publicidade";
+  }
+  if (names.some((name) => /anúncio|anuncio/i.test(name))) {
+    return "o relatório por anúncio";
+  }
+  return null;
+}
 
 /** Where the header row sits, counted from zero. */
 export const MERCADO_LIVRE_ADS_HEADER_ROW = 1;
