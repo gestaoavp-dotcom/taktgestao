@@ -37,9 +37,10 @@ export async function updateSession(request: NextRequest) {
 
   // getClaims, not getUser: this project signs its tokens with an asymmetric
   // key (ES256), so the signature and the expiry are checked here with the
-  // cached public key and no request leaves the server. getUser asks the auth
-  // server every time — measured at 130–145 ms, on every navigation, every
-  // RSC fetch and every image this middleware matches.
+  // cached public key and no request leaves the server. getUser posts the
+  // token to the auth server every time: timed against this project with a
+  // real session, 155 ms against 0 ms — on every navigation, every RSC fetch
+  // and everything else this middleware matches.
   //
   // What that trades away is revocation inside the token's lifetime: a login
   // signed out elsewhere keeps routing as itself until the access token
