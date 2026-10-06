@@ -231,7 +231,7 @@ export default function InicioPage() {
       {/* ============ HERO ============ */}
       <section
         id="topo"
-        className={`${SECTION} pb-[120px] pt-0`}
+        className={`${SECTION} pb-16 pt-0 sm:pb-[120px]`}
         style={{
           background:
             "radial-gradient(ellipse 60% 55% at 85% 20%, rgba(47,85,228,0.40), transparent 70%), radial-gradient(ellipse 45% 40% at 10% 0%, rgba(110,139,255,0.22), transparent 70%), radial-gradient(ellipse 40% 35% at 80% 85%, rgba(245,184,46,0.16), transparent 70%), linear-gradient(180deg, #0A1230 0%, #060A18 100%)",
@@ -239,23 +239,39 @@ export default function InicioPage() {
       >
         <div className="lp-dots pointer-events-none absolute inset-0" />
 
-        <header className={`${WRAP} flex flex-wrap items-center justify-between gap-4 py-[22px]`}>
+        <header className={`${WRAP} flex items-center justify-between gap-4 py-5 sm:py-[22px]`}>
           <a href="#topo" className="flex items-center gap-4 no-underline">
-            <Image src="/takt-logo-branco.png" alt="TAKT Assessoria" width={133} height={42} priority className="block h-[42px] w-auto" />
+            <Image
+              src="/takt-logo-branco.png"
+              alt="TAKT Assessoria"
+              width={133}
+              height={42}
+              priority
+              className="block h-9 w-auto sm:h-[42px]"
+            />
           </a>
-          <nav className="flex flex-wrap items-center gap-x-7 gap-y-3 text-[15px] font-medium">
-            {NAV.map((item) => (
-              <a key={item.href} href={item.href} className="!text-[#C9D2F2] no-underline hover:!text-white">
-                {item.label}
-              </a>
-            ))}
-            <Link href="/login" className="lp-btn lp-btn-ghost px-5 py-[11px] font-bold">
+          <nav className="flex items-center gap-x-7 gap-y-3 text-[15px] font-medium">
+            {/* The section links only jump down a page the reader is already
+                scrolling. On a phone they wrapped to two more lines and pushed
+                the headline off the first screen, so they stand down and the
+                one link that leaves the page stays. */}
+            <span className="hidden items-center gap-x-7 lg:flex">
+              {NAV.map((item) => (
+                <a key={item.href} href={item.href} className="!text-[#C9D2F2] no-underline hover:!text-white">
+                  {item.label}
+                </a>
+              ))}
+            </span>
+            <Link
+              href="/login"
+              className="lp-btn lp-btn-ghost whitespace-nowrap px-4 py-2.5 text-sm font-bold sm:px-5 sm:py-[11px] sm:text-[15px]"
+            >
               Área do cliente
             </Link>
           </nav>
         </header>
 
-        <div className={`${WRAP} flex flex-wrap items-center gap-16 pt-16`}>
+        <div className={`${WRAP} flex flex-wrap items-center gap-10 pt-10 sm:gap-16 sm:pt-16`}>
           <div className="flex min-w-0 flex-1 basis-[560px] flex-col gap-7">
             <span className="lp-eyebrow">Assessoria para marketplaces</span>
             <h1 className="lp-h1 m-0 font-extrabold">
@@ -347,7 +363,7 @@ export default function InicioPage() {
 
       {/* ============ PROBLEMA ============ */}
       <section
-        className={`${SECTION} pb-[110px] pt-[140px]`}
+        className={`${SECTION} pb-16 pt-20 sm:pb-[110px] sm:pt-[140px]`}
         style={{
           background:
             "radial-gradient(ellipse 50% 50% at 0% 50%, rgba(180,35,24,0.14), transparent 70%), #060A18",
@@ -384,13 +400,13 @@ export default function InicioPage() {
       {/* ============ TEMPO / MÃO DE OBRA ============ */}
       <section
         id="tempo"
-        className={`${SECTION} py-[110px]`}
+        className={`${SECTION} py-16 sm:py-[110px]`}
         style={{
           background:
             "radial-gradient(ellipse 55% 45% at 100% 0%, rgba(47,85,228,0.28), transparent 70%), linear-gradient(180deg, #060A18, #0A1230 60%, #060A18)",
         }}
       >
-        <div className={`${WRAP} flex flex-col gap-[52px]`}>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
           <div className="flex flex-wrap items-end gap-x-16 gap-y-8">
             <div className="flex min-w-0 flex-1 basis-[560px] flex-col gap-5">
               <span className="lp-eyebrow">Seu tempo de volta</span>
@@ -406,7 +422,44 @@ export default function InicioPage() {
             </p>
           </div>
 
-          <div className="lp-glass overflow-x-auto rounded-3xl">
+          {/* Four columns need 780 px. On a phone that is a sideways scroll
+              inside a downward one, with nothing saying so — the comparison
+              is the argument of this section, so below md it becomes one card
+              per row instead of a table with three columns off screen. */}
+          <div className="flex flex-col gap-3 lg:hidden">
+            {COMPARISON.map(([label, alone, hire, takt]) => (
+              <div key={label} className="lp-glass flex flex-col gap-3 rounded-3xl p-5">
+                <h3 className="m-0 text-[17px] font-extrabold">{label}</h3>
+                <div className="flex flex-col gap-2.5 text-[15px]">
+                  {[
+                    ["Fazer sozinho", alone],
+                    ["Contratar um funcionário", hire],
+                  ].map(([who, what]) => (
+                    <div key={who} className="flex flex-col">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7E8AB0]">
+                        {who}
+                      </span>
+                      <span className="text-[#A3AECF]">{what}</span>
+                    </div>
+                  ))}
+                  <div
+                    className="flex flex-col rounded-2xl border border-[#F5B82E]/35 px-4 py-3"
+                    style={{
+                      background:
+                        "linear-gradient(135deg, rgba(47,85,228,0.3), rgba(47,85,228,0.08))",
+                    }}
+                  >
+                    <span className="lp-tg text-[11px] font-extrabold uppercase tracking-[0.14em]">
+                      Ter a TAKT
+                    </span>
+                    <span className="font-bold">{takt}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="lp-glass hidden overflow-x-auto rounded-3xl lg:block">
             <table className="w-full min-w-[780px] border-collapse text-base">
               <thead>
                 <tr>
@@ -465,13 +518,13 @@ export default function InicioPage() {
       {/* ============ CONQUISTAS ============ */}
       <section
         id="conquistas"
-        className={`${SECTION} py-[110px]`}
+        className={`${SECTION} py-16 sm:py-[110px]`}
         style={{
           background:
             "radial-gradient(ellipse 50% 40% at 50% 100%, rgba(245,184,46,0.12), transparent 70%), #060A18",
         }}
       >
-        <div className={`${WRAP} flex flex-col gap-[52px]`}>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
           <div className="flex max-w-[800px] flex-col gap-5">
             <span className="lp-eyebrow">O que você conquista</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -511,14 +564,14 @@ export default function InicioPage() {
       {/* ============ RESULTADOS / PÓDIO ============ */}
       <section
         id="resultados"
-        className={`${SECTION} pb-0 pt-[110px]`}
+        className={`${SECTION} pb-0 pt-16 sm:pt-[110px]`}
         style={{
           background:
             "radial-gradient(ellipse 50% 60% at 50% 100%, rgba(245,184,46,0.30), transparent 70%), radial-gradient(ellipse 80% 60% at 50% 0%, rgba(47,85,228,0.30), transparent 70%), linear-gradient(180deg, #0A1230, #0B1638)",
         }}
       >
         <div className="lp-dots pointer-events-none absolute inset-0" />
-        <div className="relative mx-auto flex w-full max-w-[1100px] flex-col gap-16">
+        <div className="relative mx-auto flex w-full max-w-[1100px] flex-col gap-10 sm:gap-16">
           <div className="mx-auto flex max-w-[760px] flex-col items-center gap-5 text-center">
             <span className="lp-eyebrow lp-eyebrow-center">Resultados</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -526,14 +579,16 @@ export default function InicioPage() {
               <span className="lp-tg font-extrabold">o resultado dos clientes</span>
             </h2>
           </div>
+          {/* Stacked, a podium is just three cards — so the winner goes first
+              and the steps that made it one lose their height. */}
           <div className="flex flex-wrap items-end justify-center gap-3.5">
-            <div className="lp-glass flex min-w-0 flex-1 basis-[260px] flex-col items-center gap-1.5 rounded-t-3xl border-b-0 px-7 pb-[60px] pt-9 text-center">
+            <div className="lp-glass order-2 flex min-w-0 flex-1 basis-[260px] flex-col items-center gap-1.5 rounded-3xl px-7 pb-8 pt-9 text-center sm:order-none sm:rounded-b-none sm:border-b-0 sm:pb-[60px]">
               <span className="text-[13px] font-bold tracking-[0.2em] text-[#A3AECF]">2º</span>
               <span className="lp-tb lp-num-side font-extrabold">4 anos</span>
               <span className="text-base text-[#C9D2F2]">vivendo o dia a dia dos marketplaces</span>
             </div>
             <div
-              className="flex min-w-0 flex-1 basis-[300px] flex-col items-center gap-2 rounded-t-3xl px-7 pb-[104px] pt-11 text-center text-[#0A1024]"
+              className="order-1 flex min-w-0 flex-1 basis-[300px] flex-col items-center gap-2 rounded-3xl px-7 pb-10 pt-11 text-center text-[#0A1024] sm:order-none sm:rounded-b-none sm:pb-[104px]"
               style={{
                 background: "linear-gradient(180deg, #FFE08A 0%, #F5B82E 35%, #C98700 100%)",
                 boxShadow: "0 -10px 60px rgba(245,184,46,0.45), inset 0 1px 0 rgba(255,255,255,0.7)",
@@ -544,7 +599,7 @@ export default function InicioPage() {
               <span className="lp-num-podium font-extrabold">R$ 20 mi+</span>
               <span className="text-[17px] font-bold">faturados pelos nossos clientes</span>
             </div>
-            <div className="lp-glass flex min-w-0 flex-1 basis-[260px] flex-col items-center gap-1.5 rounded-t-3xl border-b-0 px-7 py-8 text-center">
+            <div className="lp-glass order-3 flex min-w-0 flex-1 basis-[260px] flex-col items-center gap-1.5 rounded-3xl px-7 py-8 text-center sm:order-none sm:rounded-b-none sm:border-b-0">
               <span className="text-[13px] font-bold tracking-[0.2em] text-[#A3AECF]">3º</span>
               <span className="lp-tb lp-num-side font-extrabold">5 canais</span>
               <span className="text-base text-[#C9D2F2]">
@@ -558,13 +613,13 @@ export default function InicioPage() {
       {/* ============ DIFERENCIAIS ============ */}
       <section
         id="diferenciais"
-        className={`${SECTION} pb-[110px] pt-[120px]`}
+        className={`${SECTION} pb-16 pt-16 sm:pb-[110px] sm:pt-[120px]`}
         style={{
           background:
             "radial-gradient(ellipse 45% 50% at 100% 60%, rgba(47,85,228,0.28), transparent 70%), #060A18",
         }}
       >
-        <div className={`${WRAP} flex flex-col gap-[52px]`}>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
           <div className="flex max-w-[820px] flex-col gap-5">
             <span className="lp-eyebrow">Por que a TAKT</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -609,13 +664,13 @@ export default function InicioPage() {
       {/* ============ APP ============ */}
       <section
         id="app"
-        className={`${SECTION} py-[110px]`}
+        className={`${SECTION} py-16 sm:py-[110px]`}
         style={{
           background:
             "radial-gradient(ellipse 50% 60% at 80% 50%, rgba(47,85,228,0.38), transparent 70%), linear-gradient(180deg, #060A18, #0A1230 50%, #060A18)",
         }}
       >
-        <div className={`${WRAP} flex flex-wrap items-center gap-16`}>
+        <div className={`${WRAP} flex flex-wrap items-center gap-10 sm:gap-16`}>
           <div className="flex min-w-0 flex-1 basis-[400px] flex-col gap-[22px]">
             <span className="lp-eyebrow">Exclusivo para clientes</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -701,10 +756,19 @@ export default function InicioPage() {
                   </div>
                   <div className="flex flex-col gap-3 rounded-[14px] border border-white/[.06] bg-white/[.03] px-[18px] py-4">
                     <span className="text-sm font-bold">Vendas e lucro por marketplace</span>
-                    <div className="grid items-center gap-x-3 gap-y-2.5 text-[13px] font-semibold text-[#C9D2F2] [grid-template-columns:104px_minmax(0,1fr)_84px]">
+                    {/* Three columns need about 210 px of fixed width, which
+                        left the bar nine pixels wide on a phone. Below that
+                        the name and the figure share a line and the bar gets
+                        the full width underneath. */}
+                    <div className="flex flex-col gap-2.5 text-[13px] font-semibold text-[#C9D2F2] sm:grid sm:items-center sm:gap-x-3 sm:[grid-template-columns:104px_minmax(0,1fr)_84px]">
                       {APP_BARS.map(([name, pct, value]) => (
-                        <div key={name} className="contents">
-                          <span>{name}</span>
+                        <div key={name} className="flex flex-col gap-1.5 sm:contents">
+                          <div className="flex items-baseline justify-between gap-3 sm:block">
+                            <span>{name}</span>
+                            <span className="sm:hidden" style={{ color: GOLD }}>
+                              {value}
+                            </span>
+                          </div>
                           <div className="h-2.5 rounded-md bg-white/[.08]">
                             <div
                               className="h-full rounded-md"
@@ -714,7 +778,7 @@ export default function InicioPage() {
                               }}
                             />
                           </div>
-                          <span className="text-right" style={{ color: GOLD }}>
+                          <span className="hidden text-right sm:block" style={{ color: GOLD }}>
                             {value}
                           </span>
                         </div>
@@ -735,8 +799,8 @@ export default function InicioPage() {
       </section>
 
       {/* ============ COMO FUNCIONA ============ */}
-      <section id="como-funciona" className={`${SECTION} bg-[#060A18] py-[110px]`}>
-        <div className={`${WRAP} flex flex-col gap-[52px]`}>
+      <section id="como-funciona" className={`${SECTION} bg-[#060A18] py-16 sm:py-[110px]`}>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
           <div className="flex max-w-[760px] flex-col gap-5">
             <span className="lp-eyebrow">Como funciona</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -773,19 +837,19 @@ export default function InicioPage() {
       {/* ============ FUNDADORES ============ */}
       <section
         id="quem-somos"
-        className={`${SECTION} py-[110px]`}
+        className={`${SECTION} py-16 sm:py-[110px]`}
         style={{
           background:
             "radial-gradient(ellipse 50% 60% at 15% 50%, rgba(47,85,228,0.30), transparent 70%), linear-gradient(180deg, #060A18, #0A1230 50%, #060A18)",
         }}
       >
-        <div className={`${WRAP} flex flex-wrap items-center gap-16`}>
+        <div className={`${WRAP} flex flex-wrap items-center gap-10 sm:gap-16`}>
           <div className="grid min-w-0 flex-1 basis-[440px] grid-cols-2 gap-4">
             {[
               { slot: "[FOTO SÓCIO 1]", role: "[CARGO — ex.: Sócio e head de operação]", offset: false },
               { slot: "[FOTO SÓCIO 2]", role: "[CARGO — ex.: Sócio e head de Ads]", offset: true },
             ].map((p) => (
-              <div key={p.slot} className={`flex flex-col gap-3.5 ${p.offset ? "pt-14" : ""}`}>
+              <div key={p.slot} className={`flex flex-col gap-3.5 ${p.offset ? "sm:pt-14" : ""}`}>
                 <div className="lp-glass flex aspect-[4/5] items-center justify-center rounded-3xl border-dashed font-bold text-[#7E8AB0]">
                   {p.slot}
                 </div>
@@ -818,8 +882,8 @@ export default function InicioPage() {
       </section>
 
       {/* ============ DEPOIMENTOS ============ */}
-      <section id="depoimentos" className={`${SECTION} bg-[#060A18] py-[110px]`}>
-        <div className={`${WRAP} flex flex-col gap-[52px]`}>
+      <section id="depoimentos" className={`${SECTION} bg-[#060A18] py-16 sm:py-[110px]`}>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
           <div className="flex max-w-[760px] flex-col gap-5">
             <span className="lp-eyebrow">Depoimentos</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -851,13 +915,13 @@ export default function InicioPage() {
 
       {/* ============ PARA QUEM ============ */}
       <section
-        className={`${SECTION} py-[110px]`}
+        className={`${SECTION} py-16 sm:py-[110px]`}
         style={{
           background:
             "radial-gradient(ellipse 60% 50% at 50% 0%, rgba(47,85,228,0.22), transparent 70%), #060A18",
         }}
       >
-        <div className={`${WRAP} flex flex-col gap-[52px]`}>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
           <div className="flex max-w-[760px] flex-col gap-5">
             <span className="lp-eyebrow">Para quem é</span>
             <h2 className="lp-h2 m-0 font-light">
@@ -885,7 +949,7 @@ export default function InicioPage() {
       </section>
 
       {/* ============ CALCULADORA ============ */}
-      <section id="calculadora" className={`${SECTION} bg-[#060A18] pb-[110px] pt-10`}>
+      <section id="calculadora" className={`${SECTION} bg-[#060A18] pb-16 pt-4 sm:pb-[110px] sm:pt-10`}>
         <div
           className={`${WRAP} flex flex-wrap items-center justify-between gap-8 overflow-hidden rounded-[32px] px-6 py-14 sm:px-[52px] sm:py-[60px]`}
           style={{
@@ -916,7 +980,7 @@ export default function InicioPage() {
       {/* ============ FAQ ============ */}
       <section
         id="faq"
-        className={`${SECTION} py-[110px]`}
+        className={`${SECTION} py-16 sm:py-[110px]`}
         style={{ background: "linear-gradient(180deg, #060A18, #0A1230 50%, #060A18)" }}
       >
         <div className="relative mx-auto flex w-full max-w-[860px] flex-col gap-10">
@@ -948,14 +1012,14 @@ export default function InicioPage() {
       {/* ============ CONTATO ============ */}
       <section
         id="contato"
-        className={`${SECTION} py-[120px]`}
+        className={`${SECTION} py-16 sm:py-[120px]`}
         style={{
           background:
             "radial-gradient(ellipse 50% 60% at 15% 40%, rgba(245,184,46,0.20), transparent 70%), radial-gradient(ellipse 55% 65% at 90% 60%, rgba(47,85,228,0.40), transparent 70%), linear-gradient(180deg, #060A18, #0A1230)",
         }}
       >
         <div className="lp-dots pointer-events-none absolute inset-0" />
-        <div className={`${WRAP} flex flex-wrap items-center gap-16`}>
+        <div className={`${WRAP} flex flex-wrap items-center gap-10 sm:gap-16`}>
           <div className="flex min-w-0 flex-1 basis-[440px] flex-col gap-[22px]">
             <span className="lp-eyebrow">Fale com a TAKT</span>
             <h2 className="lp-h2-lg m-0 font-light">
