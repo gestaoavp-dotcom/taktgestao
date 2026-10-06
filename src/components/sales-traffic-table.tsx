@@ -72,10 +72,10 @@ function totalsOf(products: SalesTraffic[]) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg bg-white p-4 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">{label}</p>
-      <p className="mt-1 font-display text-xl font-bold text-navy">{value}</p>
-      {hint && <p className="mt-0.5 text-[11px] text-[#94A0BD]">{hint}</p>}
+    <div className="rounded-lg bg-panel p-4 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className="mt-1 font-display text-xl font-bold text-ink">{value}</p>
+      {hint && <p className="mt-0.5 text-[11px] text-ink-3">{hint}</p>}
     </div>
   );
 }
@@ -110,7 +110,7 @@ export function SalesTrafficTable({
         <select
           value={marketplace}
           onChange={(e) => setMarketplace(e.target.value)}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           <option value="all">Todos os marketplaces</option>
           {clientMarketplaces.map((m) => (
@@ -122,7 +122,7 @@ export function SalesTrafficTable({
         <select
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           <option value="all">Todos os meses</option>
           {months.map((m) => (
@@ -133,7 +133,7 @@ export function SalesTrafficTable({
         </select>
       </div>
 
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
         Todos os produtos somados ({filtered.length})
       </h2>
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -151,23 +151,23 @@ export function SalesTrafficTable({
         <Stat label="Vendas pagas" value={formatCurrency(t.sales)} />
       </div>
 
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
         Por produto (mais visitados primeiro)
       </h2>
-      <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
         <table className="w-full min-w-[1000px] text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-4 py-2 font-semibold text-navy">Produto</th>
-              <th className="px-4 py-2 font-semibold text-navy">SKU</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Impressões</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Cliques</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">CTR</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Visitantes</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Rejeição</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Carrinho</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Conversão</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Vendas</th>
+              <th className="px-4 py-2 font-semibold text-ink">Produto</th>
+              <th className="px-4 py-2 font-semibold text-ink">SKU</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Impressões</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Cliques</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">CTR</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Visitantes</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Rejeição</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Carrinho</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Conversão</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Vendas</th>
             </tr>
           </thead>
           <tbody>
@@ -177,31 +177,31 @@ export function SalesTrafficTable({
               const conv = p.visitors > 0 ? (p.buyers_paid / p.visitors) * 100 : 0;
 
               return (
-                <tr key={p.id} className="border-t border-navy/[.06]">
-                  <td className="max-w-[240px] truncate px-4 py-2 text-navy" title={p.product_name}>
+                <tr key={p.id} className="border-t border-line-soft">
+                  <td className="max-w-[240px] truncate px-4 py-2 text-ink" title={p.product_name}>
                     {p.product_name}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-[#5B647E]">{p.sku ?? "—"}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(p.impressions)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(p.clicks)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{pct(ctr)}</td>
-                  <td className="px-4 py-2 text-right text-navy">{int(p.visitors)}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-ink-2">{p.sku ?? "—"}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(p.impressions)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(p.clicks)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{pct(ctr)}</td>
+                  <td className="px-4 py-2 text-right text-ink">{int(p.visitors)}</td>
                   <td
                     className={`px-4 py-2 text-right ${
-                      bounce >= 50 ? "font-semibold text-red-600" : "text-[#5B647E]"
+                      bounce >= 50 ? "font-semibold text-danger" : "text-ink-2"
                     }`}
                   >
                     {pct(bounce)}
                   </td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(p.cart_units)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(p.cart_units)}</td>
                   <td
                     className={`px-4 py-2 text-right font-semibold ${
-                      conv >= 3 ? "text-green-700" : conv >= 1 ? "text-navy" : "text-red-600"
+                      conv >= 3 ? "text-pos" : conv >= 1 ? "text-ink" : "text-danger"
                     }`}
                   >
                     {pct(conv)}
                   </td>
-                  <td className="px-4 py-2 text-right text-navy">
+                  <td className="px-4 py-2 text-right text-ink">
                     {formatCurrency(Number(p.sales_paid))}
                   </td>
                 </tr>
@@ -209,7 +209,7 @@ export function SalesTrafficTable({
             })}
             {!ranked.length && (
               <tr>
-                <td colSpan={10} className="px-5 py-8 text-center text-[#94A0BD]">
+                <td colSpan={10} className="px-5 py-8 text-center text-ink-3">
                   Nenhum dado de tráfego nesse filtro. Importe um documento de Tráfego em
                   &quot;Importar documentos&quot;.
                 </td>
@@ -219,7 +219,7 @@ export function SalesTrafficTable({
         </table>
       </div>
 
-      <p className="mt-2 text-xs text-[#94A0BD]">
+      <p className="mt-2 text-xs text-ink-3">
         Variações de produto não aparecem aqui: o relatório da Shopee registra o tráfego no produto
         principal, então contá-las somaria o mesmo visitante duas vezes.
       </p>

@@ -40,7 +40,7 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
     <div className={`transition-opacity ${pending ? "opacity-60" : ""}`}>
       {/* One control, not three loose ones: the shortcut and the two dates are
           the same decision, so they share a border and read left to right. */}
-      <div className="flex w-fit items-center rounded-lg border border-navy/10 bg-white">
+      <div className="flex w-fit items-center rounded-lg border border-line bg-panel">
       <select
         aria-label="Período"
         value={current}
@@ -48,7 +48,7 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
           const preset = presets.find((p) => p.label === e.target.value);
           if (preset) apply(preset.range);
         }}
-        className="rounded-l-lg border-r border-navy/10 bg-transparent py-2 pl-3 pr-2 text-sm font-semibold text-navy outline-none focus:bg-brand-gray/40"
+        className="rounded-l-lg border-r border-line bg-transparent py-2 pl-3 pr-2 text-sm font-semibold text-ink outline-none focus:bg-panel-2/40"
       >
         {!current && <option value="">Personalizado</option>}
         {presets.map((preset) => (
@@ -66,10 +66,10 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
             defaultValue={start}
             max={today}
             onChange={(value) => value && apply({ start: value, end })}
-            className="flex w-full items-center justify-between gap-1 border-0 bg-transparent px-2 py-2 text-sm outline-none hover:bg-brand-gray/40"
+            className="flex w-full items-center justify-between gap-1 border-0 bg-transparent px-2 py-2 text-sm outline-none hover:bg-panel-2/40"
           />
         </div>
-        <span className="text-xs text-[#94A0BD]">até</span>
+        <span className="text-xs text-ink-3">até</span>
         <div className="w-32">
           <DateField
             key={`ate-${end}`}
@@ -78,14 +78,14 @@ export function DateRangePicker({ start, end }: { start: string; end: string }) 
             min={start}
             max={today}
             onChange={(value) => value && apply({ start, end: value })}
-            className="flex w-full items-center justify-between gap-1 rounded-r-lg border-0 bg-transparent px-2 py-2 text-sm outline-none hover:bg-brand-gray/40"
+            className="flex w-full items-center justify-between gap-1 rounded-r-lg border-0 bg-transparent px-2 py-2 text-sm outline-none hover:bg-panel-2/40"
           />
         </div>
 
-        {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#94A0BD]" />}
+        {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin text-ink-3" />}
       </div>
 
-      <p className="mt-1.5 text-[11px] text-[#94A0BD]">
+      <p className="mt-1.5 text-[11px] text-ink-3">
         Dados fechados até domingo, {formatBR(until)} — os relatórios da semana sobem às segundas.
       </p>
     </div>

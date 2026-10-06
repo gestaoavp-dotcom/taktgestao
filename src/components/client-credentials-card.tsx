@@ -28,9 +28,9 @@ import {
 const HIDE_AFTER_MS = 30_000;
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
-const LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]";
+const LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wide text-ink-3";
 
 function CredentialForm({
   clientId,
@@ -150,21 +150,21 @@ function CredentialForm({
       </label>
 
       {state && "error" in state && (
-        <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+        <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
       )}
 
       <div className="flex gap-2">
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+          className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
         >
           {pending ? "Salvando..." : credential ? "Salvar" : "Adicionar acesso"}
         </button>
         <button
           type="button"
           onClick={onDone}
-          className="rounded-lg border border-navy/10 px-4 py-2 text-sm font-semibold text-navy transition-colors hover:bg-brand-gray"
+          className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-panel-2"
         >
           Cancelar
         </button>
@@ -186,9 +186,9 @@ function CopyButton({ value, label }: { value: string; label: string }) {
         setDone(true);
         window.setTimeout(() => setDone(false), 1500);
       }}
-      className="rounded p-1 text-[#94A0BD] transition-colors hover:bg-brand-gray hover:text-navy"
+      className="rounded p-1 text-ink-3 transition-colors hover:bg-panel-2 hover:text-ink"
     >
-      {done ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+      {done ? <Check className="h-3.5 w-3.5 text-pos" /> : <Copy className="h-3.5 w-3.5" />}
     </button>
   );
 }
@@ -239,12 +239,12 @@ function CredentialCard({
   }
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-navy/[.08] bg-white p-4 shadow-sm">
+    <li className="flex flex-col gap-3 rounded-lg border border-line bg-panel p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-bold text-navy">{credential.store_name}</p>
+          <p className="truncate font-bold text-ink">{credential.store_name}</p>
           {credential.label && (
-            <p className="truncate text-xs text-[#5B647E]">{credential.label}</p>
+            <p className="truncate text-xs text-ink-2">{credential.label}</p>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -253,7 +253,7 @@ function CredentialCard({
             type="button"
             onClick={onEdit}
             aria-label={`Editar acesso de ${credential.store_name}`}
-            className="rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-brand-gray hover:text-navy"
+            className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel-2 hover:text-ink"
           >
             <Pencil className="h-4 w-4" />
           </button>
@@ -263,7 +263,7 @@ function CredentialCard({
             <button
               type="submit"
               aria-label={`Remover acesso de ${credential.store_name}`}
-              className="rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-red-50 hover:text-red-600"
+              className="rounded p-1.5 text-ink-3 transition-colors hover:bg-danger/10 hover:text-danger"
             >
               <Trash2 className="h-4 w-4" />
             </button>
@@ -272,10 +272,10 @@ function CredentialCard({
       </div>
 
       <dl className="flex flex-col gap-2 text-sm">
-        <div className="flex items-center justify-between gap-2 border-t border-navy/[.06] pt-2">
+        <div className="flex items-center justify-between gap-2 border-t border-line-soft pt-2">
           <dt className={LABEL_CLASS}>Login</dt>
           <dd className="flex min-w-0 items-center gap-1">
-            <span className="truncate text-navy" title={credential.login ?? undefined}>
+            <span className="truncate text-ink" title={credential.login ?? undefined}>
               {credential.login ?? "—"}
             </span>
             {credential.login && <CopyButton value={credential.login} label="Copiar login" />}
@@ -286,29 +286,29 @@ function CredentialCard({
           <dt className={LABEL_CLASS}>Senha</dt>
           <dd className="flex min-w-0 items-center gap-1">
             {!credential.has_password ? (
-              <span className="text-[#94A0BD]">não guardada</span>
+              <span className="text-ink-3">não guardada</span>
             ) : password ? (
               <>
-                <span className="truncate font-mono text-navy">{password}</span>
+                <span className="truncate font-mono text-ink">{password}</span>
                 <button
                   type="button"
                   aria-label="Esconder senha"
                   onClick={() => setPassword(null)}
-                  className="rounded p-1 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+                  className="rounded p-1 text-ink-3 hover:bg-panel-2 hover:text-ink"
                 >
                   <EyeOff className="h-3.5 w-3.5" />
                 </button>
               </>
             ) : (
               <>
-                <span className="font-mono text-[#94A0BD]">••••••••</span>
+                <span className="font-mono text-ink-3">••••••••</span>
                 <button
                   type="button"
                   disabled={busy}
                   onClick={reveal}
                   aria-label="Revelar senha"
                   title="Revelar por 30 segundos"
-                  className="rounded p-1 text-[#94A0BD] transition-colors hover:bg-brand-gray hover:text-navy disabled:opacity-50"
+                  className="rounded p-1 text-ink-3 transition-colors hover:bg-panel-2 hover:text-ink disabled:opacity-50"
                 >
                   <Eye className="h-3.5 w-3.5" />
                 </button>
@@ -321,10 +321,10 @@ function CredentialCard({
                 onClick={copyPassword}
                 aria-label="Copiar senha"
                 title="Copiar sem mostrar"
-                className="rounded p-1 text-[#94A0BD] transition-colors hover:bg-brand-gray hover:text-navy disabled:opacity-50"
+                className="rounded p-1 text-ink-3 transition-colors hover:bg-panel-2 hover:text-ink disabled:opacity-50"
               >
                 {copied ? (
-                  <Check className="h-3.5 w-3.5 text-green-600" />
+                  <Check className="h-3.5 w-3.5 text-pos" />
                 ) : (
                   <Copy className="h-3.5 w-3.5" />
                 )}
@@ -341,7 +341,7 @@ function CredentialCard({
                 href={credential.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 truncate text-blue hover:underline"
+                className="flex items-center gap-1 truncate text-accent-ink hover:underline"
               >
                 <span className="truncate">{credential.url.replace(/^https?:\/\//, "")}</span>
                 <ExternalLink className="h-3 w-3 shrink-0" />
@@ -352,10 +352,10 @@ function CredentialCard({
       </dl>
 
       {credential.notes && (
-        <p className="border-t border-navy/[.06] pt-2 text-xs text-[#5B647E]">{credential.notes}</p>
+        <p className="border-t border-line-soft pt-2 text-xs text-ink-2">{credential.notes}</p>
       )}
 
-      {error && <p className="text-xs text-red-700">{error}</p>}
+      {error && <p className="text-xs text-danger">{error}</p>}
     </li>
   );
 }
@@ -372,14 +372,14 @@ export function ClientCredentialsCard({
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="rounded-lg bg-white p-5 shadow-sm">
+      <div className="rounded-lg bg-panel p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="flex items-center gap-2 font-bold text-navy">
+            <h2 className="flex items-center gap-2 font-bold text-ink">
               <KeyRound className="h-4 w-4" />
               Acessos
             </h2>
-            <p className="mt-1 max-w-2xl text-xs text-[#5B647E]">
+            <p className="mt-1 max-w-2xl text-xs text-ink-2">
               As senhas são cifradas antes de chegar ao banco, com uma chave que só existe no
               servidor. A lista nunca carrega a senha — ela é buscada uma por vez, quando você
               pede, e some da tela em 30 segundos. Cada vez que alguém revela uma senha, fica
@@ -393,7 +393,7 @@ export function ClientCredentialsCard({
                 setAdding(true);
                 setEditingId(null);
               }}
-              className="flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+              className="flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90"
             >
               <Plus className="h-4 w-4" />
               Novo acesso
@@ -402,14 +402,14 @@ export function ClientCredentialsCard({
         </div>
 
         {adding && (
-          <div className="mt-4 border-t border-navy/[.08] pt-4">
+          <div className="mt-4 border-t border-line pt-4">
             <CredentialForm clientId={clientId} onDone={() => setAdding(false)} />
           </div>
         )}
       </div>
 
       {credentials.length === 0 && !adding ? (
-        <p className="rounded-lg bg-white px-5 py-10 text-center text-sm text-[#94A0BD] shadow-sm">
+        <p className="rounded-lg bg-panel px-5 py-10 text-center text-sm text-ink-3 shadow-sm">
           Nenhum acesso cadastrado ainda.
         </p>
       ) : (
@@ -418,7 +418,7 @@ export function ClientCredentialsCard({
             editingId === credential.id ? (
               <li
                 key={credential.id}
-                className="rounded-lg border border-blue/30 bg-white p-4 shadow-sm"
+                className="rounded-lg border border-accent/30 bg-panel p-4 shadow-sm"
               >
                 <CredentialForm
                   clientId={clientId}

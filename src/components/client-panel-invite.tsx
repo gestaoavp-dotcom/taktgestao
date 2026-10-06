@@ -10,9 +10,9 @@ import { sendClientAccessLink } from "@/app/(dashboard)/configuracoes/actions";
 // link.
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
-const LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]";
+const LABEL_CLASS = "text-[11px] font-semibold uppercase tracking-wide text-ink-3";
 
 export function ClientPanelInvite({
   clientId,
@@ -39,12 +39,12 @@ export function ClientPanelInvite({
   }
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-1 flex items-center gap-2 font-bold text-navy">
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
+      <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
         <MessageCircle className="h-4 w-4" />
         Acesso de {clientName} ao painel
       </h2>
-      <p className="mb-4 max-w-2xl text-xs text-[#5B647E]">
+      <p className="mb-4 max-w-2xl text-xs text-ink-2">
         {exists
           ? "O login já existe. Envie um novo link se o cliente perdeu o primeiro ou esqueceu a senha — cada link novo invalida o anterior."
           : "Este cliente ainda não tem login. Enviar o link cria o login com este e-mail."}{" "}
@@ -67,7 +67,7 @@ export function ClientPanelInvite({
             readOnly={exists}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="pessoa@empresa.com"
-            className={INPUT_CLASS + (exists ? " bg-brand-gray/40" : "")}
+            className={INPUT_CLASS + (exists ? " bg-panel-2/40" : "")}
           />
         </label>
 
@@ -75,7 +75,7 @@ export function ClientPanelInvite({
           <button
             type="submit"
             disabled={working}
-            className="flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+            className="flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
           >
             <Send className="h-4 w-4" />
             {working ? "Enviando..." : exists ? "Enviar novo link" : "Criar acesso e enviar link"}
@@ -84,30 +84,30 @@ export function ClientPanelInvite({
       </form>
 
       {state && "error" in state && (
-        <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+        <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
       )}
 
       {state && "ok" in state && state.emailSent && (
-        <p className="rounded bg-green-50 px-3 py-2 text-xs text-green-800">
+        <p className="rounded bg-pos/10 px-3 py-2 text-xs text-pos">
           Link enviado para {email}.
         </p>
       )}
 
       {state && "ok" in state && !state.emailSent && (
         <div className="flex flex-col gap-3">
-          <p className="rounded bg-yellow/20 px-3 py-2 text-xs text-navy">
+          <p className="rounded bg-gold/20 px-3 py-2 text-xs text-ink">
             O envio de e-mail não está configurado — mande a mensagem abaixo ao cliente. Ela
             funciona uma vez só e expira, então envie logo.
           </p>
-          <pre className="whitespace-pre-wrap rounded-lg bg-brand-gray/60 px-4 py-3 font-sans text-sm text-[#5B647E]">
+          <pre className="whitespace-pre-wrap rounded-lg bg-panel-2/60 px-4 py-3 font-sans text-sm text-ink-2">
             {state.message}
           </pre>
           <button
             type="button"
             onClick={() => copy(state.message)}
-            className="flex w-fit items-center gap-2 rounded-lg border border-navy/10 px-4 py-2 text-sm font-semibold text-navy transition-colors hover:bg-brand-gray"
+            className="flex w-fit items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-panel-2"
           >
-            {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+            {copied ? <Check className="h-4 w-4 text-pos" /> : <Copy className="h-4 w-4" />}
             {copied ? "Copiado" : "Copiar mensagem"}
           </button>
         </div>

@@ -1,31 +1,186 @@
 @import "tailwindcss";
 
-:root {
-  --brand-navy: #132249;
-  --brand-blue: #2b5ff1;
-  --brand-yellow: #f1bf44;
-  --brand-gray: #e8ebef;
-  --brand-text: #132249;
-  --brand-text-secondary: #5b647e;
-  --brand-text-muted: #94a0bd;
+/* The interface has two skins. Every colour a screen uses comes from the
+ * semantic names below — surface, panel, ink, line, action, gold — and each
+ * skin fills them in. Nothing in a component says "white" or "navy", so a
+ * theme switch is one attribute on <html> rather than a second set of classes.
+ *
+ * The dark values are the moodboard's, verbatim. The light ones are the same
+ * system read the other way round: the brand navy becomes the ink instead of
+ * the background, and gold darkens to stay readable as text on a pale panel. */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --surface: #edf0f6;
+  --panel: #ffffff;
+  --panel-2: #f4f6fa;
+  --rail: #ffffff;
+
+  --ink: #132249;
+  --ink-2: #5b647e;
+  --ink-3: #94a0bd;
+  --on-accent: #ffffff;
+  --on-gold: #0a1024;
+
+  --line: rgba(19, 34, 73, 0.1);
+  --line-soft: rgba(19, 34, 73, 0.06);
+
+  --action: #132249;
+  --accent: #2b5ff1;
+  --accent-ink: #2b5ff1;
+
+  /* Gold reads as a fill here and as text there; on a pale panel the fill
+   * colour has nowhere near enough contrast to be read as a word. */
+  --gold: #f1bf44;
+  --gold-ink: #8a5e00;
+
+  --danger: #c0362c;
+  --on-danger: #ffffff;
+  --pos: #15803d;
+  --on-pos: #ffffff;
+  --warn: #b45309;
+  --scrim: rgba(19, 34, 73, 0.4);
+
+  --chart-grid: #e8ebef;
+  --chart-base: #d8dee8;
+  --chart-empty: #e8ebef;
+  --chart-1: #2b5ff1;
+  --chart-2: #132249;
+  --chart-3: #f1bf44;
 
   --background: #ffffff;
-  --foreground: var(--brand-text);
+  --foreground: var(--ink);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --surface: #060a18;
+  --panel: #0b1229;
+  --panel-2: #0a1230;
+  --rail: #04070f;
+
+  --ink: #f3f6ff;
+  --ink-2: #a3aecf;
+  --ink-3: #7e8ab0;
+  --on-accent: #ffffff;
+  --on-gold: #0a1024;
+
+  --line: rgba(255, 255, 255, 0.09);
+  --line-soft: rgba(255, 255, 255, 0.06);
+
+  --action: #2f55e4;
+  --accent: #2f55e4;
+  --accent-ink: #6e8bff;
+
+  --gold: #f5b82e;
+  --gold-ink: #f5b82e;
+
+  --danger: #ff8a80;
+  --on-danger: #2a0b08;
+  --pos: #4ade80;
+  --on-pos: #04210f;
+  --warn: #ffb84d;
+  --scrim: rgba(2, 4, 10, 0.66);
+
+  --chart-grid: rgba(255, 255, 255, 0.08);
+  --chart-base: rgba(255, 255, 255, 0.18);
+  --chart-empty: rgba(255, 255, 255, 0.1);
+  --chart-1: #6e8bff;
+  --chart-2: #c9d6ff;
+  --chart-3: #f5b82e;
+
+  --background: var(--surface);
+  --foreground: var(--ink);
 }
 
 @theme inline {
-  --color-navy: var(--brand-navy);
-  --color-blue: var(--brand-blue);
-  --color-yellow: var(--brand-yellow);
-  --color-brand-gray: var(--brand-gray);
+  /* Kept for the public pages, which have their own fixed palette. */
+  --color-navy: #132249;
+  --color-blue: #2b5ff1;
+  --color-yellow: #f1bf44;
+  --color-brand-gray: #e8ebef;
+
+  --color-surface: var(--surface);
+  --color-panel: var(--panel);
+  --color-panel-2: var(--panel-2);
+  --color-rail: var(--rail);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-on-accent: var(--on-accent);
+  --color-on-gold: var(--on-gold);
+
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+
+  --color-action: var(--action);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+
+  --color-danger: var(--danger);
+  --color-on-danger: var(--on-danger);
+  --color-pos: var(--pos);
+  --color-on-pos: var(--on-pos);
+  --color-warn: var(--warn);
+  --color-scrim: var(--scrim);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-nunito-sans);
-  --font-display: var(--font-nunito-sans);
+
+  --font-sans: var(--font-jakarta);
+  --font-display: var(--font-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* The moodboard's panels are lit from the top edge, not dropped on a shadow.
+ * In light mode that reflex would be invisible, so it only exists in dark. */
+:root[data-theme="dark"] .shadow-sm,
+:root[data-theme="dark"] .shadow,
+:root[data-theme="dark"] .shadow-md,
+:root[data-theme="dark"] .shadow-lg {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* Native widgets — date pickers, scrollbars, autofill — follow color-scheme,
+ * except Chrome's autofill, which paints its own background over the field. */
+:root[data-theme="dark"] input:-webkit-autofill,
+:root[data-theme="dark"] input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ink);
+  -webkit-box-shadow: 0 0 0 1000px var(--panel-2) inset;
+}
+
+/* One asset per theme, chosen in CSS so the right one is in the first paint. */
+:root[data-theme="dark"] .only-light,
+:root:not([data-theme="dark"]) .only-dark {
+  display: none;
+}
+
+/* One blue focus per screen, as the moodboard asks — and nothing at all in
+ * light, where a glow on a pale surface just reads as a smudge. */
+.glow { position: relative; isolation: isolate; }
+:root[data-theme="dark"] .glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 55% 45% at 50% 12%, rgba(47, 85, 228, 0.28), transparent 70%),
+    radial-gradient(ellipse 45% 40% at 50% 100%, rgba(245, 184, 46, 0.08), transparent 70%);
 }

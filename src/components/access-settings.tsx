@@ -23,26 +23,26 @@ const ROLES: {
     label: "Admin",
     hint: "Tudo de todos os clientes, o financeiro, as senhas dos marketplaces e estes acessos.",
     icon: Crown,
-    badge: "bg-yellow text-navy",
+    badge: "bg-gold text-ink",
   },
   {
     value: "operador",
     label: "Operador",
     hint: "O dia a dia de todos os clientes. Não gerencia acessos.",
     icon: ShieldCheck,
-    badge: "bg-blue/10 text-blue",
+    badge: "bg-accent/10 text-accent-ink",
   },
   {
     value: "cliente",
     label: "Cliente",
     hint: "Padrão. Só a aba Clientes, com a pasta do próprio cliente, apenas para visualizar.",
     icon: User,
-    badge: "bg-brand-gray text-[#5B647E]",
+    badge: "bg-panel-2 text-ink-2",
   },
 ];
 
 const INPUT_CLASS =
-  "rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue";
+  "rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent";
 
 function ProfileRow({
   profile,
@@ -63,7 +63,7 @@ function ProfileRow({
   const Icon = meta.icon;
 
   return (
-    <li className="flex flex-col gap-3 rounded-lg border border-navy/[.08] bg-white p-4 shadow-sm">
+    <li className="flex flex-col gap-3 rounded-lg border border-line bg-panel p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className={`rounded-lg p-2 ${meta.badge}`}>
@@ -76,26 +76,26 @@ function ProfileRow({
                 name="name"
                 defaultValue={profile.name ?? ""}
                 placeholder="Nome da pessoa"
-                className="w-44 rounded border border-transparent px-1 py-0.5 text-sm font-bold text-navy outline-none hover:border-navy/10 focus:border-blue"
+                className="w-44 rounded border border-transparent px-1 py-0.5 text-sm font-bold text-ink outline-none hover:border-line focus:border-accent"
               />
               <button
                 type="submit"
                 disabled={savingName}
                 aria-label="Salvar nome"
-                className="rounded p-1 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+                className="rounded p-1 text-ink-3 hover:bg-panel-2 hover:text-ink"
               >
                 <Check className="h-3.5 w-3.5" />
               </button>
               {nameState && "ok" in nameState && (
-                <span className="text-[11px] text-green-700">salvo</span>
+                <span className="text-[11px] text-pos">salvo</span>
               )}
             </form>
-            <p className="text-xs text-[#94A0BD]">
+            <p className="text-xs text-ink-3">
               {profile.email}
               {isMe && " · você"}
             </p>
             {profile.role === "cliente" && !profile.client_id && (
-              <span className="mt-1 inline-block rounded-full bg-yellow/30 px-2 py-0.5 text-[11px] font-semibold text-navy">
+              <span className="mt-1 inline-block rounded-full bg-gold/30 px-2 py-0.5 text-[11px] font-semibold text-ink">
                 Aguardando aprovação — ligue a um cliente para liberar
               </span>
             )}
@@ -138,17 +138,17 @@ function ProfileRow({
           <button
             type="submit"
             disabled={savingAccess || (role === profile.role && clientId === (profile.client_id ?? ""))}
-            className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-40"
+            className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-40"
           >
             {savingAccess ? "Salvando..." : "Aplicar"}
           </button>
         </form>
       </div>
 
-      <p className="text-xs text-[#5B647E]">
+      <p className="text-xs text-ink-2">
         {ROLES.find((r) => r.value === role)?.hint}
         {profile.client_id && role === "cliente" && (
-          <span className="ml-1 font-semibold text-navy">
+          <span className="ml-1 font-semibold text-ink">
             — {clients.find((c) => c.id === profile.client_id)?.name}
           </span>
         )}
@@ -157,10 +157,10 @@ function ProfileRow({
       <PasswordLinkButton profileId={profile.id} />
 
       {accessState && "error" in accessState && (
-        <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{accessState.error}</p>
+        <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{accessState.error}</p>
       )}
       {accessState && "ok" in accessState && (
-        <p className="text-xs text-green-700">Acesso atualizado.</p>
+        <p className="text-xs text-pos">Acesso atualizado.</p>
       )}
     </li>
   );
@@ -197,30 +197,30 @@ function LinkResult({ state }: { state: AccessLinkState }) {
   const [copied, setCopied] = useState(false);
   if (!state) return null;
   if ("error" in state) {
-    return <p className="mt-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>;
+    return <p className="mt-3 rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>;
   }
   if (state.emailSent) {
     return (
-      <p className="mt-3 rounded bg-green-50 px-3 py-2 text-xs text-green-800">
+      <p className="mt-3 rounded bg-pos/10 px-3 py-2 text-xs text-pos">
         Link enviado por e-mail. Ele vale uma vez só e expira.
       </p>
     );
   }
   return (
     <div className="mt-3 flex flex-col gap-2">
-      <p className="rounded bg-yellow/20 px-3 py-2 text-xs text-navy">
+      <p className="rounded bg-gold/20 px-3 py-2 text-xs text-ink">
         O envio de e-mail não funcionou — mande a mensagem abaixo à pessoa, logo: o link vale
         uma vez só e expira.
       </p>
-      <pre className="whitespace-pre-wrap rounded-lg bg-brand-gray/60 px-4 py-3 font-sans text-xs text-[#5B647E]">
+      <pre className="whitespace-pre-wrap rounded-lg bg-panel-2/60 px-4 py-3 font-sans text-xs text-ink-2">
         {state.message}
       </pre>
       <button
         type="button"
         onClick={() => navigator.clipboard.writeText(state.message).then(() => setCopied(true))}
-        className="flex w-fit items-center gap-2 rounded-lg border border-navy/10 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-brand-gray"
+        className="flex w-fit items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-panel-2"
       >
-        {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3.5 w-3.5 text-pos" /> : <Copy className="h-3.5 w-3.5" />}
         {copied ? "Copiado" : "Copiar mensagem"}
       </button>
     </div>
@@ -236,7 +236,7 @@ function PasswordLinkButton({ profileId }: { profileId: string }) {
         <button
           type="submit"
           disabled={sending}
-          className="flex items-center gap-1.5 text-xs font-semibold text-blue hover:underline disabled:opacity-60"
+          className="flex items-center gap-1.5 text-xs font-semibold text-accent-ink hover:underline disabled:opacity-60"
         >
           <KeyRound className="h-3.5 w-3.5" />
           {sending ? "Enviando..." : "Enviar link de nova senha"}
@@ -252,19 +252,19 @@ function InviteForm({ clients }: { clients: Client[] }) {
   const [state, formAction, sending] = useActionState(createLoginWithLink, null);
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-1 flex items-center gap-2 font-bold text-navy">
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
+      <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
         <Mail className="h-4 w-4" />
         Criar acesso
       </h2>
-      <p className="mb-4 max-w-2xl text-xs text-[#5B647E]">
+      <p className="mb-4 max-w-2xl text-xs text-ink-2">
         O login nasce sem senha: a pessoa recebe por e-mail um link, de uso único e com prazo,
         para criar a própria. Ninguém aqui define nem vê senha de ninguém.
       </p>
 
       <form action={formAction} className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-[240px] flex-1 flex-col gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             E-mail
           </span>
           <input
@@ -277,14 +277,14 @@ function InviteForm({ clients }: { clients: Client[] }) {
         </label>
 
         <label className="flex min-w-[140px] flex-col gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             Nome
           </span>
           <input name="name" placeholder="Opcional" className={INPUT_CLASS + " w-full"} />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             Nível
           </span>
           <select
@@ -303,7 +303,7 @@ function InviteForm({ clients }: { clients: Client[] }) {
 
         {role === "cliente" && (
           <label className="flex flex-col gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
               Cliente
             </span>
             <select name="client_id" required defaultValue="" className={INPUT_CLASS}>
@@ -320,13 +320,13 @@ function InviteForm({ clients }: { clients: Client[] }) {
         <button
           type="submit"
           disabled={sending}
-          className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+          className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
         >
           {sending ? "Criando..." : "Criar e enviar link"}
         </button>
       </form>
 
-      <p className="mt-3 max-w-2xl text-xs text-[#5B647E]">
+      <p className="mt-3 max-w-2xl text-xs text-ink-2">
         {ROLES.find((r) => r.value === role)?.hint}
       </p>
 

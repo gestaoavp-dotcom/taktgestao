@@ -97,7 +97,7 @@ export function AreaChart({ data }: { data: Day[] }) {
 
   if (data.length === 0 || peak === 0) {
     return (
-      <div className="flex h-[200px] items-center justify-center text-sm text-[#94A0BD]">
+      <div className="flex h-[200px] items-center justify-center text-sm text-ink-3">
         Nenhum faturamento nesse período.
       </div>
     );
@@ -116,8 +116,8 @@ export function AreaChart({ data }: { data: Day[] }) {
       >
         <defs>
           <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2B5FF1" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#2B5FF1" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--chart-1)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--chart-1)" stopOpacity="0" />
           </linearGradient>
         </defs>
 
@@ -130,10 +130,10 @@ export function AreaChart({ data }: { data: Day[] }) {
                 x2={WIDTH - PAD_RIGHT}
                 y1={y}
                 y2={y}
-                stroke={g === 0 ? "#D8DEE8" : "#E8EBEF"}
+                stroke={g === 0 ? "var(--chart-base)" : "var(--chart-grid)"}
                 strokeWidth={1}
               />
-              <text x={PAD_LEFT - 12} y={y} textAnchor="end" dy="3" fontSize="11" fill="#94A0BD">
+              <text x={PAD_LEFT - 12} y={y} textAnchor="end" dy="3" fontSize="11" fill="var(--ink-3)">
                 {formatAxis(max * g)}
               </text>
             </g>
@@ -144,7 +144,7 @@ export function AreaChart({ data }: { data: Day[] }) {
         <path
           d={linePath}
           fill="none"
-          stroke="#2B5FF1"
+          stroke="var(--chart-1)"
           strokeWidth={2}
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -156,7 +156,7 @@ export function AreaChart({ data }: { data: Day[] }) {
             x2={active.x}
             y1={PAD_TOP}
             y2={baseline}
-            stroke="#132249"
+            stroke="var(--ink)"
             strokeOpacity={0.18}
             strokeDasharray="3,3"
           />
@@ -171,8 +171,8 @@ export function AreaChart({ data }: { data: Day[] }) {
               cx={p.x}
               cy={p.y}
               r={hover === i ? 5 : 3}
-              fill="#FFFFFF"
-              stroke="#2B5FF1"
+              fill="var(--panel)"
+              stroke="var(--chart-1)"
               strokeWidth={2}
             />
           ) : null,
@@ -185,7 +185,7 @@ export function AreaChart({ data }: { data: Day[] }) {
             textAnchor="middle"
             fontSize="11"
             fontWeight="600"
-            fill="#132249"
+            fill="var(--ink)"
           >
             {formatAxis(peak)}
           </text>
@@ -203,7 +203,7 @@ export function AreaChart({ data }: { data: Day[] }) {
               onTouchStart={() => setHover(i)}
             />
             {labels.has(i) && (
-              <text x={p.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="#94A0BD">
+              <text x={p.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
                 {formatDateShort(p.date)}
               </text>
             )}
@@ -213,7 +213,7 @@ export function AreaChart({ data }: { data: Day[] }) {
 
       {active && (
         <div
-          className={`pointer-events-none absolute -translate-y-full rounded-md bg-navy px-2.5 py-1.5 text-xs font-medium text-white shadow-lg ${
+          className={`pointer-events-none absolute -translate-y-full rounded-md bg-action px-2.5 py-1.5 text-xs font-medium text-on-accent shadow-lg ${
             activeLeft < 10 ? "" : activeLeft > 90 ? "-translate-x-full" : "-translate-x-1/2"
           }`}
           style={{
@@ -221,7 +221,7 @@ export function AreaChart({ data }: { data: Day[] }) {
             top: `${((active.value > 0 ? active.y - 10 : baseline - 10) / HEIGHT) * 100}%`,
           }}
         >
-          <div className="text-white/70">
+          <div className="text-on-accent/70">
             {weekdayOf(active.date)}, {formatDateShort(active.date)}
           </div>
           <div className="font-display">{formatCurrency(active.value)}</div>

@@ -47,14 +47,14 @@ export default async function ClienteAcessosPage({
       <InformacoesSubTabs clientId={id} />
 
       {key.ok && fingerprint && (
-        <p className="mb-5 text-[11px] text-[#94A0BD]">
+        <p className="mb-5 text-[11px] text-ink-3">
           Chave de criptografia deste deploy:{" "}
-          <span className="font-mono font-semibold text-[#5B647E]">{fingerprint}</span>
+          <span className="font-mono font-semibold text-ink-2">{fingerprint}</span>
         </p>
       )}
 
       {!key.ok && (
-        <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-800">
+        <p className="mb-5 rounded-lg bg-danger/10 px-4 py-3 text-sm text-danger">
           <strong className="font-bold">Senhas não podem ser salvas neste deploy.</strong>{" "}
           {key.reason}
         </p>

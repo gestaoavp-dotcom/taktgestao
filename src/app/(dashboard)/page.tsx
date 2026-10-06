@@ -18,10 +18,10 @@ import { paidNote, returnsNote } from "@/lib/returns-note";
 type FeeStatus = "em_dia" | "a_vencer" | "atrasada" | "sem_valor";
 
 const FEE_LABEL: Record<FeeStatus, { label: string; className: string }> = {
-  em_dia: { label: "Em dia", className: "bg-green-50 text-green-700" },
-  a_vencer: { label: "A vencer", className: "bg-blue/10 text-blue" },
-  atrasada: { label: "Atrasada", className: "bg-red-50 text-red-700" },
-  sem_valor: { label: "Sem valor", className: "bg-brand-gray text-[#94A0BD]" },
+  em_dia: { label: "Em dia", className: "bg-pos/10 text-pos" },
+  a_vencer: { label: "A vencer", className: "bg-accent/10 text-accent-ink" },
+  atrasada: { label: "Atrasada", className: "bg-danger/10 text-danger" },
+  sem_valor: { label: "Sem valor", className: "bg-panel-2 text-ink-3" },
 };
 
 // Payment day clamped to the month's last day, as in Contas a receber.
@@ -35,25 +35,25 @@ function dueDateFor(month: string, paymentDay: number) {
 function PaidLine({ paid }: { paid: number | null }) {
   if (paid == null) return null;
   return (
-    <div className="text-[11px] font-normal text-[#94A0BD]">pago {formatCurrency(paid)}</div>
+    <div className="text-[11px] font-normal text-ink-3">pago {formatCurrency(paid)}</div>
   );
 }
 
 function ReturnsCell({ returns }: { returns: { value: number; orders: number } }) {
-  if (!returns.orders) return <span className="text-[#94A0BD]">—</span>;
+  if (!returns.orders) return <span className="text-ink-3">—</span>;
   return (
     <>
       {formatCurrency(returns.value)}{" "}
-      <span className="text-xs text-[#94A0BD]">({returns.orders})</span>
+      <span className="text-xs text-ink-3">({returns.orders})</span>
     </>
   );
 }
 
 function Trend({ value }: { value: number }) {
-  if (!value) return <span className="text-[#94A0BD]">—</span>;
+  if (!value) return <span className="text-ink-3">—</span>;
   const up = value > 0;
   return (
-    <span className={up ? "text-green-700" : "text-red-700"}>
+    <span className={up ? "text-pos" : "text-danger"}>
       {up ? "▲" : "▼"} {Math.abs(value).toFixed(0)}%
     </span>
   );
@@ -204,11 +204,11 @@ export default async function DashboardPage({
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold text-navy">Dashboard</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">Dashboard</h1>
           {/* What is on screen, minus the dates: those are in the picker below,
               and stating a period twice only invites the two to disagree. */}
           {(selectedName || marketplace) && (
-            <p className="mt-0.5 text-sm text-[#5B647E]">
+            <p className="mt-0.5 text-sm text-ink-2">
               {[selectedName, marketplace ? MARKETPLACE_LABEL[marketplace] : null]
                 .filter(Boolean)
                 .join(" · ")}
@@ -255,42 +255,42 @@ export default async function DashboardPage({
         />
       </div>
 
-      <div className="mb-6 rounded-lg bg-white p-6 shadow-sm">
-        <h2 className="mb-4 font-display text-base font-semibold text-navy">Faturamento por dia</h2>
+      <div className="mb-6 rounded-lg bg-panel p-6 shadow-sm">
+        <h2 className="mb-4 font-display text-base font-semibold text-ink">Faturamento por dia</h2>
         <AreaChart data={chartData} />
         <MonthlyRevenueNote value={summary.monthlyRevenue} />
       </div>
 
-      <div className="mb-6 overflow-x-auto rounded-lg bg-white shadow-sm">
+      <div className="mb-6 overflow-x-auto rounded-lg bg-panel shadow-sm">
         <div className="px-5 pt-5">
-          <h2 className="font-display text-base font-semibold text-navy">Por cliente</h2>
-          <p className="text-xs text-[#94A0BD]">
+          <h2 className="font-display text-base font-semibold text-ink">Por cliente</h2>
+          <p className="text-xs text-ink-3">
             No período e com os filtros acima. A variação compara com o período anterior de
             mesmo tamanho.
           </p>
         </div>
         <table className="mt-3 w-full min-w-[900px] text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-5 py-2.5 font-semibold text-navy">Cliente</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Marketplaces</th>
-              <th className="px-5 py-2.5 text-right font-semibold text-navy">Faturamento</th>
-              <th className="px-5 py-2.5 text-right font-semibold text-navy">Variação</th>
-              <th className="px-5 py-2.5 text-right font-semibold text-navy">Pedidos</th>
-              <th className="px-5 py-2.5 text-right font-semibold text-navy">Ticket</th>
-              <th className="px-5 py-2.5 text-right font-semibold text-navy">Devoluções</th>
-              <th className="px-5 py-2.5 text-center font-semibold text-navy">Alterações</th>
-              <th className="px-5 py-2.5 text-center font-semibold text-navy">Tarefas</th>
-              {isOwner && <th className="px-5 py-2.5 font-semibold text-navy">Mensalidade</th>}
+              <th className="px-5 py-2.5 font-semibold text-ink">Cliente</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Marketplaces</th>
+              <th className="px-5 py-2.5 text-right font-semibold text-ink">Faturamento</th>
+              <th className="px-5 py-2.5 text-right font-semibold text-ink">Variação</th>
+              <th className="px-5 py-2.5 text-right font-semibold text-ink">Pedidos</th>
+              <th className="px-5 py-2.5 text-right font-semibold text-ink">Ticket</th>
+              <th className="px-5 py-2.5 text-right font-semibold text-ink">Devoluções</th>
+              <th className="px-5 py-2.5 text-center font-semibold text-ink">Alterações</th>
+              <th className="px-5 py-2.5 text-center font-semibold text-ink">Tarefas</th>
+              {isOwner && <th className="px-5 py-2.5 font-semibold text-ink">Mensalidade</th>}
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => {
               const fee = feeStatus.get(r.id);
               return (
-                <tr key={r.id} className="border-t border-navy/[.06] hover:bg-brand-gray/40">
+                <tr key={r.id} className="border-t border-line-soft hover:bg-panel-2/40">
                   <td className="px-5 py-3">
-                    <Link href={`/clientes/${r.id}`} className="font-semibold text-navy hover:text-blue">
+                    <Link href={`/clientes/${r.id}`} className="font-semibold text-ink hover:text-accent-ink">
                       {r.name}
                     </Link>
                   </td>
@@ -301,22 +301,22 @@ export default async function DashboardPage({
                       ))}
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-right font-semibold text-navy">
+                  <td className="px-5 py-3 text-right font-semibold text-ink">
                     {formatCurrency(r.revenue)}
                     <PaidLine paid={r.paid} />
                   </td>
                   <td className="px-5 py-3 text-right text-xs font-semibold">
                     <Trend value={r.trend} />
                   </td>
-                  <td className="px-5 py-3 text-right text-[#5B647E]">{r.orders}</td>
-                  <td className="px-5 py-3 text-right text-[#5B647E]">{formatCurrency(r.ticket)}</td>
-                  <td className="px-5 py-3 text-right text-[#5B647E]">
+                  <td className="px-5 py-3 text-right text-ink-2">{r.orders}</td>
+                  <td className="px-5 py-3 text-right text-ink-2">{formatCurrency(r.ticket)}</td>
+                  <td className="px-5 py-3 text-right text-ink-2">
                     <ReturnsCell returns={r.returns} />
                   </td>
                   <td className="px-5 py-3 text-center">
                     <Link
                       href={`/clientes/${r.id}/controle`}
-                      className={changesByClient.get(r.id) ? "font-semibold text-navy hover:text-blue" : "text-[#94A0BD]"}
+                      className={changesByClient.get(r.id) ? "font-semibold text-ink hover:text-accent-ink" : "text-ink-3"}
                     >
                       {changesByClient.get(r.id) ?? 0}
                     </Link>
@@ -324,7 +324,7 @@ export default async function DashboardPage({
                   <td className="px-5 py-3 text-center">
                     <Link
                       href="/tarefas"
-                      className={tasksByClient.get(r.id) ? "font-semibold text-navy hover:text-blue" : "text-[#94A0BD]"}
+                      className={tasksByClient.get(r.id) ? "font-semibold text-ink hover:text-accent-ink" : "text-ink-3"}
                     >
                       {tasksByClient.get(r.id) ?? 0}
                     </Link>
@@ -343,7 +343,7 @@ export default async function DashboardPage({
             })}
             {!rows.length && (
               <tr>
-                <td colSpan={isOwner ? 10 : 9} className="px-5 py-8 text-center text-[#94A0BD]">
+                <td colSpan={isOwner ? 10 : 9} className="px-5 py-8 text-center text-ink-3">
                   Nenhum cliente com esses filtros.
                 </td>
               </tr>
@@ -353,35 +353,35 @@ export default async function DashboardPage({
       </div>
 
       {summary.platformRows.length > 0 && (
-        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-          <h2 className="px-5 pt-5 font-display text-base font-semibold text-navy">
+        <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+          <h2 className="px-5 pt-5 font-display text-base font-semibold text-ink">
             Por marketplace
           </h2>
           <table className="mt-3 w-full text-left text-sm">
-            <thead className="bg-brand-gray">
+            <thead className="bg-panel-2">
               <tr>
-                <th className="px-5 py-2.5 font-semibold text-navy">Marketplace</th>
-                <th className="px-5 py-2.5 text-right font-semibold text-navy">Faturamento</th>
-                <th className="px-5 py-2.5 text-right font-semibold text-navy">Pedidos</th>
-                <th className="px-5 py-2.5 text-right font-semibold text-navy">% do total</th>
-                <th className="px-5 py-2.5 text-right font-semibold text-navy">Devoluções</th>
+                <th className="px-5 py-2.5 font-semibold text-ink">Marketplace</th>
+                <th className="px-5 py-2.5 text-right font-semibold text-ink">Faturamento</th>
+                <th className="px-5 py-2.5 text-right font-semibold text-ink">Pedidos</th>
+                <th className="px-5 py-2.5 text-right font-semibold text-ink">% do total</th>
+                <th className="px-5 py-2.5 text-right font-semibold text-ink">Devoluções</th>
               </tr>
             </thead>
             <tbody>
               {summary.platformRows.map(([m, v]) => (
-                <tr key={m} className="border-t border-navy/[.06]">
+                <tr key={m} className="border-t border-line-soft">
                   <td className="px-5 py-3">
                     <MarketplaceBadge marketplace={m} />
                   </td>
-                  <td className="px-5 py-3 text-right font-semibold text-navy">
+                  <td className="px-5 py-3 text-right font-semibold text-ink">
                     {formatCurrency(v.revenue)}
                     <PaidLine paid={v.paid} />
                   </td>
-                  <td className="px-5 py-3 text-right text-[#5B647E]">{v.orders}</td>
-                  <td className="px-5 py-3 text-right text-[#5B647E]">
+                  <td className="px-5 py-3 text-right text-ink-2">{v.orders}</td>
+                  <td className="px-5 py-3 text-right text-ink-2">
                     {revenue > 0 ? `${((v.revenue / revenue) * 100).toFixed(1)}%` : "—"}
                   </td>
-                  <td className="px-5 py-3 text-right text-[#5B647E]">
+                  <td className="px-5 py-3 text-right text-ink-2">
                     <ReturnsCell returns={v.returns} />
                   </td>
                 </tr>
@@ -391,7 +391,7 @@ export default async function DashboardPage({
         </div>
       )}
 
-      <p className="mt-3 text-xs text-[#94A0BD]">
+      <p className="mt-3 text-xs text-ink-3">
         Faturamento a partir dos documentos de pedidos importados. Cancelados ficam de fora;
         devoluções também, e aparecem à parte, na coluna Devoluções.
       </p>

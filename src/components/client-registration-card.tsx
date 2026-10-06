@@ -6,17 +6,17 @@ import { formatPhone } from "@/lib/masks";
 import { updateClient } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
-const FIELD_LABEL = "text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]";
+const FIELD_LABEL = "text-[11px] font-semibold uppercase tracking-wide text-ink-3";
 
 export function ClientRegistrationCard({ client }: { client: Client }) {
   const [state, formAction, pending] = useActionState(updateClient, null);
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-1 font-bold text-navy">Cadastro</h2>
-      <p className="mb-4 text-xs text-[#94A0BD]">
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
+      <h2 className="mb-1 font-bold text-ink">Cadastro</h2>
+      <p className="mb-4 text-xs text-ink-3">
         Loja, CNPJ e marketplaces ficam no card Financeiro e em Contas gerenciadas,
         abaixo — aqui é só a identificação do cliente.
       </p>
@@ -59,16 +59,16 @@ export function ClientRegistrationCard({ client }: { client: Client }) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+            className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
           >
             {pending ? "Salvando..." : "Salvar"}
           </button>
 
           {state && "ok" in state && (
-            <span className="text-xs font-medium text-green-700">Salvo.</span>
+            <span className="text-xs font-medium text-pos">Salvo.</span>
           )}
           {state && "error" in state && (
-            <span className="text-xs text-red-700">{state.error}</span>
+            <span className="text-xs text-danger">{state.error}</span>
           )}
         </div>
       </form>

@@ -42,7 +42,7 @@ export function SyncButton() {
           ? `Sincronizado às ${syncedAt}. Gráficos e totais de todos os clientes atualizados.`
           : "Atualiza gráficos e totais de todos os clientes com os dados mais recentes.")
       }
-      className="flex items-center gap-1.5 rounded-lg border border-navy/10 px-3 py-2 text-sm font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray hover:text-navy disabled:opacity-60"
+      className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-ink-2 transition-colors hover:bg-panel-2 hover:text-ink disabled:opacity-60"
     >
       <RefreshCw className={`h-4 w-4 ${pending ? "animate-spin" : ""}`} />
       <span className="hidden sm:inline">

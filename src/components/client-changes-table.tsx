@@ -17,9 +17,9 @@ import {
 import { ChangeWorkspaceModal } from "@/components/change-workspace-modal";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
-const TRUNCATE_CELL = "max-w-[220px] truncate px-5 py-2.5 text-[#5B647E]";
+const TRUNCATE_CELL = "max-w-[220px] truncate px-5 py-2.5 text-ink-2";
 
 const ALL_TAB = "all";
 
@@ -136,7 +136,7 @@ export function ClientChangesTable({
     <div>
       {marketplaceTabs.length > 2 && (
         <div className="mb-4">
-          <nav className="flex flex-wrap gap-1 border-b border-navy/[.08]">
+          <nav className="flex flex-wrap gap-1 border-b border-line">
             {marketplaceTabs.map((tab) => (
               <button
                 key={tab.value}
@@ -147,16 +147,16 @@ export function ClientChangesTable({
                 }}
                 className={`-mb-px flex items-center gap-1.5 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
                   activeMarketplace === tab.value
-                    ? "border-blue text-blue"
-                    : "border-transparent text-[#5B647E] hover:text-navy"
+                    ? "border-accent text-accent-ink"
+                    : "border-transparent text-ink-2 hover:text-ink"
                 }`}
               >
                 {tab.label}
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                     activeMarketplace === tab.value
-                      ? "bg-blue/10 text-blue"
-                      : "bg-brand-gray text-[#94A0BD]"
+                      ? "bg-accent/10 text-accent-ink"
+                      : "bg-panel-2 text-ink-3"
                   }`}
                 >
                   {tab.count}
@@ -167,7 +167,7 @@ export function ClientChangesTable({
 
           {storeTabs.length > 0 && (
             <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+              <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-ink-3">
                 Loja
               </span>
               {storeTabs.map((tab) => (
@@ -177,8 +177,8 @@ export function ClientChangesTable({
                   onClick={() => setActiveAccount(tab.value)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                     activeAccount === tab.value
-                      ? "bg-navy text-white"
-                      : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                      ? "bg-action text-on-accent"
+                      : "border border-line text-ink-2 hover:bg-panel-2"
                   }`}
                 >
                   {tab.label}
@@ -191,10 +191,10 @@ export function ClientChangesTable({
       )}
 
       {!readOnly && (
-      <div className="mb-5 rounded-lg bg-white p-5 shadow-sm">
+      <div className="mb-5 rounded-lg bg-panel p-5 shadow-sm">
         <div className="mb-3">
-          <h2 className="font-bold text-navy">Registrar alteração</h2>
-          <p className="text-xs text-[#94A0BD]">
+          <h2 className="font-bold text-ink">Registrar alteração</h2>
+          <p className="text-xs text-ink-3">
             Toda mudança feita na conta, com o motivo, a meta esperada e quem fez. Atualize o
             status sempre que houver progresso — nunca deixe em branco.
           </p>
@@ -291,13 +291,13 @@ export function ClientChangesTable({
           </div>
 
           {state && "error" in state && (
-            <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+            <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
           )}
 
           <button
             type="submit"
             disabled={pending}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-navy py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-action py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
           >
             <Plus className="h-4 w-4" />
             {pending ? "Registrando..." : "Registrar alteração"}
@@ -306,20 +306,20 @@ export function ClientChangesTable({
       </div>
       )}
 
-      <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
         <table className="w-full min-w-[1240px] text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-5 py-2 font-semibold text-navy">Data</th>
-              <th className="px-5 py-2 font-semibold text-navy">Conta / Canal</th>
-              <th className="px-5 py-2 font-semibold text-navy">Categoria</th>
-              <th className="px-5 py-2 font-semibold text-navy">Ação feita</th>
-              <th className="px-5 py-2 font-semibold text-navy">Motivo</th>
-              <th className="px-5 py-2 font-semibold text-navy">Responsável</th>
-              <th className="px-5 py-2 font-semibold text-navy">Status</th>
-              <th className="px-5 py-2 font-semibold text-navy">Encerramento</th>
-              <th className="px-5 py-2 font-semibold text-navy">Resultado esperado</th>
-              <th className="px-5 py-2 font-semibold text-navy">Observação</th>
+              <th className="px-5 py-2 font-semibold text-ink">Data</th>
+              <th className="px-5 py-2 font-semibold text-ink">Conta / Canal</th>
+              <th className="px-5 py-2 font-semibold text-ink">Categoria</th>
+              <th className="px-5 py-2 font-semibold text-ink">Ação feita</th>
+              <th className="px-5 py-2 font-semibold text-ink">Motivo</th>
+              <th className="px-5 py-2 font-semibold text-ink">Responsável</th>
+              <th className="px-5 py-2 font-semibold text-ink">Status</th>
+              <th className="px-5 py-2 font-semibold text-ink">Encerramento</th>
+              <th className="px-5 py-2 font-semibold text-ink">Resultado esperado</th>
+              <th className="px-5 py-2 font-semibold text-ink">Observação</th>
               <th className="px-5 py-2" />
             </tr>
           </thead>
@@ -336,15 +336,15 @@ export function ClientChangesTable({
                 <tr
                   key={change.id}
                   onClick={readOnly ? undefined : () => setWorkspace({ selectedId: change.id })}
-                  className={`group border-t border-navy/[.06] ${
-                    readOnly ? "" : "cursor-pointer hover:bg-brand-gray/40"
+                  className={`group border-t border-line-soft ${
+                    readOnly ? "" : "cursor-pointer hover:bg-panel-2/40"
                   }`}
                 >
-                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                  <td className="whitespace-nowrap px-5 py-2.5 text-ink-2">
                     {formatDate(change.changed_on)}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">{channelLabel}</td>
-                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                  <td className="whitespace-nowrap px-5 py-2.5 text-ink-2">{channelLabel}</td>
+                  <td className="whitespace-nowrap px-5 py-2.5 text-ink-2">
                     {change.category ? CHANGE_CATEGORY_LABEL[change.category] ?? change.category : "—"}
                   </td>
                   <td className={TRUNCATE_CELL} title={change.description}>
@@ -353,7 +353,7 @@ export function ClientChangesTable({
                   <td className={TRUNCATE_CELL} title={change.reason ?? undefined}>
                     {change.reason ?? "—"}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                  <td className="whitespace-nowrap px-5 py-2.5 text-ink-2">
                     {change.owner ?? "—"}
                   </td>
                   <td className="whitespace-nowrap px-5 py-2.5">
@@ -363,7 +363,7 @@ export function ClientChangesTable({
                       {CHANGE_STATUSES.find((s) => s.value === change.status)?.label}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-5 py-2.5 text-[#5B647E]">
+                  <td className="whitespace-nowrap px-5 py-2.5 text-ink-2">
                     {formatDate(change.closed_on)}
                   </td>
                   <td className={TRUNCATE_CELL} title={change.goal ?? undefined}>
@@ -382,7 +382,7 @@ export function ClientChangesTable({
                           setWorkspace({ selectedId: change.id });
                         }}
                         aria-label={`Editar alteração de ${formatDate(change.changed_on)}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-white hover:text-navy focus:opacity-100 group-hover:opacity-100"
+                        className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-panel hover:text-ink focus:opacity-100 group-hover:opacity-100"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -392,7 +392,7 @@ export function ClientChangesTable({
                         <button
                           type="submit"
                           aria-label={`Excluir alteração de ${formatDate(change.changed_on)}`}
-                          className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                          className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -405,7 +405,7 @@ export function ClientChangesTable({
             })}
             {!visibleChanges.length && (
               <tr>
-                <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
+                <td colSpan={11} className="px-5 py-8 text-center text-ink-3">
                   Nenhuma alteração registrada ainda.
                 </td>
               </tr>

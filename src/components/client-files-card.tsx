@@ -63,10 +63,10 @@ export function ClientFilesCard({
   }
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-4 font-bold text-navy">Arquivos</h2>
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
+      <h2 className="mb-4 font-bold text-ink">Arquivos</h2>
 
-      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/20 py-4 text-sm font-semibold text-[#5B647E] transition-colors hover:border-blue hover:text-blue">
+      <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line py-4 text-sm font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent-ink">
         <Upload className="h-4 w-4" />
         {uploading ? "Enviando..." : "Enviar arquivo"}
         <input
@@ -79,25 +79,25 @@ export function ClientFilesCard({
       </label>
 
       {error && (
-        <p className="mt-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
+        <p className="mt-3 rounded bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>
       )}
 
       {files.length > 0 ? (
         <ul className="mt-4 divide-y divide-navy/[.06]">
           {files.map((file) => (
             <li key={file.id} className="group flex items-center gap-3 py-2.5">
-              <FileText className="h-4 w-4 flex-shrink-0 text-[#94A0BD]" />
+              <FileText className="h-4 w-4 flex-shrink-0 text-ink-3" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm text-navy" title={file.name}>
+                <p className="truncate text-sm text-ink" title={file.name}>
                   {file.name}
                 </p>
-                <p className="text-xs text-[#94A0BD]">{formatSize(file.size)}</p>
+                <p className="text-xs text-ink-3">{formatSize(file.size)}</p>
               </div>
               <button
                 type="button"
                 onClick={() => handleDownload(file.path)}
                 aria-label={`Baixar ${file.name}`}
-                className="rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-brand-gray hover:text-navy"
+                className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel-2 hover:text-ink"
               >
                 <Download className="h-4 w-4" />
               </button>
@@ -108,7 +108,7 @@ export function ClientFilesCard({
                 <button
                   type="submit"
                   aria-label={`Excluir ${file.name}`}
-                  className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                  className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -117,7 +117,7 @@ export function ClientFilesCard({
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm text-[#94A0BD]">Nenhum arquivo enviado ainda.</p>
+        <p className="mt-4 text-sm text-ink-3">Nenhum arquivo enviado ainda.</p>
       )}
     </section>
   );

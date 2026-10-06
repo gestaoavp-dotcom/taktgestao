@@ -77,52 +77,52 @@ export default async function LeadsPage() {
   return (
     <div>
       <div className="mb-6 flex items-baseline justify-between gap-4">
-        <h1 className="text-2xl font-bold text-navy">Leads</h1>
-        <p className="text-sm text-[#5B647E]">
+        <h1 className="text-2xl font-bold text-ink">Leads</h1>
+        <p className="text-sm text-ink-2">
           {newCount} {newCount === 1 ? "novo" : "novos"} · formulário público em{" "}
-          <span className="font-semibold text-navy">/contato</span>
+          <span className="font-semibold text-ink">/contato</span>
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-5 py-2.5 font-semibold text-navy">Data</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Contato</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Loja / marketplaces</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Mensagem</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Status</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Cliente</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Data</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Contato</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Loja / marketplaces</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Mensagem</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Status</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Cliente</th>
               <th className="px-5 py-2.5" />
             </tr>
           </thead>
           <tbody>
             {rows.map((lead) => (
-              <tr key={lead.id} className="group border-t border-navy/[.06] align-top">
-                <td className="whitespace-nowrap px-5 py-3 text-[#5B647E]">
+              <tr key={lead.id} className="group border-t border-line-soft align-top">
+                <td className="whitespace-nowrap px-5 py-3 text-ink-2">
                   {formatDate(lead.created_at)}
                 </td>
                 <td className="px-5 py-3">
-                  <p className="font-semibold text-navy">{lead.name}</p>
+                  <p className="font-semibold text-ink">{lead.name}</p>
                   <a
                     href={whatsappLink(lead.phone)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs font-semibold text-green-700 hover:underline"
+                    className="text-xs font-semibold text-pos hover:underline"
                   >
                     {lead.phone}
                   </a>
                   <LeadEmailField id={lead.id} email={lead.email} />
                 </td>
                 <td className="px-5 py-3">
-                  <p className="text-navy">{lead.company ?? "—"}</p>
+                  <p className="text-ink">{lead.company ?? "—"}</p>
                   {lead.marketplaces.length > 0 && (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {lead.marketplaces.map((m) => (
                         <span
                           key={m}
-                          className="rounded-full bg-blue/10 px-2 py-0.5 text-[11px] font-semibold text-blue"
+                          className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent-ink"
                         >
                           {MARKETPLACE_LABEL[m] ?? m}
                         </span>
@@ -130,8 +130,8 @@ export default async function LeadsPage() {
                     </div>
                   )}
                 </td>
-                <td className="max-w-xs px-5 py-3 text-[#5B647E]">
-                  {lead.message ?? <span className="text-[#94A0BD]">—</span>}
+                <td className="max-w-xs px-5 py-3 text-ink-2">
+                  {lead.message ?? <span className="text-ink-3">—</span>}
                 </td>
                 <td className="px-5 py-3">
                   <form action={updateLeadStatus}>
@@ -140,7 +140,7 @@ export default async function LeadsPage() {
                       name="status"
                       defaultValue={lead.status}
                       options={STATUS_OPTIONS}
-                      className="rounded border border-navy/10 bg-transparent px-2 py-1 text-xs text-navy outline-none"
+                      className="rounded border border-line bg-transparent px-2 py-1 text-xs text-ink outline-none"
                     />
                   </form>
                 </td>
@@ -148,7 +148,7 @@ export default async function LeadsPage() {
                   {lead.client_id ? (
                     <Link
                       href={`/clientes/${lead.client_id}`}
-                      className="whitespace-nowrap text-xs font-semibold text-blue hover:underline"
+                      className="whitespace-nowrap text-xs font-semibold text-accent-ink hover:underline"
                     >
                       {clientName.get(lead.client_id) ?? "Ver cliente"} →
                     </Link>
@@ -164,7 +164,7 @@ export default async function LeadsPage() {
                       }}
                     />
                   ) : (
-                    <span className="text-xs text-[#94A0BD]">—</span>
+                    <span className="text-xs text-ink-3">—</span>
                   )}
                 </td>
                 <td className="px-5 py-3 text-right">
@@ -176,7 +176,7 @@ export default async function LeadsPage() {
             ))}
             {!rows.length && (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-[#94A0BD]">
+                <td colSpan={7} className="px-5 py-10 text-center text-ink-3">
                   Nenhum lead ainda. Assim que alguém preencher o formulário, aparece aqui.
                 </td>
               </tr>

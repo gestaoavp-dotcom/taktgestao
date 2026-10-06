@@ -14,7 +14,7 @@ export function FinancasTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 border-b border-navy/[.08]">
+    <nav className="flex gap-1 border-b border-line">
       {TABS.map((tab) => {
         const isActive = pathname === tab.href;
 
@@ -24,8 +24,8 @@ export function FinancasTabs() {
             href={tab.href}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
               isActive
-                ? "border-blue text-blue"
-                : "border-transparent text-[#5B647E] hover:text-navy"
+                ? "border-accent text-accent-ink"
+                : "border-transparent text-ink-2 hover:text-ink"
             }`}
           >
             {tab.label}

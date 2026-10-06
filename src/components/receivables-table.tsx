@@ -29,10 +29,10 @@ export type ClientRow = {
 };
 
 const STATUS: Record<ChargeStatus, { label: string; className: string }> = {
-  paid: { label: "Pago", className: "bg-green-50 text-green-700" },
-  pending: { label: "A vencer", className: "bg-blue/10 text-blue" },
-  overdue: { label: "Atrasado", className: "bg-red-50 text-red-700" },
-  unset: { label: "Sem mensalidade", className: "bg-brand-gray text-[#5B647E]" },
+  paid: { label: "Pago", className: "bg-pos/10 text-pos" },
+  pending: { label: "A vencer", className: "bg-accent/10 text-accent-ink" },
+  overdue: { label: "Atrasado", className: "bg-danger/10 text-danger" },
+  unset: { label: "Sem mensalidade", className: "bg-panel-2 text-ink-2" },
 };
 
 function formatCurrency(value: number) {
@@ -71,14 +71,14 @@ export function ReceivablesTable({
     );
 
   return (
-    <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+    <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
       <table className="w-full text-left text-sm">
-        <thead className="bg-brand-gray">
+        <thead className="bg-panel-2">
           <tr>
-            <th className="px-5 py-2.5 font-semibold text-navy">Cliente</th>
-            <th className="px-5 py-2.5 font-semibold text-navy">CNPJs</th>
-            <th className="px-5 py-2.5 font-semibold text-navy">Total mensal</th>
-            <th className="px-5 py-2.5 font-semibold text-navy">Situação</th>
+            <th className="px-5 py-2.5 font-semibold text-ink">Cliente</th>
+            <th className="px-5 py-2.5 font-semibold text-ink">CNPJs</th>
+            <th className="px-5 py-2.5 font-semibold text-ink">Total mensal</th>
+            <th className="px-5 py-2.5 font-semibold text-ink">Situação</th>
             <th className="px-5 py-2.5" />
           </tr>
         </thead>
@@ -88,19 +88,19 @@ export function ReceivablesTable({
 
             return (
               <Fragment key={client.id}>
-                <tr className="border-t border-navy/[.06]">
+                <tr className="border-t border-line-soft">
                   <td className="px-5 py-3">
                     <Link
                       href={`/clientes/${client.id}`}
-                      className="font-semibold text-navy hover:text-blue"
+                      className="font-semibold text-ink hover:text-accent-ink"
                     >
                       {client.name}
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-[#5B647E]">
+                  <td className="px-5 py-3 text-ink-2">
                     {client.charges.length} {client.charges.length === 1 ? "CNPJ" : "CNPJs"}
                   </td>
-                  <td className="px-5 py-3 font-semibold text-navy">
+                  <td className="px-5 py-3 font-semibold text-ink">
                     {client.total > 0 ? formatCurrency(client.total) : "—"}
                   </td>
                   <td className="px-5 py-3">
@@ -121,7 +121,7 @@ export function ReceivablesTable({
                         type="button"
                         onClick={() => toggle(client.id)}
                         aria-expanded={isOpen}
-                        className="inline-flex items-center gap-1 rounded-lg border border-navy/10 px-3 py-1.5 text-xs font-semibold text-navy transition-colors hover:bg-brand-gray"
+                        className="inline-flex items-center gap-1 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink transition-colors hover:bg-panel-2"
                       >
                         {isOpen ? (
                           <ChevronDown className="h-3.5 w-3.5" />
@@ -133,7 +133,7 @@ export function ReceivablesTable({
                     ) : (
                       <Link
                         href={`/clientes/${client.id}/informacoes`}
-                        className="text-xs font-semibold text-blue hover:underline"
+                        className="text-xs font-semibold text-accent-ink hover:underline"
                       >
                         Cadastrar CNPJ
                       </Link>
@@ -145,15 +145,15 @@ export function ReceivablesTable({
                   client.charges.map((charge) => (
                     <tr
                       key={charge.cnpjId}
-                      className="border-t border-navy/[.04] bg-brand-gray/30"
+                      className="border-t border-line-soft bg-panel-2/30"
                     >
                       <td className="py-2.5 pl-10 pr-5">
-                        <p className="text-sm text-navy">{charge.label ?? charge.cnpj}</p>
+                        <p className="text-sm text-ink">{charge.label ?? charge.cnpj}</p>
                         {charge.label && (
-                          <p className="text-xs text-[#94A0BD]">{charge.cnpj}</p>
+                          <p className="text-xs text-ink-3">{charge.cnpj}</p>
                         )}
                       </td>
-                      <td className="px-5 py-2.5 text-xs text-[#5B647E]">
+                      <td className="px-5 py-2.5 text-xs text-ink-2">
                         {charge.stores.length
                           ? charge.stores
                               .map(
@@ -163,9 +163,9 @@ export function ReceivablesTable({
                               .join(" · ")
                           : "Nenhuma loja vinculada"}
                       </td>
-                      <td className="px-5 py-2.5 text-navy">
+                      <td className="px-5 py-2.5 text-ink">
                         {charge.fee ? formatCurrency(Number(charge.fee)) : "—"}
-                        <p className="text-xs text-[#94A0BD]">
+                        <p className="text-xs text-ink-3">
                           vence {formatDate(charge.dueDate)}
                           {charge.paymentMethod ? ` · ${charge.paymentMethod}` : ""}
                         </p>
@@ -177,7 +177,7 @@ export function ReceivablesTable({
                           {STATUS[charge.status].label}
                         </span>
                         {charge.paidOn && (
-                          <p className="mt-1 text-xs text-[#94A0BD]">
+                          <p className="mt-1 text-xs text-ink-3">
                             em {formatDate(charge.paidOn)}
                           </p>
                         )}
@@ -186,7 +186,7 @@ export function ReceivablesTable({
                         {charge.status === "unset" && (
                           <Link
                             href={`/clientes/${client.id}/informacoes`}
-                            className="text-xs font-semibold text-blue hover:underline"
+                            className="text-xs font-semibold text-accent-ink hover:underline"
                           >
                             Definir mensalidade
                           </Link>
@@ -201,7 +201,7 @@ export function ReceivablesTable({
                             />
                             <button
                               type="submit"
-                              className="text-xs font-semibold text-[#94A0BD] transition-colors hover:text-red-600 hover:underline"
+                              className="text-xs font-semibold text-ink-3 transition-colors hover:text-danger hover:underline"
                             >
                               Desfazer
                             </button>
@@ -224,7 +224,7 @@ export function ReceivablesTable({
                             />
                             <button
                               type="submit"
-                              className="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+                              className="rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-accent transition-colors hover:opacity-90"
                             >
                               Marcar como pago
                             </button>
@@ -239,9 +239,9 @@ export function ReceivablesTable({
 
           {!clients.length && (
             <tr>
-              <td colSpan={5} className="px-5 py-10 text-center text-[#94A0BD]">
+              <td colSpan={5} className="px-5 py-10 text-center text-ink-3">
                 Nenhum cliente cadastrado ainda. Cadastre em{" "}
-                <Link href="/clientes" className="font-semibold text-blue hover:underline">
+                <Link href="/clientes" className="font-semibold text-accent-ink hover:underline">
                   Clientes
                 </Link>
                 .

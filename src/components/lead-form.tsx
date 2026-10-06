@@ -8,9 +8,9 @@ import { formatPhone } from "@/lib/masks";
 import { submitLead } from "@/app/contato/actions";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2.5 text-base text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue sm:text-sm";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2.5 text-base text-ink outline-none placeholder:text-ink-3 focus:border-accent sm:text-sm";
 
-const LABEL_CLASS = "text-sm font-semibold text-navy";
+const LABEL_CLASS = "text-sm font-semibold text-ink";
 
 export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
   const [phone, setPhone] = useState("");
@@ -20,15 +20,15 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
   if (state && "ok" in state) {
     return (
       <div className="py-6 text-center">
-        <CheckCircle2 className="mx-auto h-12 w-12 text-green-600" />
-        <h2 className="mt-4 text-lg font-bold text-navy">Recebemos seu contato!</h2>
-        <p className="mt-2 text-sm text-[#5B647E]">
+        <CheckCircle2 className="mx-auto h-12 w-12 text-pos" />
+        <h2 className="mt-4 text-lg font-bold text-ink">Recebemos seu contato!</h2>
+        <p className="mt-2 text-sm text-ink-2">
           Em breve alguém da nossa equipe fala com você pelo WhatsApp.
         </p>
         {toCalculator && (
           <Link
             href="/calculadora"
-            className="mt-6 flex h-11 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+            className="mt-6 flex h-11 items-center justify-center rounded-lg bg-action text-sm font-semibold text-on-accent transition-colors hover:opacity-90"
           >
             Acessar Nossa Calculadora
           </Link>
@@ -40,7 +40,7 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
   return (
     <form action={formAction} className="flex flex-col gap-4">
       {toCalculator && (
-        <p className="rounded-lg bg-blue/10 px-3 py-2.5 text-sm font-semibold text-blue">
+        <p className="rounded-lg bg-accent/10 px-3 py-2.5 text-sm font-semibold text-accent-ink">
           Preencha seus dados para liberar Nossa Calculadora.
         </p>
       )}
@@ -88,7 +88,7 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="company" className={LABEL_CLASS}>
-          Nome da loja ou empresa <span className="font-normal text-[#94A0BD]">(opcional)</span>
+          Nome da loja ou empresa <span className="font-normal text-ink-3">(opcional)</span>
         </label>
         <input
           id="company"
@@ -101,7 +101,7 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
 
       <div className="flex flex-col gap-1.5">
         <span className={LABEL_CLASS}>
-          Onde você já vende? <span className="font-normal text-[#94A0BD]">(opcional)</span>
+          Onde você já vende? <span className="font-normal text-ink-3">(opcional)</span>
         </span>
         <div className="flex flex-wrap gap-2">
           {MARKETPLACES.map((m) => {
@@ -111,8 +111,8 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
                 key={m.value}
                 className={`cursor-pointer rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${
                   checked
-                    ? "border-blue bg-blue/10 text-blue"
-                    : "border-navy/10 text-[#5B647E] hover:border-blue/40"
+                    ? "border-accent bg-accent/10 text-accent-ink"
+                    : "border-line text-ink-2 hover:border-accent/40"
                 }`}
               >
                 <input
@@ -136,7 +136,7 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="message" className={LABEL_CLASS}>
-          Como podemos ajudar? <span className="font-normal text-[#94A0BD]">(opcional)</span>
+          Como podemos ajudar? <span className="font-normal text-ink-3">(opcional)</span>
         </label>
         <textarea
           id="message"
@@ -149,13 +149,13 @@ export function LeadForm({ toCalculator = false }: { toCalculator?: boolean }) {
       </div>
 
       {state && "error" in state && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+        <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{state.error}</p>
       )}
 
       <button
         type="submit"
         disabled={pending}
-        className="mt-1 h-11 rounded-lg bg-navy text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+        className="mt-1 h-11 rounded-lg bg-action text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
       >
         {pending ? "Enviando..." : "Quero falar com a TAKT"}
       </button>

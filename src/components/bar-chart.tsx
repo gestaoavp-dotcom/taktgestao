@@ -48,10 +48,10 @@ export function BarChart({
                 x2={WIDTH - PAD_RIGHT}
                 y1={y}
                 y2={y}
-                stroke="#E8EBEF"
+                stroke="var(--chart-grid)"
                 strokeWidth={1}
               />
-              <text x={PAD_LEFT - 8} y={y} textAnchor="end" dy="3" fontSize="11" fill="#94A0BD">
+              <text x={PAD_LEFT - 8} y={y} textAnchor="end" dy="3" fontSize="11" fill="var(--ink-3)">
                 {valueFormatter(Math.round(max * g))}
               </text>
             </g>
@@ -80,10 +80,10 @@ export function BarChart({
                 width={barW}
                 height={d.value > 0 ? h : 2}
                 rx={2}
-                fill={isHover ? "#132249" : d.value > 0 ? "#2B5FF1" : "#E8EBEF"}
+                fill={isHover ? "var(--chart-2)" : d.value > 0 ? "var(--chart-1)" : "var(--chart-empty)"}
               />
               {i % labelEvery === 0 && (
-                <text x={x + slot / 2} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="#94A0BD">
+                <text x={x + slot / 2} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
                   {d.label}
                 </text>
               )}
@@ -94,13 +94,13 @@ export function BarChart({
 
       {hover !== null && data[hover] && (
         <div
-          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded bg-navy px-2.5 py-1.5 text-xs font-medium text-white shadow-lg"
+          className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded bg-action px-2.5 py-1.5 text-xs font-medium text-on-accent shadow-lg"
           style={{
             left: `${((PAD_LEFT + hover * slot + slot / 2) / WIDTH) * 100}%`,
             top: `${(Math.max(PAD_TOP, PAD_TOP + plotH - (data[hover].value / max) * plotH) / HEIGHT) * 100}%`,
           }}
         >
-          <div className="text-white/70">{data[hover].tooltipLabel}</div>
+          <div className="text-on-accent/70">{data[hover].tooltipLabel}</div>
           <div className="font-display">{valueFormatter(data[hover].value)}</div>
         </div>
       )}

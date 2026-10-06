@@ -15,7 +15,7 @@ export type PendingClient = {
 };
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 function PendingRow({ client }: { client: PendingClient }) {
   const [email, setEmail] = useState(client.email ?? "");
@@ -26,18 +26,18 @@ function PendingRow({ client }: { client: PendingClient }) {
   const done = state && "ok" in state;
 
   return (
-    <li className="border-t border-navy/[.06] py-3 first:border-t-0">
+    <li className="border-t border-line-soft py-3 first:border-t-0">
       <form action={formAction} className="flex flex-wrap items-end gap-3">
         <input type="hidden" name="client_id" value={client.id} />
         <input type="hidden" name="name" value={client.name} />
         <input type="hidden" name="needs_cnpj" value={client.hasCnpj ? "0" : "1"} />
 
-        <p className="w-40 truncate pb-2 text-sm font-semibold text-navy" title={client.name}>
+        <p className="w-40 truncate pb-2 text-sm font-semibold text-ink" title={client.name}>
           {client.name}
         </p>
 
         <label className="flex min-w-[220px] flex-1 flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             E-mail principal
           </span>
           <input
@@ -53,12 +53,12 @@ function PendingRow({ client }: { client: PendingClient }) {
         </label>
 
         {client.hasCnpj ? (
-          <p className="pb-2 text-xs text-[#5B647E]">
-            CNPJ principal <strong className="text-navy">{client.mainCnpj}</strong>
+          <p className="pb-2 text-xs text-ink-2">
+            CNPJ principal <strong className="text-ink">{client.mainCnpj}</strong>
           </p>
         ) : (
           <label className="flex w-48 flex-col gap-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
               CNPJ principal
             </span>
             <input
@@ -79,7 +79,7 @@ function PendingRow({ client }: { client: PendingClient }) {
           <button
             type="submit"
             disabled={pending}
-            className="flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+            className="flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
           >
             <Send className="h-4 w-4" />
             {pending ? "Criando..." : "Salvar e enviar acesso"}
@@ -88,28 +88,28 @@ function PendingRow({ client }: { client: PendingClient }) {
       </form>
 
       {state && "error" in state && (
-        <p className="mt-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+        <p className="mt-2 rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
       )}
       {state && "ok" in state && state.emailSent && (
-        <p className="mt-2 rounded bg-green-50 px-3 py-2 text-xs text-green-800">
+        <p className="mt-2 rounded bg-pos/10 px-3 py-2 text-xs text-pos">
           Acesso criado e link enviado para {email}.
         </p>
       )}
       {state && "ok" in state && !state.emailSent && (
         <div className="mt-2 flex flex-col gap-2">
-          <p className="rounded bg-yellow/20 px-3 py-2 text-xs text-navy">
+          <p className="rounded bg-gold/20 px-3 py-2 text-xs text-ink">
             Acesso criado, mas o e-mail não saiu — mande a mensagem abaixo ao cliente, logo: o
             link vale uma vez só e expira.
           </p>
-          <pre className="whitespace-pre-wrap rounded-lg bg-brand-gray/60 px-4 py-3 font-sans text-xs text-[#5B647E]">
+          <pre className="whitespace-pre-wrap rounded-lg bg-panel-2/60 px-4 py-3 font-sans text-xs text-ink-2">
             {state.message}
           </pre>
           <button
             type="button"
             onClick={() => navigator.clipboard.writeText(state.message).then(() => setCopied(true))}
-            className="flex w-fit items-center gap-2 rounded-lg border border-navy/10 px-3 py-1.5 text-xs font-semibold text-navy hover:bg-brand-gray"
+            className="flex w-fit items-center gap-2 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-panel-2"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? <Check className="h-3.5 w-3.5 text-pos" /> : <Copy className="h-3.5 w-3.5" />}
             {copied ? "Copiado" : "Copiar mensagem"}
           </button>
         </div>
@@ -125,12 +125,12 @@ function PendingRow({ client }: { client: PendingClient }) {
  */
 export function PendingAccess({ clients }: { clients: PendingClient[] }) {
   return (
-    <section className="mb-6 rounded-lg border border-yellow/60 bg-white p-5 shadow-sm">
-      <h2 className="mb-1 flex items-center gap-2 font-bold text-navy">
-        <KeyRound className="h-4 w-4 text-[#94A0BD]" />
+    <section className="mb-6 rounded-lg border border-gold/60 bg-panel p-5 shadow-sm">
+      <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
+        <KeyRound className="h-4 w-4 text-ink-3" />
         Clientes sem acesso ({clients.length})
       </h2>
-      <p className="mb-3 text-xs text-[#5B647E]">
+      <p className="mb-3 text-xs text-ink-2">
         Cadastrados antes do e-mail ser obrigatório. Complete o que falta — o cliente recebe
         o link para criar a própria senha.
       </p>

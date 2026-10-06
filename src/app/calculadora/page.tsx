@@ -13,13 +13,13 @@ export default async function CalculadoraPage() {
   if (!(await cookies()).get(LEAD_COOKIE)) redirect("/contato?para=calculadora");
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-brand-gray px-4 py-10 sm:items-center">
-      <div className="w-full max-w-md rounded-xl border border-navy/10 bg-white p-6 shadow-sm sm:p-8">
+    <div className="flex min-h-screen items-start justify-center bg-surface px-4 py-10 sm:items-center">
+      <div className="w-full max-w-md rounded-xl border border-line bg-panel p-6 shadow-sm sm:p-8">
         <BackLink />
         <div className="mb-6">
           <Logo height={36} />
         </div>
-        <h1 className="text-xl font-bold text-navy">Nossa Calculadora</h1>
+        <h1 className="text-xl font-bold text-ink">Nossa Calculadora</h1>
       </div>
     </div>
   );

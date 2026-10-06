@@ -18,8 +18,8 @@ function formatCurrency(value: number) {
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5">
-      <span className="text-sm text-[#5B647E]">{label}</span>
-      <span className="text-right text-sm font-semibold text-navy">{value}</span>
+      <span className="text-sm text-ink-2">{label}</span>
+      <span className="text-right text-sm font-semibold text-ink">{value}</span>
     </div>
   );
 }
@@ -51,20 +51,20 @@ export default async function BoasVindasPage() {
   const stores = accounts ?? [];
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-brand-gray px-4 py-10 sm:items-center">
-      <div className="w-full max-w-md rounded-xl border border-navy/10 bg-white p-6 shadow-sm sm:p-8">
+    <div className="flex min-h-screen items-start justify-center bg-surface px-4 py-10 sm:items-center">
+      <div className="w-full max-w-md rounded-xl border border-line bg-panel p-6 shadow-sm sm:p-8">
         <div className="mb-6">
           <Logo height={36} />
         </div>
-        <h1 className="text-xl font-bold text-navy">
+        <h1 className="text-xl font-bold text-ink">
           Bem-vindo{client?.name ? `, ${client.name}` : ""}!
         </h1>
-        <p className="mb-6 mt-2 text-sm text-[#5B647E]">
+        <p className="mb-6 mt-2 text-sm text-ink-2">
           Seu acesso está pronto. Confira os dados que cadastramos para você — se algo
           estiver diferente, é só falar com a equipe TAKT.
         </p>
 
-        <div className="divide-y divide-navy/[.06] border-y border-navy/[.06]">
+        <div className="divide-y divide-navy/[.06] border-y border-line-soft">
           <Row label="Empresa" value={client?.name ?? "—"} />
           <Row label="E-mail principal" value={client?.contact_email ?? profile.email ?? "—"} />
           {client?.contact_phone && <Row label="Telefone" value={client.contact_phone} />}
@@ -80,7 +80,7 @@ export default async function BoasVindasPage() {
                   {stores.map((s) => (
                     <span
                       key={s.id}
-                      className="rounded-full bg-blue/10 px-2 py-0.5 text-[11px] font-semibold text-blue"
+                      className="rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent-ink"
                     >
                       {MARKETPLACE_LABEL[s.marketplace] ?? s.marketplace}
                     </span>
@@ -103,7 +103,7 @@ export default async function BoasVindasPage() {
 
         <Link
           href="/clientes"
-          className="mt-6 flex h-11 items-center justify-center rounded-lg bg-navy text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+          className="mt-6 flex h-11 items-center justify-center rounded-lg bg-action text-sm font-semibold text-on-accent transition-colors hover:opacity-90"
         >
           Ir para minha área
         </Link>

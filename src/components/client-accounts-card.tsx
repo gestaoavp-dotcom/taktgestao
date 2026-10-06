@@ -9,7 +9,7 @@ import { formatCnpj } from "@/lib/masks";
 import { addAccount, deleteAccount, updateAccount } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 const CNPJ_LIST_ID = "cnpjs-do-cliente";
 
@@ -67,7 +67,7 @@ function EditAccountForm({
           type="submit"
           disabled={pending}
           aria-label="Salvar"
-          className="rounded p-1.5 text-green-600 hover:bg-green-50 disabled:opacity-60"
+          className="rounded p-1.5 text-pos hover:bg-pos/10 disabled:opacity-60"
         >
           <Check className="h-4 w-4" />
         </button>
@@ -75,13 +75,13 @@ function EditAccountForm({
           type="button"
           onClick={onDone}
           aria-label="Cancelar"
-          className="rounded p-1.5 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+          className="rounded p-1.5 text-ink-3 hover:bg-panel-2 hover:text-ink"
         >
           <X className="h-4 w-4" />
         </button>
       </div>
       {state && "error" in state && (
-        <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+        <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
       )}
     </form>
   );
@@ -121,9 +121,9 @@ export function ClientAccountsCard({
   );
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-1 font-bold text-navy">Contas gerenciadas</h2>
-      <p className="mb-4 text-xs text-[#94A0BD]">
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
+      <h2 className="mb-1 font-bold text-ink">Contas gerenciadas</h2>
+      <p className="mb-4 text-xs text-ink-3">
         {accounts.length} {accounts.length === 1 ? "conta" : "contas"} em {linkedCnpjs.size}{" "}
         {linkedCnpjs.size === 1 ? "CNPJ" : "CNPJs"}. Lojas podem compartilhar o mesmo CNPJ —
         digite o mesmo número para vinculá-las.
@@ -138,7 +138,7 @@ export function ClientAccountsCard({
       </datalist>
 
       {sorted.length > 0 && (
-        <ul className="mb-4 divide-y divide-navy/[.06] border-t border-navy/[.06]">
+        <ul className="mb-4 divide-y divide-navy/[.06] border-t border-line-soft">
           {sorted.map((account) =>
             editingId === account.id ? (
               <li key={account.id} className="flex items-center gap-3">
@@ -155,10 +155,10 @@ export function ClientAccountsCard({
               <li key={account.id} className="group flex items-center gap-3 py-2.5">
                 <MarketplaceBadge marketplace={account.marketplace} />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-navy">
+                  <p className="truncate text-sm font-semibold text-ink">
                     {account.store_name}
                   </p>
-                  <p className="text-xs text-[#94A0BD]">
+                  <p className="text-xs text-ink-3">
                     {account.cnpj_id
                       ? (cnpjById.get(account.cnpj_id)?.cnpj ?? "CNPJ removido")
                       : "Sem CNPJ"}
@@ -168,7 +168,7 @@ export function ClientAccountsCard({
                   type="button"
                   onClick={() => setEditingId(account.id)}
                   aria-label={`Editar ${account.store_name}`}
-                  className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-brand-gray hover:text-navy focus:opacity-100 group-hover:opacity-100"
+                  className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-panel-2 hover:text-ink focus:opacity-100 group-hover:opacity-100"
                 >
                   <Pencil className="h-4 w-4" />
                 </button>
@@ -178,7 +178,7 @@ export function ClientAccountsCard({
                   <button
                     type="submit"
                     aria-label={`Remover ${account.store_name}`}
-                    className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                    className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -205,7 +205,7 @@ export function ClientAccountsCard({
         <CnpjField />
 
         {state && "error" in state && (
-          <p className="col-span-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p className="col-span-3 rounded bg-danger/10 px-3 py-2 text-xs text-danger">
             {state.error}
           </p>
         )}
@@ -213,7 +213,7 @@ export function ClientAccountsCard({
         <button
           type="submit"
           disabled={pending}
-          className="col-span-3 flex items-center justify-center gap-2 rounded-lg border border-navy/10 py-2 text-sm font-semibold text-navy transition-colors hover:bg-brand-gray disabled:opacity-60"
+          className="col-span-3 flex items-center justify-center gap-2 rounded-lg border border-line py-2 text-sm font-semibold text-ink transition-colors hover:bg-panel-2 disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />
           {pending ? "Adicionando..." : "Adicionar loja"}

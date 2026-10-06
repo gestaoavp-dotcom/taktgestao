@@ -135,21 +135,21 @@ export default async function ResumoPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-end">
-        <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg bg-panel p-1 shadow-sm">
           <Link
             href={`/financas/resumo?mes=${shiftMonth(anchor, -1)}`}
             aria-label="Mês anterior"
-            className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="rounded p-1.5 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
-          <span className="min-w-[220px] text-center text-sm font-semibold text-navy">
+          <span className="min-w-[220px] text-center text-sm font-semibold text-ink">
             últimos 6 meses até {monthLabel(anchor)}
           </span>
           <Link
             href={`/financas/resumo?mes=${shiftMonth(anchor, 1)}`}
             aria-label="Próximo mês"
-            className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="rounded p-1.5 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -157,44 +157,44 @@ export default async function ResumoPage({
       </div>
 
       <div className="mb-6 grid grid-cols-3 gap-4">
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Recebido no mês</p>
-          <p className="text-2xl font-bold text-green-700">{formatCurrency(current.recebido)}</p>
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">Recebido no mês</p>
+          <p className="text-2xl font-bold text-pos">{formatCurrency(current.recebido)}</p>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Despesas fixas</p>
-          <p className="text-2xl font-bold text-navy">{formatCurrency(current.fixed)}</p>
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">Despesas fixas</p>
+          <p className="text-2xl font-bold text-ink">{formatCurrency(current.fixed)}</p>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Despesas variáveis</p>
-          <p className="text-2xl font-bold text-navy">{formatCurrency(current.variable)}</p>
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">Despesas variáveis</p>
+          <p className="text-2xl font-bold text-ink">{formatCurrency(current.variable)}</p>
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Recebido x despesas</h2>
-        <p className="mb-4 text-xs text-[#94A0BD]">
+      <div className="mb-6 rounded-lg bg-panel p-5 shadow-sm">
+        <h2 className="mb-1 font-bold text-ink">Recebido x despesas</h2>
+        <p className="mb-4 text-xs text-ink-3">
           Últimos 6 meses, despesas separadas entre fixas e variáveis.
         </p>
         <CashflowChart months={months} />
       </div>
 
-      <div className="rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">Sugestão de caixa</h2>
-        <p className="mb-4 text-xs text-[#94A0BD]">
+      <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <h2 className="mb-1 font-bold text-ink">Sugestão de caixa</h2>
+        <p className="mb-4 text-xs text-ink-3">
           Só uma sugestão, não uma obrigação — varia entre 5% e 20% do recebido do mês.
           Recebido e despesas pesam igual: um mês bom (recebido alto, despesas baixas)
           puxa a sugestão para cima, um mês apertado puxa para baixo.
         </p>
         <div className="flex flex-wrap items-end gap-x-3 gap-y-1">
-          <p className="text-3xl font-bold text-navy">{suggestedPct.toFixed(0)}%</p>
-          <p className="pb-1 text-sm text-[#5B647E]">
+          <p className="text-3xl font-bold text-ink">{suggestedPct.toFixed(0)}%</p>
+          <p className="pb-1 text-sm text-ink-2">
             do recebido em {monthLabel(anchor)} ≈{" "}
-            <strong className="text-navy">{formatCurrency(suggestedAmount)}</strong>
+            <strong className="text-ink">{formatCurrency(suggestedAmount)}</strong>
           </p>
         </div>
         {revenueTrend !== null && expenseTrend !== null ? (
-          <p className="mt-2 text-xs text-[#5B647E]">
+          <p className="mt-2 text-xs text-ink-2">
             Recebido{" "}
             {revenueTrend === "up"
               ? "acima"
@@ -206,7 +206,7 @@ export default async function ResumoPage({
             do normal — os dois pesaram igual nessa sugestão.
           </p>
         ) : (
-          <p className="mt-2 text-xs text-[#5B647E]">
+          <p className="mt-2 text-xs text-ink-2">
             Ainda sem histórico suficiente para comparar — usando o valor base.
           </p>
         )}

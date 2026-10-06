@@ -8,7 +8,7 @@ export function MarketplaceBadge({ marketplace }: { marketplace: string }) {
     <span
       title={label}
       className={`rounded px-1.5 py-0.5 text-[10px] font-bold leading-none ${
-        badge?.className ?? "bg-brand-gray text-navy"
+        badge?.className ?? "bg-panel-2 text-ink"
       }`}
     >
       {badge?.short ?? label}

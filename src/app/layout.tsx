@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Nunito_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import { InlineScript } from "@/components/inline-script";
 import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
-const nunitoSans = Nunito_Sans({
-  variable: "--font-nunito-sans",
-  weight: ["400", "600", "700", "800"],
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
+  weight: ["300", "400", "500", "600", "700", "800"],
   subsets: ["latin"],
 });
 
@@ -23,10 +24,32 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Settles the theme before the first paint.
+ *
+ * The attribute has to be on <html> by the time the browser draws, or a dark
+ * user watches a white page flash first. Nothing here can wait for React, so
+ * it is a blocking script — small enough to cost nothing, and it fails into
+ * the light theme if storage is unavailable.
+ */
+const THEME_SCRIPT = `(function(){try{
+var t=localStorage.getItem("takt-tema");
+if(t!=="dark"&&t!=="light"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}
+document.documentElement.setAttribute("data-theme",t);
+}catch(e){}})()`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="pt-BR" className={`${nunitoSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html
+      lang="pt-BR"
+      data-theme="light"
+      className={`${jakarta.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <InlineScript html={THEME_SCRIPT} />
+      </head>
+      <body className="flex min-h-full flex-col">{children}</body>
     </html>
   );
 }

@@ -7,9 +7,9 @@ export type MonthPoint = {
 };
 
 const COLORS = {
-  recebido: "#2b5ff1",
-  fixed: "#132249",
-  variable: "#f1bf44",
+  recebido: "var(--chart-1)",
+  fixed: "var(--chart-2)",
+  variable: "var(--chart-3)",
 };
 
 function formatCompactCurrency(value: number) {
@@ -50,8 +50,8 @@ export function CashflowChart({ months }: { months: MonthPoint[] }) {
           const y = bottom - step * plotHeight;
           return (
             <g key={step}>
-              <line x1={left} y1={y} x2={width - right} y2={y} stroke="#e8ebef" strokeWidth={1} />
-              <text x={left - 8} y={y + 4} textAnchor="end" fontSize={10} fill="#94A0BD">
+              <line x1={left} y1={y} x2={width - right} y2={y} stroke="var(--chart-grid)" strokeWidth={1} />
+              <text x={left - 8} y={y + 4} textAnchor="end" fontSize={10} fill="var(--ink-3)">
                 {formatCompactCurrency(max * step)}
               </text>
             </g>
@@ -88,7 +88,7 @@ export function CashflowChart({ months }: { months: MonthPoint[] }) {
                 y={height - 8}
                 textAnchor="middle"
                 fontSize={11}
-                fill="#5B647E"
+                fill="var(--ink-2)"
               >
                 {m.label}
               </text>
@@ -97,7 +97,7 @@ export function CashflowChart({ months }: { months: MonthPoint[] }) {
         })}
       </svg>
 
-      <div className="mt-2 flex items-center justify-center gap-5 text-xs text-[#5B647E]">
+      <div className="mt-2 flex items-center justify-center gap-5 text-xs text-ink-2">
         <span className="flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.recebido }} />
           Recebido

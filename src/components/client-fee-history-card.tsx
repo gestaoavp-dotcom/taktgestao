@@ -22,23 +22,23 @@ export function ClientFeeHistoryCard({
   const cnpjById = new Map(cnpjs.map((c) => [c.id, c]));
 
   return (
-    <section className="overflow-hidden rounded-lg bg-white shadow-sm">
-      <div className="border-b border-navy/[.08] px-5 py-4">
-        <h2 className="font-bold text-navy">Histórico de reajustes</h2>
-        <p className="text-xs text-[#94A0BD]">
+    <section className="overflow-hidden rounded-lg bg-panel shadow-sm">
+      <div className="border-b border-line px-5 py-4">
+        <h2 className="font-bold text-ink">Histórico de reajustes</h2>
+        <p className="text-xs text-ink-3">
           Toda alteração no valor cobrado, com a data em que passou a valer.
         </p>
       </div>
 
       {feeChanges.length > 0 ? (
         <table className="w-full text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-5 py-2.5 font-semibold text-navy">Data</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">CNPJ</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">De</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Para</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Observação</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Data</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">CNPJ</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">De</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Para</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Observação</th>
             </tr>
           </thead>
           <tbody>
@@ -46,30 +46,30 @@ export function ClientFeeHistoryCard({
               const cnpj = cnpjById.get(change.cnpj_id);
 
               return (
-                <tr key={change.id} className="border-t border-navy/[.06]">
-                  <td className="whitespace-nowrap px-5 py-2.5 text-navy">
+                <tr key={change.id} className="border-t border-line-soft">
+                  <td className="whitespace-nowrap px-5 py-2.5 text-ink">
                     {formatDate(change.effective_on)}
                   </td>
                   <td className="px-5 py-2.5">
-                    <span className="text-navy">{cnpj?.label ?? "—"}</span>
-                    {cnpj && <p className="text-xs text-[#94A0BD]">{cnpj.cnpj}</p>}
+                    <span className="text-ink">{cnpj?.label ?? "—"}</span>
+                    {cnpj && <p className="text-xs text-ink-3">{cnpj.cnpj}</p>}
                   </td>
-                  <td className="px-5 py-2.5 text-[#5B647E]">
+                  <td className="px-5 py-2.5 text-ink-2">
                     {change.previous_amount !== null
                       ? formatCurrency(Number(change.previous_amount))
                       : "—"}
                   </td>
-                  <td className="px-5 py-2.5 font-semibold text-navy">
+                  <td className="px-5 py-2.5 font-semibold text-ink">
                     {formatCurrency(Number(change.amount))}
                   </td>
-                  <td className="px-5 py-2.5 text-[#5B647E]">{change.note ?? "—"}</td>
+                  <td className="px-5 py-2.5 text-ink-2">{change.note ?? "—"}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
       ) : (
-        <p className="px-5 py-8 text-center text-sm text-[#94A0BD]">
+        <p className="px-5 py-8 text-center text-sm text-ink-3">
           Nenhum reajuste registrado ainda. Ao mudar a mensalidade de um CNPJ no card
           Financeiro, o registro aparece aqui.
         </p>

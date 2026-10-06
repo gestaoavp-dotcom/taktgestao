@@ -40,9 +40,9 @@ const STATUS_LABEL: Record<SalesReport["status"], string> = {
 };
 
 const STATUS_BADGE: Record<SalesReport["status"], string> = {
-  recebido: "bg-brand-gray text-navy",
-  processado: "bg-green-100 text-green-700",
-  erro: "bg-red-50 text-red-700",
+  recebido: "bg-panel-2 text-ink",
+  processado: "bg-pos/15 text-pos",
+  erro: "bg-danger/10 text-danger",
 };
 
 const KINDS: { value: SalesReportKind; label: string; hint: string }[] = [
@@ -624,10 +624,10 @@ export function SalesReportsCard({
     from.slice(0, 7) !== to.slice(0, 7);
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-sm">
-      <h2 className="mb-3 font-bold text-navy">Importar documentos</h2>
+    <div className="rounded-lg bg-panel p-6 shadow-sm">
+      <h2 className="mb-3 font-bold text-ink">Importar documentos</h2>
 
-      <nav className="mb-3 flex gap-1 border-b border-navy/[.08]">
+      <nav className="mb-3 flex gap-1 border-b border-line">
         {KINDS.map((k) => (
           <button
             key={k.value}
@@ -635,8 +635,8 @@ export function SalesReportsCard({
             onClick={() => setKind(k.value)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold transition-colors ${
               kind === k.value
-                ? "border-blue text-blue"
-                : "border-transparent text-[#5B647E] hover:text-navy"
+                ? "border-accent text-accent-ink"
+                : "border-transparent text-ink-2 hover:text-ink"
             }`}
           >
             {k.label}
@@ -644,7 +644,7 @@ export function SalesReportsCard({
         ))}
       </nav>
 
-      <p className="mb-4 text-xs text-[#94A0BD]">
+      <p className="mb-4 text-xs text-ink-3">
         {KINDS.find((k) => k.value === kind)?.hint}
         {hasParser
           ? ` — os dados são lidos automaticamente e aparecem na aba ${effectiveKind === "ads" ? "Ads" : effectiveKind === "trafego" ? "Tráfego" : effectiveKind === "produtos" ? "Produtos" : "Pedidos"}.`
@@ -662,8 +662,8 @@ export function SalesReportsCard({
             }}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               marketplace === m
-                ? "bg-navy text-white"
-                : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                ? "bg-action text-on-accent"
+                : "border border-line text-ink-2 hover:bg-panel-2"
             }`}
           >
             {MARKETPLACE_LABEL[m] ?? m}
@@ -673,7 +673,7 @@ export function SalesReportsCard({
 
       {stores.length > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             Loja
           </span>
           {stores.map((a) => (
@@ -683,8 +683,8 @@ export function SalesReportsCard({
               onClick={() => setAccountId(a.id)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 accountId === a.id
-                  ? "bg-blue text-white"
-                  : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                  ? "bg-accent text-on-accent"
+                  : "border border-line text-ink-2 hover:bg-panel-2"
               }`}
             >
               {a.store_name}
@@ -701,7 +701,7 @@ export function SalesReportsCard({
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {byPeriod ? (
           <>
-            <span className="text-sm text-[#5B647E]">De</span>
+            <span className="text-sm text-ink-2">De</span>
             <div className="w-36">
               <DateField
                 key={`de-${from}`}
@@ -711,7 +711,7 @@ export function SalesReportsCard({
                 onChange={(value) => value && setFrom(value)}
               />
             </div>
-            <span className="text-sm text-[#5B647E]">até</span>
+            <span className="text-sm text-ink-2">até</span>
             <div className="w-36">
               <DateField
                 key={`ate-${to}`}
@@ -727,7 +727,7 @@ export function SalesReportsCard({
         <select
           value={month}
           onChange={(e) => setMonth(Number(e.target.value))}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           {MONTHS.map((m, i) => (
             <option key={m} value={i + 1}>
@@ -738,7 +738,7 @@ export function SalesReportsCard({
         <select
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           {Array.from({ length: 4 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
             <option key={y} value={y}>
@@ -749,7 +749,7 @@ export function SalesReportsCard({
           </>
         )}
 
-        <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/20 py-2.5 text-sm font-semibold text-[#5B647E] transition-colors hover:border-blue hover:text-blue">
+        <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line py-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent-ink">
           <Upload className="h-4 w-4" />
           {uploading && !replacingId
             ? "Enviando..."
@@ -778,51 +778,51 @@ export function SalesReportsCard({
       {/* What happens to a file holding more than one month — common on a
           client's first import — differs by report, so it is said up front. */}
       {marketplace === "amazon" && byPeriod && (
-        <p className="mb-3 text-xs text-[#94A0BD]">
+        <p className="mb-3 text-xs text-ink-3">
           Amazon: o relatório de pedidos (.txt, em Relatórios → Pedidos → Todos os pedidos) traz
           cada venda com a data — é o que alimenta o faturamento dia a dia e pode ter vários meses.
           A planilha de produtos traz as tarifas da Amazon, para a margem.
         </p>
       )}
       {amazonSpansMonths && (
-        <p className="mb-3 rounded bg-yellow/10 px-3 py-2 text-xs text-[#5B647E]">
+        <p className="mb-3 rounded bg-gold/10 px-3 py-2 text-xs text-ink-2">
           Esse relatório da Amazon não separa as vendas por mês: com mais de um mês, ele só entra
           nos totais quando o período escolhido no Dashboard cobrir essas datas inteiras. Para ver
           mês a mês, envie um arquivo por mês.
         </p>
       )}
       {effectiveKind === "ads" && marketplace === "mercado_livre" && (
-        <p className="mb-3 text-xs text-[#94A0BD]">
+        <p className="mb-3 text-xs text-ink-3">
           Arquivo com mais de um mês? Escolha o primeiro mês dele: cada semana vai para o seu mês.
         </p>
       )}
       {(effectiveKind === "trafego" || (effectiveKind === "ads" && marketplace !== "mercado_livre")) && (
-        <p className="mb-3 text-xs text-[#94A0BD]">
+        <p className="mb-3 text-xs text-ink-3">
           Esse relatório soma o período inteiro sem separar por mês: envie um arquivo por mês.
         </p>
       )}
 
-      {error && <p className="mb-3 rounded bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
+      {error && <p className="mb-3 rounded bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
 
       {grouped.length > 0 ? (
         <div className="divide-y divide-navy/[.06]">
           {grouped.map(([monthKey, monthReports]) => (
             <div key={monthKey} className="py-3">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
                 {monthLabel(monthReports[0].report_month)}
               </p>
               <ul className="flex flex-col gap-2">
                 {monthReports.map((report) => (
                   <li
                     key={report.id}
-                    className="group flex items-center gap-3 rounded-lg bg-brand-gray/40 px-3 py-2"
+                    className="group flex items-center gap-3 rounded-lg bg-panel-2/40 px-3 py-2"
                   >
-                    <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-[#94A0BD]" />
+                    <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-ink-3" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm text-navy" title={report.name}>
+                      <p className="truncate text-sm text-ink" title={report.name}>
                         {report.name}
                       </p>
-                      <p className="text-xs text-[#94A0BD]">
+                      <p className="text-xs text-ink-3">
                         {formatDate(report.created_at)} · {formatSize(report.size)}
                         {report.period_start && report.period_end
                           ? ` · ${formatShort(report.period_start)} a ${formatShort(report.period_end)}`
@@ -844,7 +844,7 @@ export function SalesReportsCard({
                       disabled={uploading}
                       aria-label={`Substituir ${report.name}`}
                       title="Substituir arquivo"
-                      className="rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-white hover:text-navy disabled:opacity-40"
+                      className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink disabled:opacity-40"
                     >
                       <RefreshCw className="h-4 w-4" />
                     </button>
@@ -852,7 +852,7 @@ export function SalesReportsCard({
                       type="button"
                       onClick={() => handleDownload(report.path)}
                       aria-label={`Baixar ${report.name}`}
-                      className="rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-white hover:text-navy"
+                      className="rounded p-1.5 text-ink-3 transition-colors hover:bg-panel hover:text-ink"
                     >
                       <Download className="h-4 w-4" />
                     </button>
@@ -863,7 +863,7 @@ export function SalesReportsCard({
                       <button
                         type="submit"
                         aria-label={`Excluir ${report.name}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                        className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -875,7 +875,7 @@ export function SalesReportsCard({
           ))}
         </div>
       ) : (
-        <p className="mt-2 text-sm text-[#94A0BD]">
+        <p className="mt-2 text-sm text-ink-3">
           Nenhum documento de {KINDS.find((k) => k.value === kind)?.label.toLowerCase()} enviado
           ainda para {MARKETPLACE_LABEL[marketplace] ?? marketplace}.
         </p>

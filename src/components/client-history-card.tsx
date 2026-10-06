@@ -7,7 +7,7 @@ import { addUpdate, deleteUpdate } from "@/app/(dashboard)/clientes/[id]/actions
 import { DateField } from "@/components/date-field";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 function formatDate(date: string) {
   const [y, m, d] = date.split("-");
@@ -34,8 +34,8 @@ export function ClientHistoryCard({
   );
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
-      <h2 className="mb-4 font-bold text-navy">Histórico</h2>
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
+      <h2 className="mb-4 font-bold text-ink">Histórico</h2>
 
       <form ref={formRef} action={formAction} className="mb-6 flex flex-col gap-3">
         <input type="hidden" name="client_id" value={clientId} />
@@ -47,8 +47,8 @@ export function ClientHistoryCard({
             onClick={() => setKind("update")}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               kind === "update"
-                ? "bg-blue text-white"
-                : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                ? "bg-accent text-on-accent"
+                : "border border-line text-ink-2 hover:bg-panel-2"
             }`}
           >
             <MessageSquare className="h-3.5 w-3.5" />
@@ -59,8 +59,8 @@ export function ClientHistoryCard({
             onClick={() => setKind("meeting")}
             className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               kind === "meeting"
-                ? "bg-blue text-white"
-                : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                ? "bg-accent text-on-accent"
+                : "border border-line text-ink-2 hover:bg-panel-2"
             }`}
           >
             <CalendarDays className="h-3.5 w-3.5" />
@@ -95,25 +95,25 @@ export function ClientHistoryCard({
         />
 
         {state && "error" in state && (
-          <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+          <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
         )}
 
         <button
           type="submit"
           disabled={pending}
-          className="self-start rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+          className="self-start rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
         >
           {pending ? "Publicando..." : "Publicar"}
         </button>
       </form>
 
       {updates.length > 0 ? (
-        <ol className="flex flex-col gap-4 border-t border-navy/[.06] pt-5">
+        <ol className="flex flex-col gap-4 border-t border-line-soft pt-5">
           {updates.map((update) => (
             <li key={update.id} className="group flex gap-3">
               <div
                 className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                  update.kind === "meeting" ? "bg-yellow/20 text-navy" : "bg-blue/10 text-blue"
+                  update.kind === "meeting" ? "bg-gold/20 text-ink" : "bg-accent/10 text-accent-ink"
                 }`}
               >
                 {update.kind === "meeting" ? (
@@ -125,13 +125,13 @@ export function ClientHistoryCard({
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-baseline gap-2">
-                  <p className="font-semibold text-navy">{update.title}</p>
-                  <span className="text-xs text-[#94A0BD]">
+                  <p className="font-semibold text-ink">{update.title}</p>
+                  <span className="text-xs text-ink-3">
                     {formatDate(update.happened_on)}
                   </span>
                 </div>
                 {update.body && (
-                  <p className="mt-1 whitespace-pre-line text-sm text-[#5B647E]">
+                  <p className="mt-1 whitespace-pre-line text-sm text-ink-2">
                     {update.body}
                   </p>
                 )}
@@ -143,7 +143,7 @@ export function ClientHistoryCard({
                 <button
                   type="submit"
                   aria-label={`Excluir ${update.title}`}
-                  className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                  className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -152,7 +152,7 @@ export function ClientHistoryCard({
           ))}
         </ol>
       ) : (
-        <p className="border-t border-navy/[.06] pt-5 text-sm text-[#94A0BD]">
+        <p className="border-t border-line-soft pt-5 text-sm text-ink-3">
           Nenhuma atualização publicada ainda.
         </p>
       )}

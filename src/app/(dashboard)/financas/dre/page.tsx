@@ -130,11 +130,11 @@ export default async function DrePage({
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-end gap-3">
-        <div className="flex items-center gap-1 rounded-lg bg-white p-1 shadow-sm">
+        <div className="flex items-center gap-1 rounded-lg bg-panel p-1 shadow-sm">
           <Link
             href={monthlyToggleHref}
             className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
-              view === "mensal" ? "bg-blue text-white" : "text-[#5B647E] hover:bg-brand-gray"
+              view === "mensal" ? "bg-accent text-on-accent" : "text-ink-2 hover:bg-panel-2"
             }`}
           >
             Mensal
@@ -142,14 +142,14 @@ export default async function DrePage({
           <Link
             href={annualToggleHref}
             className={`rounded px-3 py-1.5 text-xs font-semibold transition-colors ${
-              view === "anual" ? "bg-blue text-white" : "text-[#5B647E] hover:bg-brand-gray"
+              view === "anual" ? "bg-accent text-on-accent" : "text-ink-2 hover:bg-panel-2"
             }`}
           >
             Anual
           </Link>
         </div>
 
-        <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg bg-panel p-1 shadow-sm">
           <Link
             href={
               view === "anual"
@@ -157,11 +157,11 @@ export default async function DrePage({
                 : `/financas/dre?visao=mensal&mes=${shiftMonth(anchor, -1)}`
             }
             aria-label={view === "anual" ? "Ano anterior" : "Mês anterior"}
-            className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="rounded p-1.5 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
-          <span className="min-w-[150px] text-center text-sm font-semibold text-navy">
+          <span className="min-w-[150px] text-center text-sm font-semibold text-ink">
             {view === "anual" ? year : monthLabel(anchor)}
           </span>
           <Link
@@ -171,45 +171,45 @@ export default async function DrePage({
                 : `/financas/dre?visao=mensal&mes=${shiftMonth(anchor, 1)}`
             }
             aria-label={view === "anual" ? "Próximo ano" : "Próximo mês"}
-            className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="rounded p-1.5 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
       </div>
 
-      <div className="rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">{resultLabel}</h2>
-        <p className="mb-4 text-xs text-[#94A0BD]">
+      <div className="rounded-lg bg-panel p-5 shadow-sm">
+        <h2 className="mb-1 font-bold text-ink">{resultLabel}</h2>
+        <p className="mb-4 text-xs text-ink-3">
           Receita, impostos e despesas de {periodLabel}, na ponta do lápis.
         </p>
 
         <div className="divide-y divide-navy/[.06]">
           <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-navy">Receita bruta (recebido)</span>
-            <span className="text-sm font-semibold text-navy">
+            <span className="text-sm text-ink">Receita bruta (recebido)</span>
+            <span className="text-sm font-semibold text-ink">
               {formatCurrency(current.recebido)}
             </span>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-[#5B647E]">
+            <span className="text-sm text-ink-2">
               (–) Impostos{taxSettings ? ` (${taxSettings.rate_percent}%)` : ""}
             </span>
-            <span className="text-sm text-red-700">-{formatCurrency(current.imposto)}</span>
+            <span className="text-sm text-danger">-{formatCurrency(current.imposto)}</span>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-[#5B647E]">(–) Despesas fixas</span>
-            <span className="text-sm text-red-700">-{formatCurrency(current.fixas)}</span>
+            <span className="text-sm text-ink-2">(–) Despesas fixas</span>
+            <span className="text-sm text-danger">-{formatCurrency(current.fixas)}</span>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <span className="text-sm text-[#5B647E]">(–) Despesas variáveis</span>
-            <span className="text-sm text-red-700">-{formatCurrency(current.variaveis)}</span>
+            <span className="text-sm text-ink-2">(–) Despesas variáveis</span>
+            <span className="text-sm text-danger">-{formatCurrency(current.variaveis)}</span>
           </div>
           <div className="flex items-center justify-between py-3">
-            <span className="font-bold text-navy">Resultado líquido</span>
+            <span className="font-bold text-ink">Resultado líquido</span>
             <span
               className={`text-lg font-bold ${
-                current.resultado >= 0 ? "text-green-700" : "text-red-700"
+                current.resultado >= 0 ? "text-pos" : "text-danger"
               }`}
             >
               {formatCurrency(current.resultado)}
@@ -217,11 +217,11 @@ export default async function DrePage({
           </div>
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-lg bg-brand-gray/50 px-4 py-3">
-          <span className="text-sm font-semibold text-navy">Margem líquida</span>
+        <div className="mt-4 flex items-center justify-between rounded-lg bg-panel-2/50 px-4 py-3">
+          <span className="text-sm font-semibold text-ink">Margem líquida</span>
           <span
             className={`text-xl font-bold ${
-              current.marginPct >= 0 ? "text-green-700" : "text-red-700"
+              current.marginPct >= 0 ? "text-pos" : "text-danger"
             }`}
           >
             {formatPercent(current.marginPct)}
@@ -229,26 +229,26 @@ export default async function DrePage({
         </div>
       </div>
 
-      <div className="mt-6 rounded-lg bg-white p-5 shadow-sm">
-        <h2 className="mb-1 font-bold text-navy">{trendLabel}</h2>
-        <p className="mb-4 text-xs text-[#94A0BD]">
+      <div className="mt-6 rounded-lg bg-panel p-5 shadow-sm">
+        <h2 className="mb-1 font-bold text-ink">{trendLabel}</h2>
+        <p className="mb-4 text-xs text-ink-3">
           Resultado líquido sobre a receita bruta, mês a mês.
         </p>
         <div className="flex flex-col gap-2.5">
           {months.map((m) => (
             <div key={m.key} className="flex items-center gap-3">
-              <span className="w-10 text-xs text-[#5B647E]">{m.label}</span>
-              <div className="h-2 flex-1 overflow-hidden rounded-full bg-brand-gray">
+              <span className="w-10 text-xs text-ink-2">{m.label}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-panel-2">
                 <div
                   className={`h-full rounded-full ${
-                    m.marginPct >= 0 ? "bg-green-600" : "bg-red-600"
+                    m.marginPct >= 0 ? "bg-pos" : "bg-danger"
                   }`}
                   style={{ width: `${Math.min(100, Math.abs(m.marginPct))}%` }}
                 />
               </div>
               <span
                 className={`w-16 text-right text-xs font-semibold ${
-                  m.marginPct >= 0 ? "text-green-700" : "text-red-700"
+                  m.marginPct >= 0 ? "text-pos" : "text-danger"
                 }`}
               >
                 {formatPercent(m.marginPct)}

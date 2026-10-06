@@ -39,11 +39,11 @@ export function NavLinks({ team = true }: { team?: boolean }) {
         key={link.href}
         href={link.href}
         className={`relative flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-          isActive ? "bg-blue text-white" : "text-[#5B647E] hover:bg-brand-gray/60"
+          isActive ? "bg-accent text-on-accent" : "text-ink-2 hover:bg-panel-2/60"
         }`}
       >
         {isActive && (
-          <span className="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r bg-blue" />
+          <span className="absolute -left-4 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r bg-accent" />
         )}
         <Icon className="h-[18px] w-[18px]" />
         {link.label}
@@ -57,7 +57,7 @@ export function NavLinks({ team = true }: { team?: boolean }) {
 
       {team && (
         <>
-          <div className="my-2 border-t border-navy/[.08]" />
+          <div className="my-2 border-t border-line" />
           {render(SETTINGS)}
         </>
       )}

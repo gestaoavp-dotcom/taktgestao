@@ -41,7 +41,7 @@ const MONTHS = [
 ];
 
 const CELL_INPUT_CLASS =
-  "w-20 rounded border border-navy/10 bg-white px-1.5 py-1 text-right text-xs text-navy outline-none focus:border-blue";
+  "w-20 rounded border border-line bg-panel px-1.5 py-1 text-right text-xs text-ink outline-none focus:border-accent";
 
 function monthLabel(reportMonth: string) {
   const [y, m] = reportMonth.split("-").map(Number);
@@ -54,8 +54,8 @@ function formatDate(date: string) {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  Concluído: "bg-green-100 text-green-700",
-  Cancelado: "bg-red-50 text-red-700",
+  Concluído: "bg-pos/15 text-pos",
+  Cancelado: "bg-danger/10 text-danger",
 };
 
 function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
@@ -79,16 +79,16 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
 
   if (!order.raw && order.marketplace === "__nunca__") {
     return (
-      <p className="px-4 py-3 text-xs text-[#94A0BD]">
+      <p className="px-4 py-3 text-xs text-ink-3">
         Esse pedido não tem o detalhamento da planilha guardado (foi importado antes dessa
         funcionalidade existir).
       </p>
     );
   }
 
-  if (error) return <p className="px-4 py-3 text-xs text-red-700">{error}</p>;
+  if (error) return <p className="px-4 py-3 text-xs text-danger">{error}</p>;
   if (!breakdown) {
-    return <p className="px-4 py-3 text-xs text-[#94A0BD]">Carregando o detalhamento…</p>;
+    return <p className="px-4 py-3 text-xs text-ink-3">Carregando o detalhamento…</p>;
   }
 
   const { sections, net, voided, otherFields } = breakdown;
@@ -101,15 +101,15 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
     return (
       <li
         key={`${line.label}-${i}`}
-        className="flex items-start justify-between gap-3 border-b border-navy/[.04] py-1"
+        className="flex items-start justify-between gap-3 border-b border-line-soft py-1"
       >
         <span className="flex flex-col">
-          <span className={muted ? "text-[#94A0BD]" : "text-[#5B647E]"}>{line.label}</span>
-          {line.note && <span className="text-[11px] text-[#94A0BD]">{line.note}</span>}
+          <span className={muted ? "text-ink-3" : "text-ink-2"}>{line.label}</span>
+          {line.note && <span className="text-[11px] text-ink-3">{line.note}</span>}
         </span>
         <span
           className={`whitespace-nowrap ${
-            muted ? "text-[#94A0BD]" : isDeduction ? "font-medium text-red-600" : "text-navy"
+            muted ? "text-ink-3" : isDeduction ? "font-medium text-danger" : "text-ink"
           }`}
         >
           {isDeduction && line.value !== 0 ? "− " : ""}
@@ -125,16 +125,16 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
         {sections.map((section) => (
           <div key={section.title} className="mb-4">
             <div className="mb-1 flex items-baseline justify-between gap-3">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+              <p className="text-xs font-bold uppercase tracking-wide text-ink-3">
                 {section.title}
                 {section.note && (
-                  <span className="ml-2 font-semibold normal-case text-red-600">{section.note}</span>
+                  <span className="ml-2 font-semibold normal-case text-danger">{section.note}</span>
                 )}
               </p>
               {section.counted !== false && (
                 <span
                   className={`text-sm font-bold ${
-                    section.subtracted && section.total !== 0 ? "text-red-600" : "text-navy"
+                    section.subtracted && section.total !== 0 ? "text-danger" : "text-ink"
                   }`}
                 >
                   {section.subtracted && section.total !== 0 ? "− " : ""}
@@ -146,10 +146,10 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
           </div>
         ))}
 
-        <div className="flex items-baseline justify-between gap-3 rounded bg-green-50 px-3 py-2">
+        <div className="flex items-baseline justify-between gap-3 rounded bg-pos/10 px-3 py-2">
           <span className="flex flex-col">
-            <span className="font-bold text-green-800">Renda estimada do pedido</span>
-            <span className="text-[11px] text-[#5B647E]">
+            <span className="font-bold text-pos">Renda estimada do pedido</span>
+            <span className="text-[11px] text-ink-2">
               {voided
                 ? "pedido cancelado/reembolsado — nada foi recebido"
                 : isExtraLine(order)
@@ -157,7 +157,7 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
                   : `o que ${platform} repassa, antes do custo do produto e do imposto`}
             </span>
           </span>
-          <span className="whitespace-nowrap font-display text-lg font-bold text-green-800">
+          <span className="whitespace-nowrap font-display text-lg font-bold text-pos">
             {formatCurrency(net)}
           </span>
         </div>
@@ -167,7 +167,7 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
         <button
           type="button"
           onClick={() => setShowOther((v) => !v)}
-          className="mb-2 flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#94A0BD] hover:text-navy"
+          className="mb-2 flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-ink-3 hover:text-ink"
         >
           {showOther ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
           Todos os outros campos da planilha ({otherFields.length})
@@ -175,9 +175,9 @@ function OrderBreakdown({ order, share }: { order: SlimOrder; share: number }) {
         {showOther && (
           <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto text-xs">
             {otherFields.map(({ label, value }) => (
-              <li key={label} className="flex justify-between gap-3 border-b border-navy/[.04] py-1">
-                <span className="text-[#94A0BD]">{label}</span>
-                <span className="truncate text-right text-[#5B647E]">{String(value ?? "—")}</span>
+              <li key={label} className="flex justify-between gap-3 border-b border-line-soft py-1">
+                <span className="text-ink-3">{label}</span>
+                <span className="truncate text-right text-ink-2">{String(value ?? "—")}</span>
               </li>
             ))}
           </ul>
@@ -231,35 +231,35 @@ function OrderRow({
 
   return (
     <>
-      <tr className="cursor-pointer border-t border-navy/[.06] hover:bg-brand-gray/30">
+      <tr className="cursor-pointer border-t border-line-soft hover:bg-panel-2/30">
         <td className="px-2 py-2" onClick={() => setExpanded((v) => !v)}>
           {expanded ? (
-            <ChevronDown className="h-4 w-4 text-[#94A0BD]" />
+            <ChevronDown className="h-4 w-4 text-ink-3" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-[#94A0BD]" />
+            <ChevronRight className="h-4 w-4 text-ink-3" />
           )}
         </td>
-        <td className="whitespace-nowrap px-2 py-2 text-[#5B647E]" onClick={() => setExpanded((v) => !v)}>
+        <td className="whitespace-nowrap px-2 py-2 text-ink-2" onClick={() => setExpanded((v) => !v)}>
           {order.created_on ? formatDate(order.created_on) : "—"}
         </td>
         <td
-          className="whitespace-nowrap px-4 py-2 font-mono text-xs text-[#5B647E]"
+          className="whitespace-nowrap px-4 py-2 font-mono text-xs text-ink-2"
           onClick={() => setExpanded((v) => !v)}
         >
           {order.order_id}
         </td>
         <td
-          className="max-w-[200px] truncate px-4 py-2 text-navy"
+          className="max-w-[200px] truncate px-4 py-2 text-ink"
           title={order.product_name ?? undefined}
           onClick={() => setExpanded((v) => !v)}
         >
           {order.product_name ?? "—"}
         </td>
-        <td className="whitespace-nowrap px-4 py-2 text-[#5B647E]" onClick={() => setExpanded((v) => !v)}>
+        <td className="whitespace-nowrap px-4 py-2 text-ink-2" onClick={() => setExpanded((v) => !v)}>
           {order.sku ?? "—"}
         </td>
         <td
-          className="whitespace-nowrap px-4 py-2 text-center text-[#5B647E]"
+          className="whitespace-nowrap px-4 py-2 text-center text-ink-2"
           onClick={() => setExpanded((v) => !v)}
         >
           {order.quantity}
@@ -267,20 +267,20 @@ function OrderRow({
         <td className="whitespace-nowrap px-4 py-2" onClick={() => setExpanded((v) => !v)}>
           <span
             className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-              STATUS_STYLE[order.status ?? ""] ?? "bg-brand-gray text-navy"
+              STATUS_STYLE[order.status ?? ""] ?? "bg-panel-2 text-ink"
             }`}
           >
             {order.status ?? "—"}
           </span>
         </td>
         <td
-          className="whitespace-nowrap px-4 py-2 text-right text-navy"
+          className="whitespace-nowrap px-4 py-2 text-right text-ink"
           onClick={() => setExpanded((v) => !v)}
         >
           {formatCurrency(order.subtotal)}
         </td>
         <td
-          className="whitespace-nowrap px-4 py-2 text-right text-navy"
+          className="whitespace-nowrap px-4 py-2 text-right text-ink"
           onClick={() => setExpanded((v) => !v)}
         >
           {formatCurrency(net)}
@@ -322,7 +322,7 @@ function OrderRow({
                 placeholder="Afil.%"
                 inputMode="decimal"
                 title="Comissão do afiliado, em % do valor pago — vale para todos os pedidos deste produto"
-                className={CELL_INPUT_CLASS + " disabled:bg-brand-gray/40"}
+                className={CELL_INPUT_CLASS + " disabled:bg-panel-2/40"}
               />
             )}
             <input
@@ -338,14 +338,14 @@ function OrderRow({
         </td>
         <td
           className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${
-            margin >= 0 ? "text-green-700" : "text-red-600"
+            margin >= 0 ? "text-pos" : "text-danger"
           }`}
         >
           {formatCurrency(margin)}
         </td>
       </tr>
       {expanded && (
-        <tr className="border-t border-navy/[.06] bg-brand-gray/20">
+        <tr className="border-t border-line-soft bg-panel-2/20">
           <td colSpan={11}>
             <OrderBreakdown order={order} share={share} />
           </td>
@@ -498,7 +498,7 @@ export function SalesOrdersTable({
   }
 
   const SELECT_CLASS =
-    "rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue disabled:opacity-60";
+    "rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent disabled:opacity-60";
 
   return (
     <div>
@@ -561,44 +561,44 @@ export function SalesOrdersTable({
         </div>
 
         <div className="flex items-stretch gap-2">
-          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
-            <div className="font-display text-xl font-bold leading-none text-navy">
+          <div className="rounded-lg bg-panel-2/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-ink">
               {formatCurrency(Number(totals.sold))}
             </div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               vendido
             </div>
           </div>
           {returns.orders > 0 && (
             <div
-              className="rounded-lg bg-red-50 px-4 py-2 text-right"
+              className="rounded-lg bg-danger/10 px-4 py-2 text-right"
               title={`Fora do vendido. Com as devoluções: ${formatCurrency(Number(totals.sold) + returns.value)}`}
             >
-              <div className="font-display text-xl font-bold leading-none text-red-700">
+              <div className="font-display text-xl font-bold leading-none text-danger">
                 {formatCurrency(returns.value)}
               </div>
-              <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+              <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
                 devoluções ({returns.orders})
               </div>
             </div>
           )}
-          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
-            <div className="font-display text-xl font-bold leading-none text-navy">
+          <div className="rounded-lg bg-panel-2/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-ink">
               {formatCurrency(Number(totals.net))}
             </div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               recebido da plataforma
             </div>
           </div>
-          <div className="rounded-lg bg-green-50 px-5 py-2 text-right">
+          <div className="rounded-lg bg-pos/10 px-5 py-2 text-right">
             <div
               className={`font-display text-2xl font-bold leading-none ${
-                Number(totals.margin) >= 0 ? "text-green-800" : "text-red-600"
+                Number(totals.margin) >= 0 ? "text-pos" : "text-danger"
               }`}
             >
               {formatCurrency(Number(totals.margin))}
             </div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               sobrou ({totals.orders} pedidos)
             </div>
           </div>
@@ -606,17 +606,17 @@ export function SalesOrdersTable({
       </div>
 
       {saveError && (
-        <p className="mb-4 rounded-lg bg-red-50 px-4 py-2.5 text-xs text-red-700">
+        <p className="mb-4 rounded-lg bg-danger/10 px-4 py-2.5 text-xs text-danger">
           Não consegui salvar: {saveError}
         </p>
       )}
 
       {missing.lines > 0 && cost !== "preenchido" && (
-        <p className="mb-4 rounded-lg bg-yellow/10 px-4 py-2.5 text-xs text-[#5B647E]">
+        <p className="mb-4 rounded-lg bg-gold/10 px-4 py-2.5 text-xs text-ink-2">
           <button
             type="button"
             onClick={() => setFilter("custo", "falta")}
-            className="font-bold text-navy underline-offset-2 hover:underline"
+            className="font-bold text-ink underline-offset-2 hover:underline"
           >
             {missing.skus > 0 && `${missing.skus} ${missing.skus === 1 ? "SKU" : "SKUs"} sem custo`}
             {missing.skus > 0 && missing.loose > 0 && " e "}
@@ -628,23 +628,23 @@ export function SalesOrdersTable({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
         <table className="w-full min-w-[1250px] text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
               <th className="px-2 py-2" />
-              <th className="px-2 py-2 font-semibold text-navy">Data</th>
-              <th className="px-4 py-2 font-semibold text-navy">Pedido</th>
-              <th className="px-4 py-2 font-semibold text-navy">Produto</th>
-              <th className="px-4 py-2 font-semibold text-navy">SKU</th>
-              <th className="px-4 py-2 text-center font-semibold text-navy">Qtd</th>
-              <th className="px-4 py-2 font-semibold text-navy">Status</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Preço de venda</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Recebido</th>
-              <th className="px-2 py-2 font-semibold text-navy">
+              <th className="px-2 py-2 font-semibold text-ink">Data</th>
+              <th className="px-4 py-2 font-semibold text-ink">Pedido</th>
+              <th className="px-4 py-2 font-semibold text-ink">Produto</th>
+              <th className="px-4 py-2 font-semibold text-ink">SKU</th>
+              <th className="px-4 py-2 text-center font-semibold text-ink">Qtd</th>
+              <th className="px-4 py-2 font-semibold text-ink">Status</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Preço de venda</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Recebido</th>
+              <th className="px-2 py-2 font-semibold text-ink">
                 Custo / Outros{hasAffiliates ? " / Afil.%" : ""} / Imp. %
               </th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Sobrou</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Sobrou</th>
             </tr>
           </thead>
           <tbody>
@@ -672,7 +672,7 @@ export function SalesOrdersTable({
                     type="button"
                     onClick={loadMore}
                     disabled={loadingMore}
-                    className="rounded-lg border border-navy/10 px-4 py-2 text-xs font-semibold text-navy transition-colors hover:bg-brand-gray disabled:opacity-50"
+                    className="rounded-lg border border-line px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-panel-2 disabled:opacity-50"
                   >
                     {loadingMore
                       ? "Carregando..."
@@ -686,7 +686,7 @@ export function SalesOrdersTable({
               <tr>
                 <td
                   colSpan={11}
-                  className={`px-5 py-8 text-center ${error ? "text-red-700" : "text-[#94A0BD]"}`}
+                  className={`px-5 py-8 text-center ${error ? "text-danger" : "text-ink-3"}`}
                 >
                   {error
                     ? `Não consegui carregar os pedidos: ${error}`

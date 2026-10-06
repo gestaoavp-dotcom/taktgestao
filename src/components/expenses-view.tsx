@@ -20,7 +20,7 @@ export type Expense = {
 };
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 const CATEGORY_LABEL: Record<Expense["category"], string> = {
   fixed: "Fixa",
@@ -82,7 +82,7 @@ function EditExpenseForm({ expense, onDone }: { expense: Expense; onDone: () => 
         </div>
 
         {state && "error" in state && (
-          <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+          <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
         )}
 
         <div className="flex gap-2">
@@ -90,7 +90,7 @@ function EditExpenseForm({ expense, onDone }: { expense: Expense; onDone: () => 
             type="submit"
             disabled={pending}
             aria-label="Salvar"
-            className="rounded p-1.5 text-green-600 hover:bg-green-50 disabled:opacity-60"
+            className="rounded p-1.5 text-pos hover:bg-pos/10 disabled:opacity-60"
           >
             <Check className="h-4 w-4" />
           </button>
@@ -98,7 +98,7 @@ function EditExpenseForm({ expense, onDone }: { expense: Expense; onDone: () => 
             type="button"
             onClick={onDone}
             aria-label="Cancelar"
-            className="rounded p-1.5 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+            className="rounded p-1.5 text-ink-3 hover:bg-panel-2 hover:text-ink"
           >
             <X className="h-4 w-4" />
           </button>
@@ -132,7 +132,7 @@ export function ExpensesView({
       <form
         ref={formRef}
         action={formAction}
-        className="mb-5 grid grid-cols-5 gap-2 rounded-lg bg-white p-5 shadow-sm"
+        className="mb-5 grid grid-cols-5 gap-2 rounded-lg bg-panel p-5 shadow-sm"
       >
         <input
           name="description"
@@ -160,7 +160,7 @@ export function ExpensesView({
         </select>
 
         {state && "error" in state && (
-          <p className="col-span-5 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+          <p className="col-span-5 rounded bg-danger/10 px-3 py-2 text-xs text-danger">
             {state.error}
           </p>
         )}
@@ -168,22 +168,22 @@ export function ExpensesView({
         <button
           type="submit"
           disabled={pending}
-          className="col-span-5 flex items-center justify-center gap-2 rounded-lg bg-navy py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+          className="col-span-5 flex items-center justify-center gap-2 rounded-lg bg-action py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
         >
           <Plus className="h-4 w-4" />
           {pending ? "Adicionando..." : "Adicionar despesa"}
         </button>
       </form>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
         <table className="w-full text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-5 py-2.5 font-semibold text-navy">Despesa</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Tipo</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Valor</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Vencimento</th>
-              <th className="px-5 py-2.5 font-semibold text-navy">Status</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Despesa</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Tipo</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Valor</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Vencimento</th>
+              <th className="px-5 py-2.5 font-semibold text-ink">Status</th>
               <th className="px-5 py-2.5" />
             </tr>
           </thead>
@@ -191,7 +191,7 @@ export function ExpensesView({
             {expenses.map((expense) => {
               if (editingId === expense.id) {
                 return (
-                  <tr key={expense.id} className="border-t border-navy/[.06]">
+                  <tr key={expense.id} className="border-t border-line-soft">
                     <EditExpenseForm
                       expense={expense}
                       onDone={() => setEditingId(null)}
@@ -204,23 +204,23 @@ export function ExpensesView({
                 expense.status === "pending" && expense.due_date && expense.due_date < today;
 
               return (
-                <tr key={expense.id} className="group border-t border-navy/[.06]">
-                  <td className="px-5 py-3 text-navy">{expense.description}</td>
+                <tr key={expense.id} className="group border-t border-line-soft">
+                  <td className="px-5 py-3 text-ink">{expense.description}</td>
                   <td className="px-5 py-3">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                         expense.category === "fixed"
-                          ? "bg-navy/10 text-navy"
-                          : "bg-yellow/20 text-[#8a6a12]"
+                          ? "bg-action/10 text-ink"
+                          : "bg-gold/20 text-[#8a6a12]"
                       }`}
                     >
                       {CATEGORY_LABEL[expense.category]}
                     </span>
                   </td>
-                  <td className="px-5 py-3 font-semibold text-navy">
+                  <td className="px-5 py-3 font-semibold text-ink">
                     {formatCurrency(Number(expense.amount))}
                   </td>
-                  <td className="px-5 py-3 text-[#5B647E]">{formatDate(expense.due_date)}</td>
+                  <td className="px-5 py-3 text-ink-2">{formatDate(expense.due_date)}</td>
                   <td className="px-5 py-3">
                     <form action={toggleExpenseStatus}>
                       <input type="hidden" name="id" value={expense.id} />
@@ -233,10 +233,10 @@ export function ExpensesView({
                         type="submit"
                         className={`rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors ${
                           expense.status === "paid"
-                            ? "bg-green-50 text-green-700"
+                            ? "bg-pos/10 text-pos"
                             : overdue
-                              ? "bg-red-50 text-red-700"
-                              : "bg-blue/10 text-blue"
+                              ? "bg-danger/10 text-danger"
+                              : "bg-accent/10 text-accent-ink"
                         }`}
                       >
                         {expense.status === "paid"
@@ -253,7 +253,7 @@ export function ExpensesView({
                         type="button"
                         onClick={() => setEditingId(expense.id)}
                         aria-label={`Editar ${expense.description}`}
-                        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-brand-gray hover:text-navy focus:opacity-100 group-hover:opacity-100"
+                        className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-panel-2 hover:text-ink focus:opacity-100 group-hover:opacity-100"
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -262,7 +262,7 @@ export function ExpensesView({
                         <button
                           type="submit"
                           aria-label={`Excluir ${expense.description}`}
-                          className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+                          className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -274,7 +274,7 @@ export function ExpensesView({
             })}
             {!expenses.length && (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-[#94A0BD]">
+                <td colSpan={6} className="px-5 py-10 text-center text-ink-3">
                   Nenhuma despesa lançada neste mês.
                 </td>
               </tr>

@@ -9,7 +9,7 @@ import { formatCurrency } from "@/lib/sales-summary";
 export function MonthlyRevenueNote({ value }: { value: number }) {
   if (value <= 0) return null;
   return (
-    <p className="mt-3 text-xs text-[#94A0BD]">
+    <p className="mt-3 text-xs text-ink-3">
       Inclui {formatCurrency(value)} da Amazon vindos do relatório por produto, que não tem a data
       de cada venda: o valor do mês foi dividido por igual entre os dias. Envie o relatório de
       pedidos da Amazon (.txt) para ter o valor exato de cada dia.

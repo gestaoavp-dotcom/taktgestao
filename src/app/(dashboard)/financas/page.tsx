@@ -169,21 +169,21 @@ export default async function FinancasPage({
   return (
     <div>
       <div className="mb-6 flex items-center justify-end">
-        <div className="flex items-center gap-2 rounded-lg bg-white p-1 shadow-sm">
+        <div className="flex items-center gap-2 rounded-lg bg-panel p-1 shadow-sm">
           <Link
             href={`/financas?mes=${shiftMonth(month, -1)}`}
             aria-label="Mês anterior"
-            className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="rounded p-1.5 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
-          <span className="min-w-[150px] text-center text-sm font-semibold text-navy">
+          <span className="min-w-[150px] text-center text-sm font-semibold text-ink">
             {monthLabel(month)}
           </span>
           <Link
             href={`/financas?mes=${shiftMonth(month, 1)}`}
             aria-label="Próximo mês"
-            className="rounded p-1.5 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="rounded p-1.5 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>
@@ -191,31 +191,31 @@ export default async function FinancasPage({
       </div>
 
       <div className="mb-6 grid grid-cols-4 gap-4">
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Recebido no mês</p>
-          <p className="text-2xl font-bold text-green-700">{formatCurrency(received)}</p>
-          <p className="mt-1 text-xs text-[#94A0BD]">
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">Recebido no mês</p>
+          <p className="text-2xl font-bold text-pos">{formatCurrency(received)}</p>
+          <p className="mt-1 text-xs text-ink-3">
             {countBy("paid")} {plural(countBy("paid"))}
           </p>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">A receber</p>
-          <p className="text-2xl font-bold text-navy">{formatCurrency(totalBy("pending"))}</p>
-          <p className="mt-1 text-xs text-[#94A0BD]">
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">A receber</p>
+          <p className="text-2xl font-bold text-ink">{formatCurrency(totalBy("pending"))}</p>
+          <p className="mt-1 text-xs text-ink-3">
             {countBy("pending")} {plural(countBy("pending"))}
           </p>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Atrasado</p>
-          <p className="text-2xl font-bold text-red-700">{formatCurrency(totalBy("overdue"))}</p>
-          <p className="mt-1 text-xs text-[#94A0BD]">
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">Atrasado</p>
+          <p className="text-2xl font-bold text-danger">{formatCurrency(totalBy("overdue"))}</p>
+          <p className="mt-1 text-xs text-ink-3">
             {countBy("overdue")} {plural(countBy("overdue"))}
           </p>
         </div>
-        <div className="rounded-lg bg-white p-5 shadow-sm">
-          <p className="text-sm text-[#5B647E]">Consolidado desde o início</p>
-          <p className="text-2xl font-bold text-navy">{formatCurrency(consolidated)}</p>
-          <p className="mt-1 text-xs text-[#94A0BD]">todos os meses</p>
+        <div className="rounded-lg bg-panel p-5 shadow-sm">
+          <p className="text-sm text-ink-2">Consolidado desde o início</p>
+          <p className="text-2xl font-bold text-ink">{formatCurrency(consolidated)}</p>
+          <p className="mt-1 text-xs text-ink-3">todos os meses</p>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ import { costKey } from "@/lib/product-costs";
 import { updateProductCosts } from "@/app/(dashboard)/clientes/[id]/vendas/actions";
 
 const CELL_INPUT_CLASS =
-  "w-16 rounded border border-navy/10 bg-white px-1.5 py-1 text-right text-xs text-navy outline-none focus:border-blue";
+  "w-16 rounded border border-line bg-panel px-1.5 py-1 text-right text-xs text-ink outline-none focus:border-accent";
 
 /**
  * Rows folded from the Pedidos tab carry no row of their own, so their cost
@@ -60,27 +60,27 @@ function CostHistory({ changes }: { changes: ProductCostChange[] }) {
   };
 
   return (
-    <div className="mt-4 border-t border-navy/[.06] pt-3">
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-[#94A0BD]">
+    <div className="mt-4 border-t border-line-soft pt-3">
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-ink-3">
         Histórico de custo ({changes.length})
       </p>
       <ul className="flex flex-col gap-1 text-xs">
         {changes.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3">
-            <span className="text-[#5B647E]">
+            <span className="text-ink-2">
               {new Date(c.changed_at).toLocaleDateString("pt-BR")} · vale de{" "}
               {monthLabelOf(c.effective_month)} em diante
             </span>
             <span className="whitespace-nowrap">
               {c.previous_cost != null ? (
-                <span className="text-[#94A0BD] line-through">
+                <span className="text-ink-3 line-through">
                   {formatCurrency(Number(c.previous_cost))}
                 </span>
               ) : (
-                <span className="text-[#94A0BD]">sem custo</span>
+                <span className="text-ink-3">sem custo</span>
               )}
-              <span className="mx-1.5 text-[#94A0BD]">→</span>
-              <span className="font-semibold text-navy">
+              <span className="mx-1.5 text-ink-3">→</span>
+              <span className="font-semibold text-ink">
                 {c.new_cost != null ? formatCurrency(Number(c.new_cost)) : "sem custo"}
               </span>
             </span>
@@ -128,59 +128,59 @@ function ProductRow({
     <>
       <tr
         onClick={() => setOpen((v) => !v)}
-        className="cursor-pointer border-t border-navy/[.06] hover:bg-brand-gray/30"
+        className="cursor-pointer border-t border-line-soft hover:bg-panel-2/30"
       >
         <td className="px-2 py-2">
           {open ? (
-            <ChevronDown className="h-4 w-4 text-[#94A0BD]" />
+            <ChevronDown className="h-4 w-4 text-ink-3" />
           ) : (
-            <ChevronRight className="h-4 w-4 text-[#94A0BD]" />
+            <ChevronRight className="h-4 w-4 text-ink-3" />
           )}
         </td>
         <td className="px-2 py-2">
           <MarketplaceBadge marketplace={product.marketplace} />
         </td>
         <td className="max-w-[300px] px-4 py-2">
-          <p className="truncate text-navy" title={product.product_name ?? undefined}>
+          <p className="truncate text-ink" title={product.product_name ?? undefined}>
             {product.product_name ?? "—"}
           </p>
-          <p className="truncate font-mono text-[11px] text-[#94A0BD]">
+          <p className="truncate font-mono text-[11px] text-ink-3">
             {product.external_id ?? product.sku ?? "—"}
             {product.external_id && product.sku && ` · ${product.sku}`}
           </p>
         </td>
-        <td className="whitespace-nowrap px-4 py-2 text-center text-[#5B647E]">
+        <td className="whitespace-nowrap px-4 py-2 text-center text-ink-2">
           {product.units_net}
           {product.units_refunded > 0 && (
-            <span className="ml-1 text-[11px] text-red-600">−{product.units_refunded}</span>
+            <span className="ml-1 text-[11px] text-danger">−{product.units_refunded}</span>
           )}
         </td>
-        <td className="whitespace-nowrap px-4 py-2 text-right text-navy">
+        <td className="whitespace-nowrap px-4 py-2 text-right text-ink">
           {formatCurrency(product.net_sales)}
         </td>
         <td
           className={`whitespace-nowrap px-4 py-2 text-right font-semibold ${
-            negative ? "text-red-600" : "text-navy"
+            negative ? "text-danger" : "text-ink"
           }`}
         >
           {formatCurrency(product.net_revenue)}
-          <span className="ml-1 text-[11px] font-normal text-[#94A0BD]">
+          <span className="ml-1 text-[11px] font-normal text-ink-3">
             {formatCurrency(perUnit(Number(product.net_revenue), units))}/un
           </span>
         </td>
         <td className="px-2 py-2" onClick={(e) => e.stopPropagation()}>
           {isDerived(product) ? (
             <div
-              className="flex items-center gap-1 text-xs text-[#94A0BD]"
+              className="flex items-center gap-1 text-xs text-ink-3"
               title="Esse custo vem dos pedidos — edite na aba Pedidos"
             >
-              <span className="w-16 rounded border border-transparent bg-brand-gray/60 px-1.5 py-1 text-right">
+              <span className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right">
                 {product.unit_cost != null ? formatCurrency(Number(product.unit_cost)) : "—"}
               </span>
-              <span className="w-16 rounded border border-transparent bg-brand-gray/60 px-1.5 py-1 text-right">
+              <span className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right">
                 {product.extra_costs ? formatCurrency(Number(product.extra_costs)) : "—"}
               </span>
-              <span className="w-16 rounded border border-transparent bg-brand-gray/60 px-1.5 py-1 text-right">
+              <span className="w-16 rounded border border-transparent bg-panel-2/60 px-1.5 py-1 text-right">
                 {tax || "—"}
               </span>
             </div>
@@ -226,63 +226,63 @@ function ProductRow({
         </td>
         <td
           className={`whitespace-nowrap px-4 py-2 text-right font-bold ${
-            profit >= 0 ? "text-green-700" : "text-red-600"
+            profit >= 0 ? "text-pos" : "text-danger"
           }`}
         >
           {formatCurrency(profit)}
-          <span className="ml-1 block text-[11px] font-normal text-[#94A0BD]">
+          <span className="ml-1 block text-[11px] font-normal text-ink-3">
             {formatCurrency(perUnit(profit, units))}/un
           </span>
         </td>
       </tr>
 
       {open && (
-        <tr className="border-t border-navy/[.04] bg-brand-gray/20">
+        <tr className="border-t border-line-soft bg-panel-2/20">
           <td />
           <td colSpan={7} className="px-4 py-3">
             <ul className="flex max-w-lg flex-col gap-1 text-sm">
-              <li className="flex justify-between border-b border-navy/[.06] py-1">
-                <span className="text-[#5B647E]">Vendas líquidas</span>
-                <span className="text-navy">{formatCurrency(product.net_sales)}</span>
+              <li className="flex justify-between border-b border-line-soft py-1">
+                <span className="text-ink-2">Vendas líquidas</span>
+                <span className="text-ink">{formatCurrency(product.net_sales)}</span>
               </li>
               {costs.map(([label, value]) => (
-                <li key={label} className="flex justify-between border-b border-navy/[.04] py-1">
-                  <span className="text-[#5B647E]">{label}</span>
-                  <span className={value >= 0 ? "text-red-600" : "text-green-700"}>
+                <li key={label} className="flex justify-between border-b border-line-soft py-1">
+                  <span className="text-ink-2">{label}</span>
+                  <span className={value >= 0 ? "text-danger" : "text-pos"}>
                     {value >= 0 ? "− " : "+ "}
                     {formatCurrency(Math.abs(value))}
                   </span>
                 </li>
               ))}
-              <li className="mt-1 flex justify-between rounded bg-brand-gray px-2 py-1.5">
-                <span className="font-bold text-navy">Receita líquida da Amazon</span>
-                <span className="font-bold text-navy">{formatCurrency(product.net_revenue)}</span>
+              <li className="mt-1 flex justify-between rounded bg-panel-2 px-2 py-1.5">
+                <span className="font-bold text-ink">Receita líquida da Amazon</span>
+                <span className="font-bold text-ink">{formatCurrency(product.net_revenue)}</span>
               </li>
-              <li className="flex justify-between border-b border-navy/[.04] py-1">
-                <span className="text-[#5B647E]">
+              <li className="flex justify-between border-b border-line-soft py-1">
+                <span className="text-ink-2">
                   Custo do produto{units > 0 && ` (${formatCurrency(unitCost)} × ${units} un)`}
                 </span>
-                <span className="text-red-600">− {formatCurrency(costTotal)}</span>
+                <span className="text-danger">− {formatCurrency(costTotal)}</span>
               </li>
               {extraNum !== 0 && (
-                <li className="flex justify-between border-b border-navy/[.04] py-1">
-                  <span className="text-[#5B647E]">Outros custos</span>
-                  <span className="text-red-600">− {formatCurrency(extraNum)}</span>
+                <li className="flex justify-between border-b border-line-soft py-1">
+                  <span className="text-ink-2">Outros custos</span>
+                  <span className="text-danger">− {formatCurrency(extraNum)}</span>
                 </li>
               )}
-              <li className="flex justify-between border-b border-navy/[.04] py-1">
-                <span className="text-[#5B647E]">Imposto ({taxNum}%)</span>
-                <span className="text-red-600">− {formatCurrency(taxTotal)}</span>
+              <li className="flex justify-between border-b border-line-soft py-1">
+                <span className="text-ink-2">Imposto ({taxNum}%)</span>
+                <span className="text-danger">− {formatCurrency(taxTotal)}</span>
               </li>
               <li
                 className={`mt-1 flex justify-between rounded px-2 py-1.5 ${
-                  profit >= 0 ? "bg-green-50" : "bg-red-50"
+                  profit >= 0 ? "bg-pos/10" : "bg-danger/10"
                 }`}
               >
-                <span className={`font-bold ${profit >= 0 ? "text-green-800" : "text-red-700"}`}>
+                <span className={`font-bold ${profit >= 0 ? "text-pos" : "text-danger"}`}>
                   Sobrou
                 </span>
-                <span className={`font-bold ${profit >= 0 ? "text-green-800" : "text-red-700"}`}>
+                <span className={`font-bold ${profit >= 0 ? "text-pos" : "text-danger"}`}>
                   {formatCurrency(profit)}
                   {units > 0 && (
                     <span className="ml-1 font-normal">
@@ -291,7 +291,7 @@ function ProductRow({
                   )}
                 </span>
               </li>
-              <li className="flex justify-between pt-1 text-xs text-[#94A0BD]">
+              <li className="flex justify-between pt-1 text-xs text-ink-3">
                 <span>Total de vendas (antes de devoluções)</span>
                 <span>{formatCurrency(product.gross_sales)}</span>
               </li>
@@ -381,7 +381,7 @@ export function SalesProductsTable({
 
   if (!products.length) {
     return (
-      <p className="rounded-lg bg-white px-5 py-10 text-center text-sm text-[#94A0BD] shadow-sm">
+      <p className="rounded-lg bg-panel px-5 py-10 text-center text-sm text-ink-3 shadow-sm">
         Nenhum relatório de produtos importado ainda. Envie um em &quot;Importar
         documentos&quot; escolhendo o tipo Produtos.
       </p>
@@ -395,7 +395,7 @@ export function SalesProductsTable({
         <select
           value={marketplace}
           onChange={(e) => setMarketplace(e.target.value)}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           <option value="all">Todos os marketplaces</option>
           {marketplaces.map((m) => (
@@ -407,7 +407,7 @@ export function SalesProductsTable({
         <select
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           <option value="all">Todos os meses</option>
           {months.map((m) => (
@@ -419,55 +419,55 @@ export function SalesProductsTable({
         </div>
 
         <div className="flex items-stretch gap-2">
-          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
-            <div className="font-display text-xl font-bold leading-none text-navy">
+          <div className="rounded-lg bg-panel-2/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-ink">
               {formatCurrency(sumSales)}
             </div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               vendas líquidas
             </div>
           </div>
-          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
-            <div className="font-display text-xl font-bold leading-none text-navy">{sumUnits}</div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+          <div className="rounded-lg bg-panel-2/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-ink">{sumUnits}</div>
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               unidades
             </div>
           </div>
-          <div className="rounded-lg bg-brand-gray/60 px-4 py-2 text-right">
-            <div className="font-display text-xl font-bold leading-none text-navy">
+          <div className="rounded-lg bg-panel-2/60 px-4 py-2 text-right">
+            <div className="font-display text-xl font-bold leading-none text-ink">
               {formatCurrency(sumNet)}
             </div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               receita líquida
             </div>
           </div>
-          <div className="rounded-lg bg-green-50 px-5 py-2 text-right">
+          <div className="rounded-lg bg-pos/10 px-5 py-2 text-right">
             <div
               className={`font-display text-2xl font-bold leading-none ${
-                sumProfit >= 0 ? "text-green-800" : "text-red-600"
+                sumProfit >= 0 ? "text-pos" : "text-danger"
               }`}
             >
               {formatCurrency(sumProfit)}
             </div>
-            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+            <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
               sobrou ({rows.length} produtos)
             </div>
           </div>
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
         <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
               <th className="px-2 py-2" />
-              <th className="px-2 py-2 font-semibold text-navy">Canal</th>
-              <th className="px-4 py-2 font-semibold text-navy">Produto</th>
-              <th className="px-4 py-2 text-center font-semibold text-navy">Unid.</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Vendas líquidas</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Receita líquida</th>
-              <th className="px-2 py-2 font-semibold text-navy">Custo/un · Outros · Imp.%</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Sobrou</th>
+              <th className="px-2 py-2 font-semibold text-ink">Canal</th>
+              <th className="px-4 py-2 font-semibold text-ink">Produto</th>
+              <th className="px-4 py-2 text-center font-semibold text-ink">Unid.</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Vendas líquidas</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Receita líquida</th>
+              <th className="px-2 py-2 font-semibold text-ink">Custo/un · Outros · Imp.%</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Sobrou</th>
             </tr>
           </thead>
           <tbody>
@@ -488,10 +488,10 @@ export function SalesProductsTable({
       </div>
 
       {unassigned !== 0 && (
-        <p className="mt-3 rounded-lg bg-yellow/10 px-4 py-2.5 text-xs text-[#5B647E]">
+        <p className="mt-3 rounded-lg bg-gold/10 px-4 py-2.5 text-xs text-ink-2">
           A {MARKETPLACE_LABEL[totals[0].marketplace] ?? totals[0].marketplace} informa{" "}
-          <strong className="text-navy">{formatCurrency(reported)}</strong> de receita líquida no
-          período — <strong className="text-navy">{formatCurrency(unassigned)}</strong> a mais que a
+          <strong className="text-ink">{formatCurrency(reported)}</strong> de receita líquida no
+          período — <strong className="text-ink">{formatCurrency(unassigned)}</strong> a mais que a
           soma dos produtos. É o que ela cobra ou credita da conta inteira, sem atribuir a nenhum
           anúncio.
         </p>

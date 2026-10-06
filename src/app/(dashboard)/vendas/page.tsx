@@ -28,54 +28,54 @@ export default async function VendasPage() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-2xl font-bold text-navy">Vendas</h1>
+      <h1 className="mb-6 font-display text-2xl font-bold text-ink">Vendas</h1>
 
       {!clients?.length ? (
-        <p className="text-sm text-[#5B647E]">
+        <p className="text-sm text-ink-2">
           Cadastre um cliente antes de importar vendas.
         </p>
       ) : (
         <SalesImportForm clients={clients} />
       )}
 
-      <div className="mt-8 overflow-hidden rounded-lg bg-white shadow-sm">
-        <div className="border-b border-navy/[.08] px-4 py-3">
-          <h2 className="font-display text-sm font-semibold text-navy">
+      <div className="mt-8 overflow-hidden rounded-lg bg-panel shadow-sm">
+        <div className="border-b border-line px-4 py-3">
+          <h2 className="font-display text-sm font-semibold text-ink">
             Importações recentes
           </h2>
         </div>
         <table className="w-full text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-4 py-2 font-medium text-navy">Dia</th>
-              <th className="px-4 py-2 font-medium text-navy">Cliente</th>
-              <th className="px-4 py-2 font-medium text-navy">Plataforma</th>
-              <th className="px-4 py-2 font-medium text-navy">Faturamento</th>
-              <th className="px-4 py-2 font-medium text-navy">Pedidos</th>
+              <th className="px-4 py-2 font-medium text-ink">Dia</th>
+              <th className="px-4 py-2 font-medium text-ink">Cliente</th>
+              <th className="px-4 py-2 font-medium text-ink">Plataforma</th>
+              <th className="px-4 py-2 font-medium text-ink">Faturamento</th>
+              <th className="px-4 py-2 font-medium text-ink">Pedidos</th>
               <th className="px-4 py-2" />
             </tr>
           </thead>
           <tbody>
             {recent?.map((row) => (
-              <tr key={row.id} className="border-t border-navy/[.08]">
-                <td className="px-4 py-2 text-navy">{row.date}</td>
-                <td className="px-4 py-2 text-[#5B647E]">{row.clients?.name ?? "—"}</td>
-                <td className="px-4 py-2 text-[#5B647E]">
+              <tr key={row.id} className="border-t border-line">
+                <td className="px-4 py-2 text-ink">{row.date}</td>
+                <td className="px-4 py-2 text-ink-2">{row.clients?.name ?? "—"}</td>
+                <td className="px-4 py-2 text-ink-2">
                   {MARKETPLACE_LABEL[row.platform] ?? row.platform}
                 </td>
-                <td className="px-4 py-2 text-navy">
+                <td className="px-4 py-2 text-ink">
                   {Number(row.revenue).toLocaleString("pt-BR", {
                     style: "currency",
                     currency: "BRL",
                   })}
                 </td>
-                <td className="px-4 py-2 text-[#5B647E]">{row.orders_count}</td>
+                <td className="px-4 py-2 text-ink-2">{row.orders_count}</td>
                 <td className="px-4 py-2 text-right">
                   <form action={deleteSalesDay}>
                     <input type="hidden" name="id" value={row.id} />
                     <button
                       type="submit"
-                      className="text-xs font-medium text-red-600 hover:underline"
+                      className="text-xs font-medium text-danger hover:underline"
                     >
                       Excluir
                     </button>
@@ -85,7 +85,7 @@ export default async function VendasPage() {
             ))}
             {!recent?.length && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-[#94A0BD]">
+                <td colSpan={6} className="px-4 py-6 text-center text-ink-3">
                   Nenhuma venda importada ainda.
                 </td>
               </tr>

@@ -9,7 +9,7 @@ import { formatCnpj } from "@/lib/masks";
 import { addCnpj, deleteCnpj, updateBilling } from "@/app/(dashboard)/clientes/[id]/actions";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 const PAYMENT_METHODS = ["Pix", "Boleto", "Transferência", "Cartão"];
 
@@ -37,7 +37,7 @@ function CnpjBilling({
   const feeChanged = Number(fee || 0) !== Number(cnpj.monthly_fee ?? 0);
 
   return (
-    <form action={formAction} className="rounded-lg border border-navy/10 p-4">
+    <form action={formAction} className="rounded-lg border border-line p-4">
       <input type="hidden" name="client_id" value={clientId} />
       <input type="hidden" name="cnpj_id" value={cnpj.id} />
 
@@ -64,7 +64,7 @@ function CnpjBilling({
           type="submit"
           formAction={deleteCnpj}
           aria-label={`Excluir CNPJ ${cnpj.cnpj}`}
-          className="mt-1 rounded p-1.5 text-[#94A0BD] transition-colors hover:bg-red-50 hover:text-red-600"
+          className="mt-1 rounded p-1.5 text-ink-3 transition-colors hover:bg-danger/10 hover:text-danger"
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -72,7 +72,7 @@ function CnpjBilling({
 
       <div className="grid grid-cols-3 gap-2">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-[#5B647E]">Mensalidade (R$)</label>
+          <label className="text-xs font-semibold text-ink-2">Mensalidade (R$)</label>
           <input
             name="monthly_fee"
             type="number"
@@ -85,7 +85,7 @@ function CnpjBilling({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-[#5B647E]">Dia de vencimento</label>
+          <label className="text-xs font-semibold text-ink-2">Dia de vencimento</label>
           <input
             name="payment_day"
             type="number"
@@ -97,7 +97,7 @@ function CnpjBilling({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-[#5B647E]">Forma de pagamento</label>
+          <label className="text-xs font-semibold text-ink-2">Forma de pagamento</label>
           <select
             name="payment_method"
             defaultValue={cnpj.payment_method ?? ""}
@@ -114,8 +114,8 @@ function CnpjBilling({
       </div>
 
       {feeChanged && (
-        <div className="mt-3 rounded-lg bg-brand-gray/50 p-3">
-          <p className="mb-2 text-xs font-semibold text-navy">
+        <div className="mt-3 rounded-lg bg-panel-2/50 p-3">
+          <p className="mb-2 text-xs font-semibold text-ink">
             Reajuste de {formatCurrency(Number(cnpj.monthly_fee ?? 0))} para{" "}
             {formatCurrency(Number(fee || 0))}
           </p>
@@ -135,7 +135,7 @@ function CnpjBilling({
       )}
 
       {stores.length > 0 && (
-        <p className="mt-3 text-xs text-[#94A0BD]">
+        <p className="mt-3 text-xs text-ink-3">
           Lojas neste CNPJ:{" "}
           {stores
             .map(
@@ -150,15 +150,15 @@ function CnpjBilling({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-navy px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+          className="rounded-lg bg-action px-4 py-1.5 text-xs font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
         >
           {pending ? "Salvando..." : "Salvar"}
         </button>
         {state && "ok" in state && (
-          <span className="text-xs font-medium text-green-700">Salvo.</span>
+          <span className="text-xs font-medium text-pos">Salvo.</span>
         )}
         {state && "error" in state && (
-          <span className="text-xs text-red-700">{state.error}</span>
+          <span className="text-xs text-danger">{state.error}</span>
         )}
       </div>
     </form>
@@ -192,16 +192,16 @@ export function ClientBillingCard({
   const total = cnpjs.reduce((sum, c) => sum + Number(c.monthly_fee ?? 0), 0);
 
   return (
-    <section className="rounded-lg bg-white p-5 shadow-sm">
+    <section className="rounded-lg bg-panel p-5 shadow-sm">
       <div className="mb-1 flex items-baseline justify-between">
-        <h2 className="font-bold text-navy">Financeiro</h2>
+        <h2 className="font-bold text-ink">Financeiro</h2>
         {total > 0 && (
-          <span className="text-sm text-[#5B647E]">
-            Total <strong className="text-navy">{formatCurrency(total)}</strong>/mês
+          <span className="text-sm text-ink-2">
+            Total <strong className="text-ink">{formatCurrency(total)}</strong>/mês
           </span>
         )}
       </div>
-      <p className="mb-4 text-xs text-[#94A0BD]">
+      <p className="mb-4 text-xs text-ink-3">
         A mensalidade é por CNPJ. Um CNPJ pode ter várias lojas, em quantos marketplaces
         for.
       </p>
@@ -221,7 +221,7 @@ export function ClientBillingCard({
         <form
           ref={formRef}
           action={formAction}
-          className="mt-3 rounded-lg border border-navy/10 p-4"
+          className="mt-3 rounded-lg border border-line p-4"
         >
           <input type="hidden" name="client_id" value={clientId} />
           <div className="grid grid-cols-2 gap-2">
@@ -263,7 +263,7 @@ export function ClientBillingCard({
           </div>
 
           {state && "error" in state && (
-            <p className="mt-2 rounded bg-red-50 px-3 py-2 text-xs text-red-700">
+            <p className="mt-2 rounded bg-danger/10 px-3 py-2 text-xs text-danger">
               {state.error}
             </p>
           )}
@@ -272,14 +272,14 @@ export function ClientBillingCard({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-lg bg-navy px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+              className="rounded-lg bg-action px-4 py-1.5 text-xs font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
             >
               {pending ? "Salvando..." : "Salvar CNPJ"}
             </button>
             <button
               type="button"
               onClick={() => setAdding(false)}
-              className="rounded-lg border border-navy/10 px-4 py-1.5 text-xs font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray"
+              className="rounded-lg border border-line px-4 py-1.5 text-xs font-semibold text-ink-2 transition-colors hover:bg-panel-2"
             >
               Cancelar
             </button>
@@ -289,7 +289,7 @@ export function ClientBillingCard({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-navy/20 py-2.5 text-sm font-semibold text-[#5B647E] transition-colors hover:border-blue hover:text-blue"
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-line py-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-accent hover:text-accent-ink"
         >
           <Plus className="h-4 w-4" />
           Adicionar CNPJ

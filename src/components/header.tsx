@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Bell, LogOut, Menu, Search } from "lucide-react";
 import { logout } from "@/app/logout/actions";
 import { SyncButton } from "@/components/sync-button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { NotificationItem } from "@/lib/notifications";
 
 function formatDueDate(date: string) {
@@ -47,26 +48,27 @@ export function Header({
   }, [notifOpen]);
 
   return (
-    <header className="flex items-center gap-6 border-b border-navy/[.08] bg-white px-8 py-3.5">
+    <header className="flex items-center gap-6 border-b border-line bg-panel px-8 py-3.5">
       <button
         type="button"
         aria-label="Alternar menu lateral"
         onClick={onToggleSidebar}
-        className="rounded-lg p-2 text-[#5B647E] transition-colors hover:bg-brand-gray"
+        className="rounded-lg p-2 text-ink-2 transition-colors hover:bg-panel-2"
       >
         <Menu className="h-5 w-5" />
       </button>
 
       <div className="relative w-full max-w-sm">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94A0BD]" />
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
         <input
           type="search"
           placeholder="Buscar..."
-          className="w-full rounded-full border border-navy/10 bg-brand-gray/40 py-2 pl-9 pr-3 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue"
+          className="w-full rounded-full border border-line bg-panel-2/40 py-2 pl-9 pr-3 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent"
         />
       </div>
 
       <div className="ml-auto flex items-center gap-5">
+        <ThemeToggle />
         {/* The team's: a client login only ever looks at its own folder. */}
         {showNotifications && <SyncButton />}
 
@@ -77,23 +79,23 @@ export function Header({
             aria-label="Notificações"
             aria-expanded={notifOpen}
             onClick={() => setNotifOpen((open) => !open)}
-            className="relative rounded-full p-2 text-[#5B647E] transition-colors hover:bg-brand-gray"
+            className="relative rounded-full p-2 text-ink-2 transition-colors hover:bg-panel-2"
           >
             <Bell className="h-5 w-5" />
             {notifications.length > 0 && (
               <span
                 className={`absolute right-1.5 top-1.5 h-2 w-2 rounded-full ${
-                  hasOverdue ? "bg-red-600" : "bg-yellow"
+                  hasOverdue ? "bg-danger" : "bg-gold"
                 }`}
               />
             )}
           </button>
 
           {notifOpen && (
-            <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-lg border border-navy/10 bg-white shadow-lg">
-              <div className="border-b border-navy/[.06] px-4 py-2.5">
-                <p className="text-sm font-semibold text-navy">Notificações</p>
-                <p className="text-xs text-[#94A0BD]">
+            <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-lg border border-line bg-panel shadow-lg">
+              <div className="border-b border-line-soft px-4 py-2.5">
+                <p className="text-sm font-semibold text-ink">Notificações</p>
+                <p className="text-xs text-ink-3">
                   {notifications.length
                     ? `${notifications.length} vencimento${notifications.length === 1 ? "" : "s"} próximo${notifications.length === 1 ? "" : "s"} ou atrasado${notifications.length === 1 ? "" : "s"}`
                     : "Tudo em dia"}
@@ -102,7 +104,7 @@ export function Header({
 
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-[#94A0BD]">
+                  <p className="px-4 py-6 text-center text-sm text-ink-3">
                     Nenhum vencimento por perto.
                   </p>
                 ) : (
@@ -111,7 +113,7 @@ export function Header({
                       key={item.id}
                       href={item.href}
                       onClick={() => setNotifOpen(false)}
-                      className="block border-b border-navy/[.04] px-4 py-2.5 last:border-b-0 hover:bg-brand-gray"
+                      className="block border-b border-line-soft px-4 py-2.5 last:border-b-0 hover:bg-panel-2"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -119,24 +121,24 @@ export function Header({
                             <span
                               className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
                                 item.kind === "receber"
-                                  ? "bg-green-50 text-green-700"
-                                  : "bg-blue/10 text-blue"
+                                  ? "bg-pos/10 text-pos"
+                                  : "bg-accent/10 text-accent-ink"
                               }`}
                             >
                               {KIND_LABEL[item.kind]}
                             </span>
                             {item.severity === "overdue" && (
-                              <span className="text-[10px] font-semibold text-red-700">
+                              <span className="text-[10px] font-semibold text-danger">
                                 Atrasado
                               </span>
                             )}
                           </div>
-                          <p className="truncate text-sm font-semibold text-navy">{item.title}</p>
-                          <p className="truncate text-xs text-[#94A0BD]">{item.subtitle}</p>
+                          <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
+                          <p className="truncate text-xs text-ink-3">{item.subtitle}</p>
                         </div>
                         <span
                           className={`shrink-0 text-xs font-semibold ${
-                            item.severity === "overdue" ? "text-red-700" : "text-navy"
+                            item.severity === "overdue" ? "text-danger" : "text-ink"
                           }`}
                         >
                           {formatDueDate(item.dueDate)}
@@ -152,19 +154,19 @@ export function Header({
         )}
 
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-navy text-sm font-bold text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-action text-sm font-bold text-on-accent">
             {initial}
           </div>
           <div className="hidden leading-tight sm:block">
-            <div className="max-w-[160px] truncate text-sm font-semibold text-navy">{email}</div>
-            <div className="text-xs text-[#94A0BD]">{roleLabel}</div>
+            <div className="max-w-[160px] truncate text-sm font-semibold text-ink">{email}</div>
+            <div className="text-xs text-ink-3">{roleLabel}</div>
           </div>
         </div>
 
         <form action={logout}>
           <button
             type="submit"
-            className="flex items-center gap-1.5 rounded-lg border border-navy/10 px-3 py-2 text-sm font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray hover:text-navy"
+            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-ink-2 transition-colors hover:bg-panel-2 hover:text-ink"
           >
             <LogOut className="h-4 w-4" />
             Sair

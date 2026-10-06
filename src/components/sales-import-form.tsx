@@ -140,14 +140,14 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
   }
 
   return (
-    <div className="rounded-lg bg-white p-4 shadow-sm">
+    <div className="rounded-lg bg-panel p-4 shadow-sm">
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-navy">Cliente</label>
+          <label className="text-sm font-medium text-ink">Cliente</label>
           <select
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
-            className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+            className="rounded border border-line bg-transparent px-3 py-2 text-sm text-ink outline-none focus:border-accent"
           >
             {clients.map((c) => (
               <option key={c.id} value={c.id}>
@@ -157,11 +157,11 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
           </select>
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-navy">Plataforma</label>
+          <label className="text-sm font-medium text-ink">Plataforma</label>
           <select
             value={platform}
             onChange={(e) => setPlatform(e.target.value)}
-            className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+            className="rounded border border-line bg-transparent px-3 py-2 text-sm text-ink outline-none focus:border-accent"
           >
             {MARKETPLACES.map((p) => (
               <option key={p.value} value={p.value}>
@@ -173,27 +173,27 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
       </div>
 
       <div className="mt-4 flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-navy">
+        <label className="text-sm font-medium text-ink">
           Arquivo exportado da plataforma (.xlsx, .xls ou .csv)
         </label>
         <input
           type="file"
           accept=".xlsx,.xls,.csv"
           onChange={handleFile}
-          className="rounded border border-navy/10 bg-transparent px-3 py-2 text-sm text-navy outline-none file:mr-3 file:rounded file:border-0 file:bg-brand-gray file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-navy"
+          className="rounded border border-line bg-transparent px-3 py-2 text-sm text-ink outline-none file:mr-3 file:rounded file:border-0 file:bg-panel-2 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink"
         />
-        {fileName && <p className="text-xs text-[#94A0BD]">{fileName}</p>}
+        {fileName && <p className="text-xs text-ink-3">{fileName}</p>}
       </div>
 
       {headers.length > 0 && (
         <>
           <div className="mt-4 grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-navy">Coluna de data</label>
+              <label className="text-xs font-medium text-ink">Coluna de data</label>
               <select
                 value={dateCol}
                 onChange={(e) => setDateCol(e.target.value)}
-                className="rounded border border-navy/10 bg-transparent px-2 py-1.5 text-sm text-navy outline-none focus:border-blue"
+                className="rounded border border-line bg-transparent px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
               >
                 {headers.map((h) => (
                   <option key={h} value={h}>
@@ -203,11 +203,11 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-navy">Coluna de valor</label>
+              <label className="text-xs font-medium text-ink">Coluna de valor</label>
               <select
                 value={revenueCol}
                 onChange={(e) => setRevenueCol(e.target.value)}
-                className="rounded border border-navy/10 bg-transparent px-2 py-1.5 text-sm text-navy outline-none focus:border-blue"
+                className="rounded border border-line bg-transparent px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
               >
                 {headers.map((h) => (
                   <option key={h} value={h}>
@@ -217,11 +217,11 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-navy">Coluna de pedido</label>
+              <label className="text-xs font-medium text-ink">Coluna de pedido</label>
               <select
                 value={orderCol}
                 onChange={(e) => setOrderCol(e.target.value)}
-                className="rounded border border-navy/10 bg-transparent px-2 py-1.5 text-sm text-navy outline-none focus:border-blue"
+                className="rounded border border-line bg-transparent px-2 py-1.5 text-sm text-ink outline-none focus:border-accent"
               >
                 <option value="__count_rows__">Contar linhas</option>
                 {headers.map((h) => (
@@ -233,29 +233,29 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
             </div>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded border border-navy/10">
+          <div className="mt-4 overflow-hidden rounded border border-line">
             <table className="w-full text-left text-xs">
-              <thead className="bg-brand-gray">
+              <thead className="bg-panel-2">
                 <tr>
-                  <th className="px-3 py-1.5 font-medium text-navy">Dia</th>
-                  <th className="px-3 py-1.5 font-medium text-navy">Faturamento</th>
-                  <th className="px-3 py-1.5 font-medium text-navy">Pedidos</th>
+                  <th className="px-3 py-1.5 font-medium text-ink">Dia</th>
+                  <th className="px-3 py-1.5 font-medium text-ink">Faturamento</th>
+                  <th className="px-3 py-1.5 font-medium text-ink">Pedidos</th>
                 </tr>
               </thead>
               <tbody>
                 {aggregated.slice(0, 6).map((r) => (
-                  <tr key={r.date} className="border-t border-navy/[.06]">
-                    <td className="px-3 py-1.5 text-navy">{r.date}</td>
-                    <td className="px-3 py-1.5 text-[#5B647E]">
+                  <tr key={r.date} className="border-t border-line-soft">
+                    <td className="px-3 py-1.5 text-ink">{r.date}</td>
+                    <td className="px-3 py-1.5 text-ink-2">
                       {r.revenue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                     </td>
-                    <td className="px-3 py-1.5 text-[#5B647E]">{r.orders}</td>
+                    <td className="px-3 py-1.5 text-ink-2">{r.orders}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {aggregated.length > 6 && (
-              <p className="bg-brand-gray px-3 py-1.5 text-xs text-[#94A0BD]">
+              <p className="bg-panel-2 px-3 py-1.5 text-xs text-ink-3">
                 +{aggregated.length - 6} dia(s) a mais
               </p>
             )}
@@ -265,14 +265,14 @@ export function SalesImportForm({ clients }: { clients: Client[] }) {
             type="button"
             disabled={importing || !aggregated.length}
             onClick={handleImport}
-            className="mt-4 h-10 rounded bg-navy px-4 text-sm font-medium text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-50"
+            className="mt-4 h-10 rounded bg-action px-4 text-sm font-medium text-on-accent transition-colors hover:opacity-90 disabled:opacity-50"
           >
             {importing ? "Importando..." : `Importar ${aggregated.length} dia(s)`}
           </button>
         </>
       )}
 
-      {status && <p className="mt-3 text-sm text-navy">{status}</p>}
+      {status && <p className="mt-3 text-sm text-ink">{status}</p>}
     </div>
   );
 }

@@ -1,17 +1,8 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus_Jakarta_Sans } from "next/font/google";
 import { LandingLeadForm } from "@/components/landing-lead-form";
 import "./landing.css";
-
-// The mockup's typeface. Scoped to this page through the CSS variable the
-// landing stylesheet reads, so the dashboard keeps Nunito Sans.
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  weight: ["300", "400", "500", "600", "700", "800"],
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "TAKT Assessoria — assessoria para marketplaces",
@@ -236,7 +227,7 @@ const WRAP = "relative mx-auto w-full max-w-[1200px]";
  */
 export default function InicioPage() {
   return (
-    <div className={`lp ${jakarta.variable}`}>
+    <div className="lp">
       {/* ============ HERO ============ */}
       <section
         id="topo"

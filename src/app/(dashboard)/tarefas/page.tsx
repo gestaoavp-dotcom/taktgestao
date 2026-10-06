@@ -25,7 +25,7 @@ export default async function TarefasPage() {
 
   return (
     <div>
-      <h1 className="mb-6 font-display text-2xl font-bold text-navy">Tarefas</h1>
+      <h1 className="mb-6 font-display text-2xl font-bold text-ink">Tarefas</h1>
       <TasksBoard
         tasks={tasks ?? []}
         clients={clients ?? []}

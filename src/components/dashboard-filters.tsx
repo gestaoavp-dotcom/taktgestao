@@ -6,7 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { MARKETPLACES } from "@/lib/marketplaces";
 
 const SELECT_CLASS =
-  "rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue";
+  "rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent";
 
 /**
  * Client and marketplace pickers for the dashboard. They change only their
@@ -63,7 +63,7 @@ export function DashboardFilters({
         ))}
       </select>
 
-      {pending && <Loader2 className="h-4 w-4 animate-spin text-[#94A0BD]" />}
+      {pending && <Loader2 className="h-4 w-4 animate-spin text-ink-3" />}
     </div>
   );
 }

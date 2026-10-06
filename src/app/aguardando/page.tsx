@@ -18,24 +18,24 @@ export default async function AguardandoPage() {
   if (auth.user) await supabase.rpc("ensure_profile", { user_name: null });
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-gray px-4 py-10">
-      <div className="w-full max-w-sm rounded-xl border border-navy/10 bg-white p-8 text-center shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-surface px-4 py-10">
+      <div className="w-full max-w-sm rounded-xl border border-line bg-panel p-8 text-center shadow-sm">
         <div className="mb-6 flex justify-center">
           <Logo height={40} />
         </div>
-        <Clock className="mx-auto h-10 w-10 text-yellow" />
-        <h1 className="mt-4 text-lg font-bold text-navy">Seu acesso ainda não foi liberado</h1>
-        <p className="mt-2 text-sm text-[#5B647E]">
+        <Clock className="mx-auto h-10 w-10 text-gold-ink" />
+        <h1 className="mt-4 text-lg font-bold text-ink">Seu acesso ainda não foi liberado</h1>
+        <p className="mt-2 text-sm text-ink-2">
           A equipe TAKT precisa aprovar este login antes do primeiro acesso. Se você é
           cliente e ainda não falou com a gente, entre em contato.
         </p>
         {auth.user?.email && (
-          <p className="mt-4 text-xs text-[#94A0BD]">Conectado como {auth.user.email}</p>
+          <p className="mt-4 text-xs text-ink-3">Conectado como {auth.user.email}</p>
         )}
         <form action={logout} className="mt-6">
           <button
             type="submit"
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-navy/10 text-sm font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray hover:text-navy"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-line text-sm font-semibold text-ink-2 transition-colors hover:bg-panel-2 hover:text-ink"
           >
             <LogOut className="h-4 w-4" />
             Sair

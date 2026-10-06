@@ -53,20 +53,20 @@ export default async function ClientLayout({
     <div>
       <Link
         href="/clientes"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-[#5B647E] transition-colors hover:text-navy"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 transition-colors hover:text-ink"
       >
         <ArrowLeft className="h-4 w-4" />
         Clientes
       </Link>
 
-      <header className="rounded-t-lg bg-white px-6 pt-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-navy">{client.name}</h1>
+      <header className="rounded-t-lg bg-panel px-6 pt-6 shadow-sm">
+        <h1 className="text-2xl font-bold text-ink">{client.name}</h1>
 
-        <div className="mt-3 flex flex-col gap-1.5 text-sm text-[#5B647E]">
+        <div className="mt-3 flex flex-col gap-1.5 text-sm text-ink-2">
           {Array.from(stores).map(([name, marketplaces]) => (
             <div key={name} className="flex flex-wrap items-center gap-2">
-              <span className="flex items-center gap-1.5 font-semibold text-navy">
-                <Store className="h-4 w-4 text-[#94A0BD]" />
+              <span className="flex items-center gap-1.5 font-semibold text-ink">
+                <Store className="h-4 w-4 text-ink-3" />
                 {name}
               </span>
               {marketplaces.map((m) => (

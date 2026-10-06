@@ -106,40 +106,40 @@ export function DateField({
         }}
         className={
           className ??
-          "flex w-full items-center justify-between rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm outline-none focus:border-blue"
+          "flex w-full items-center justify-between rounded-lg border border-line bg-panel px-3 py-2 text-sm outline-none focus:border-accent"
         }
       >
-        <span className={value ? "text-navy" : "text-[#94A0BD]"}>
+        <span className={value ? "text-ink" : "text-ink-3"}>
           {value ? formatBR(value) : placeholder}
         </span>
-        <Calendar className="h-4 w-4 flex-shrink-0 text-[#94A0BD]" />
+        <Calendar className="h-4 w-4 flex-shrink-0 text-ink-3" />
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-1 w-64 rounded-lg border border-navy/10 bg-white p-3 shadow-lg">
+        <div className="absolute z-20 mt-1 w-64 rounded-lg border border-line bg-panel p-3 shadow-lg">
           <div className="mb-2 flex items-center justify-between">
             <button
               type="button"
               onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
-              className="rounded p-1 text-[#5B647E] hover:bg-brand-gray"
+              className="rounded p-1 text-ink-2 hover:bg-panel-2"
               aria-label="Mês anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold text-navy">
+            <span className="text-sm font-semibold text-ink">
               {MONTHS[viewDate.getMonth()]} {viewDate.getFullYear()}
             </span>
             <button
               type="button"
               onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}
-              className="rounded p-1 text-[#5B647E] hover:bg-brand-gray"
+              className="rounded p-1 text-ink-2 hover:bg-panel-2"
               aria-label="Próximo mês"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-y-1 text-center text-[11px] font-semibold text-[#94A0BD]">
+          <div className="grid grid-cols-7 gap-y-1 text-center text-[11px] font-semibold text-ink-3">
             {WEEKDAYS.map((w, i) => (
               <span key={i}>{w}</span>
             ))}
@@ -162,12 +162,12 @@ export function DateField({
                   }}
                   className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-xs transition-colors ${
                     isSelected
-                      ? "bg-navy font-semibold text-white"
+                      ? "bg-action font-semibold text-on-accent"
                       : blocked
                         ? "cursor-not-allowed text-[#cbd3e1]"
                         : iso === today
-                          ? "font-bold text-blue ring-1 ring-blue/40 hover:bg-brand-gray"
-                          : "text-navy hover:bg-brand-gray"
+                          ? "font-bold text-accent-ink ring-1 ring-accent/40 hover:bg-panel-2"
+                          : "text-ink hover:bg-panel-2"
                   }`}
                 >
                   {d.getDate()}
@@ -184,7 +184,7 @@ export function DateField({
                 commit(today);
                 setOpen(false);
               }}
-              className="flex-1 rounded-lg border border-navy/10 py-1 text-xs font-semibold text-navy hover:bg-brand-gray disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex-1 rounded-lg border border-line py-1 text-xs font-semibold text-ink hover:bg-panel-2 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Hoje
             </button>
@@ -195,7 +195,7 @@ export function DateField({
                   commit("");
                   setOpen(false);
                 }}
-                className="flex-1 rounded-lg border border-navy/10 py-1 text-xs font-semibold text-[#5B647E] hover:bg-brand-gray"
+                className="flex-1 rounded-lg border border-line py-1 text-xs font-semibold text-ink-2 hover:bg-panel-2"
               >
                 Limpar
               </button>

@@ -24,7 +24,7 @@ export function VendasSubTabs({
   ];
 
   return (
-    <nav className="mb-5 flex gap-1 border-b border-navy/[.08]">
+    <nav className="mb-5 flex gap-1 border-b border-line">
       {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
@@ -33,8 +33,8 @@ export function VendasSubTabs({
             href={tab.href}
             className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors ${
               isActive
-                ? "border-blue text-blue"
-                : "border-transparent text-[#5B647E] hover:text-navy"
+                ? "border-accent text-accent-ink"
+                : "border-transparent text-ink-2 hover:text-ink"
             }`}
           >
             {tab.label}

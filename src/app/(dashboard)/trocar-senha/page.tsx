@@ -22,10 +22,10 @@ export default async function TrocarSenhaPage() {
 
   return (
     <div className="mx-auto max-w-md py-10">
-      <h1 className="mb-1 font-display text-2xl font-bold text-navy">
+      <h1 className="mb-1 font-display text-2xl font-bold text-ink">
         {required ? "Defina sua senha" : "Trocar senha"}
       </h1>
-      <p className="mb-6 text-sm text-[#5B647E]">
+      <p className="mb-6 text-sm text-ink-2">
         {required
           ? "Escolha a sua senha para continuar. Só você vai saber qual é — nem quem criou o seu acesso consegue vê-la."
           : "Escolha uma nova senha para o seu acesso."}

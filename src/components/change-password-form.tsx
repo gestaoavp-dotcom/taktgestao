@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 const MIN = 8;
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 export function ChangePasswordForm({ required }: { required: boolean }) {
   const router = useRouter();
@@ -54,9 +54,9 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg bg-white p-5 shadow-sm">
+    <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg bg-panel p-5 shadow-sm">
       <label className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
           Nova senha
         </span>
         <input
@@ -70,7 +70,7 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
       </label>
 
       <label className="flex flex-col gap-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
           Repita a nova senha
         </span>
         <input
@@ -82,19 +82,19 @@ export function ChangePasswordForm({ required }: { required: boolean }) {
         />
       </label>
 
-      {error && <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>}
+      {error && <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{error}</p>}
 
       <button
         type="submit"
         disabled={saving}
-        className="flex items-center justify-center gap-2 rounded-lg bg-navy py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+        className="flex items-center justify-center gap-2 rounded-lg bg-action py-2.5 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
       >
         <KeyRound className="h-4 w-4" />
         {saving ? "Salvando..." : required ? "Definir e entrar" : "Salvar nova senha"}
       </button>
 
       {required && (
-        <p className="text-center text-xs text-[#94A0BD]">
+        <p className="text-center text-xs text-ink-3">
           Não dá para pular esta etapa.
         </p>
       )}

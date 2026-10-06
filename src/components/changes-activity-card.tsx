@@ -65,16 +65,16 @@ export function ChangesActivityCard({
   }, [filtered, view]);
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-sm">
+    <div className="rounded-lg bg-panel p-6 shadow-sm">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h3 className="font-bold text-navy">Gráfico de Controle de Alterações</h3>
-          <p className="text-xs text-[#94A0BD]">Ações registradas em Controle, por dia</p>
+          <h3 className="font-bold text-ink">Gráfico de Controle de Alterações</h3>
+          <p className="text-xs text-ink-3">Ações registradas em Controle, por dia</p>
         </div>
 
-        <div className="rounded-lg bg-blue/5 px-5 py-2 text-right">
-          <div className="font-display text-3xl font-bold leading-none text-navy">{total}</div>
-          <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-[#5B647E]">
+        <div className="rounded-lg bg-accent/5 px-5 py-2 text-right">
+          <div className="font-display text-3xl font-bold leading-none text-ink">{total}</div>
+          <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-2">
             alterações em {MONTHS[view.month].toLowerCase()}
           </div>
         </div>
@@ -89,11 +89,11 @@ export function ChangesActivityCard({
               setView({ year: d.getFullYear(), month: d.getMonth() });
             }}
             aria-label="Mês anterior"
-            className="rounded-lg border border-navy/10 p-1.5 text-[#5B647E] hover:bg-brand-gray"
+            className="rounded-lg border border-line p-1.5 text-ink-2 hover:bg-panel-2"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
-          <span className="w-40 text-center text-sm font-semibold text-navy">
+          <span className="w-40 text-center text-sm font-semibold text-ink">
             {MONTHS[view.month]} {view.year}
           </span>
           <button
@@ -104,7 +104,7 @@ export function ChangesActivityCard({
             }}
             disabled={isCurrentMonth}
             aria-label="Próximo mês"
-            className="rounded-lg border border-navy/10 p-1.5 text-[#5B647E] hover:bg-brand-gray disabled:cursor-not-allowed disabled:opacity-30"
+            className="rounded-lg border border-line p-1.5 text-ink-2 hover:bg-panel-2 disabled:cursor-not-allowed disabled:opacity-30"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
@@ -116,8 +116,8 @@ export function ChangesActivityCard({
             onClick={() => setFilter("all")}
             className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
               filter === "all"
-                ? "bg-navy text-white"
-                : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                ? "bg-action text-on-accent"
+                : "border border-line text-ink-2 hover:bg-panel-2"
             }`}
           >
             Todos
@@ -129,8 +129,8 @@ export function ChangesActivityCard({
               onClick={() => setFilter(m)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                 filter === m
-                  ? "bg-navy text-white"
-                  : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                  ? "bg-action text-on-accent"
+                  : "border border-line text-ink-2 hover:bg-panel-2"
               }`}
             >
               {MARKETPLACE_LABEL[m] ?? m}

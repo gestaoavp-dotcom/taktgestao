@@ -18,7 +18,7 @@ export type TaxNote = {
 };
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -48,10 +48,10 @@ function RateEditor({ settings }: { settings: TaxSettings }) {
       <button
         type="button"
         onClick={() => setEditing(true)}
-        className="flex items-center gap-1.5 rounded-full border border-navy/10 px-3 py-1 text-xs font-semibold text-navy transition-colors hover:bg-brand-gray"
+        className="flex items-center gap-1.5 rounded-full border border-line px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-panel-2"
       >
         Alíquota {settings.rate_percent}%
-        <Pencil className="h-3 w-3 text-[#94A0BD]" />
+        <Pencil className="h-3 w-3 text-ink-3" />
       </button>
     );
   }
@@ -66,14 +66,14 @@ function RateEditor({ settings }: { settings: TaxSettings }) {
         min="0"
         defaultValue={settings.rate_percent}
         autoFocus
-        className="w-20 rounded-lg border border-navy/10 px-2 py-1 text-sm text-navy outline-none focus:border-blue"
+        className="w-20 rounded-lg border border-line px-2 py-1 text-sm text-ink outline-none focus:border-accent"
       />
-      <span className="text-xs text-[#94A0BD]">%</span>
+      <span className="text-xs text-ink-3">%</span>
       <button
         type="submit"
         disabled={pending}
         aria-label="Salvar alíquota"
-        className="rounded p-1 text-green-600 hover:bg-green-50 disabled:opacity-60"
+        className="rounded p-1 text-pos hover:bg-pos/10 disabled:opacity-60"
       >
         <Check className="h-4 w-4" />
       </button>
@@ -81,12 +81,12 @@ function RateEditor({ settings }: { settings: TaxSettings }) {
         type="button"
         onClick={() => setEditing(false)}
         aria-label="Cancelar"
-        className="rounded p-1 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+        className="rounded p-1 text-ink-3 hover:bg-panel-2 hover:text-ink"
       >
         <X className="h-4 w-4" />
       </button>
       {state && "error" in state && (
-        <span className="text-xs text-red-700">{state.error}</span>
+        <span className="text-xs text-danger">{state.error}</span>
       )}
     </form>
   );
@@ -114,14 +114,14 @@ export function TaxSummaryCard({
   const description = `Imposto sobre faturamento (${settings.rate_percent}%)`;
 
   return (
-    <section className="mb-5 overflow-hidden rounded-lg bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/[.08] px-5 py-4">
+    <section className="mb-5 overflow-hidden rounded-lg bg-panel shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div>
-          <h2 className="flex items-center gap-2 font-bold text-navy">
-            <Receipt className="h-4 w-4 text-[#94A0BD]" />
+          <h2 className="flex items-center gap-2 font-bold text-ink">
+            <Receipt className="h-4 w-4 text-ink-3" />
             Imposto sobre faturamento
           </h2>
-          <p className="text-xs text-[#94A0BD]">
+          <p className="text-xs text-ink-3">
             Calculado automaticamente sobre as mensalidades recebidas no mês.
           </p>
         </div>
@@ -131,26 +131,26 @@ export function TaxSummaryCard({
       {rows.length > 0 ? (
         <>
           <table className="w-full text-left text-sm">
-            <thead className="bg-brand-gray">
+            <thead className="bg-panel-2">
               <tr>
-                <th className="px-5 py-2 font-semibold text-navy">Nota / Recebimento</th>
-                <th className="px-5 py-2 font-semibold text-navy">Cliente</th>
-                <th className="px-5 py-2 font-semibold text-navy">Faturamento</th>
-                <th className="px-5 py-2 font-semibold text-navy">Imposto</th>
+                <th className="px-5 py-2 font-semibold text-ink">Nota / Recebimento</th>
+                <th className="px-5 py-2 font-semibold text-ink">Cliente</th>
+                <th className="px-5 py-2 font-semibold text-ink">Faturamento</th>
+                <th className="px-5 py-2 font-semibold text-ink">Imposto</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="border-t border-navy/[.06]">
-                  <td className="px-5 py-2.5 text-[#5B647E]">{formatDate(row.paidOn)}</td>
-                  <td className="px-5 py-2.5 text-navy">
+                <tr key={row.id} className="border-t border-line-soft">
+                  <td className="px-5 py-2.5 text-ink-2">{formatDate(row.paidOn)}</td>
+                  <td className="px-5 py-2.5 text-ink">
                     {row.clientName}
                     {row.cnpjLabel && (
-                      <span className="text-[#94A0BD]"> · {row.cnpjLabel}</span>
+                      <span className="text-ink-3"> · {row.cnpjLabel}</span>
                     )}
                   </td>
-                  <td className="px-5 py-2.5 text-navy">{formatCurrency(row.amount)}</td>
-                  <td className="px-5 py-2.5 font-semibold text-navy">
+                  <td className="px-5 py-2.5 text-ink">{formatCurrency(row.amount)}</td>
+                  <td className="px-5 py-2.5 font-semibold text-ink">
                     {formatCurrency(row.tax)}
                   </td>
                 </tr>
@@ -158,20 +158,20 @@ export function TaxSummaryCard({
             </tbody>
           </table>
 
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-navy/[.08] bg-brand-gray/40 px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-panel-2/40 px-5 py-4">
             <div className="flex gap-6">
               <div>
-                <p className="text-xs text-[#94A0BD]">Faturamento do mês</p>
-                <p className="font-bold text-navy">{formatCurrency(totalBilled)}</p>
+                <p className="text-xs text-ink-3">Faturamento do mês</p>
+                <p className="font-bold text-ink">{formatCurrency(totalBilled)}</p>
               </div>
               <div>
-                <p className="text-xs text-[#94A0BD]">Imposto devido</p>
-                <p className="font-bold text-navy">{formatCurrency(totalTax)}</p>
+                <p className="text-xs text-ink-3">Imposto devido</p>
+                <p className="font-bold text-ink">{formatCurrency(totalTax)}</p>
               </div>
             </div>
 
             {alreadyLogged ? (
-              <span className="text-xs font-medium text-green-700">
+              <span className="text-xs font-medium text-pos">
                 Já lançado como despesa
               </span>
             ) : (
@@ -181,7 +181,7 @@ export function TaxSummaryCard({
                 <input type="hidden" name="due_date" value={today} />
                 <button
                   type="submit"
-                  className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+                  className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90"
                 >
                   Lançar como despesa
                 </button>
@@ -190,7 +190,7 @@ export function TaxSummaryCard({
           </div>
         </>
       ) : (
-        <p className="px-5 py-8 text-center text-sm text-[#94A0BD]">
+        <p className="px-5 py-8 text-center text-sm text-ink-3">
           Nenhuma mensalidade recebida neste mês ainda.
         </p>
       )}

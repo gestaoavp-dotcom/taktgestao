@@ -34,9 +34,9 @@ function int(value: number) {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  "Em Andamento": "bg-green-100 text-green-700",
-  Pausado: "bg-brand-gray text-navy",
-  Encerrado: "bg-red-50 text-red-700",
+  "Em Andamento": "bg-pos/15 text-pos",
+  Pausado: "bg-panel-2 text-ink",
+  Encerrado: "bg-danger/10 text-danger",
 };
 
 /** Ratios always divide the sums — never an average of each ad's own ratio. */
@@ -100,10 +100,10 @@ function totalsOf(ads: SalesAd[]) {
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg bg-white p-4 shadow-sm">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">{label}</p>
-      <p className="mt-1 font-display text-xl font-bold text-navy">{value}</p>
-      {hint && <p className="mt-0.5 text-[11px] text-[#94A0BD]">{hint}</p>}
+    <div className="rounded-lg bg-panel p-4 shadow-sm">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className="mt-1 font-display text-xl font-bold text-ink">{value}</p>
+      {hint && <p className="mt-0.5 text-[11px] text-ink-3">{hint}</p>}
     </div>
   );
 }
@@ -137,7 +137,7 @@ export function SalesAdsTable({
         <select
           value={marketplace}
           onChange={(e) => setMarketplace(e.target.value)}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           <option value="all">Todos os marketplaces</option>
           {clientMarketplaces.map((m) => (
@@ -149,7 +149,7 @@ export function SalesAdsTable({
         <select
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue"
+          className="rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent"
         >
           <option value="all">Todos os meses</option>
           {months.map((m) => (
@@ -160,7 +160,7 @@ export function SalesAdsTable({
         </select>
       </div>
 
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
         Todos os anúncios somados ({campaigns.length})
       </h2>
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -178,24 +178,24 @@ export function SalesAdsTable({
         <Stat label="Itens vendidos" value={int(t.itemsSold)} />
       </div>
 
-      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-[#94A0BD]">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-ink-3">
         Por anúncio
       </h2>
-      <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+      <div className="overflow-x-auto rounded-lg bg-panel shadow-sm">
         <table className="w-full min-w-[1100px] text-left text-sm">
-          <thead className="bg-brand-gray">
+          <thead className="bg-panel-2">
             <tr>
-              <th className="px-4 py-2 font-semibold text-navy">Anúncio</th>
-              <th className="px-4 py-2 font-semibold text-navy">Status</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Impressões</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Cliques</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">CTR</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Conversões</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Itens</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">Investido</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">GMV</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">ROAS</th>
-              <th className="px-4 py-2 text-right font-semibold text-navy">ACOS</th>
+              <th className="px-4 py-2 font-semibold text-ink">Anúncio</th>
+              <th className="px-4 py-2 font-semibold text-ink">Status</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Impressões</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Cliques</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">CTR</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Conversões</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Itens</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">Investido</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">GMV</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">ROAS</th>
+              <th className="px-4 py-2 text-right font-semibold text-ink">ACOS</th>
             </tr>
           </thead>
           <tbody>
@@ -207,40 +207,40 @@ export function SalesAdsTable({
               const ctr = ad.impressions > 0 ? (ad.clicks / ad.impressions) * 100 : 0;
 
               return (
-                <tr key={ad.id} className="border-t border-navy/[.06]">
-                  <td className="max-w-[260px] truncate px-4 py-2 text-navy" title={ad.ad_name}>
+                <tr key={ad.id} className="border-t border-line-soft">
+                  <td className="max-w-[260px] truncate px-4 py-2 text-ink" title={ad.ad_name}>
                     {ad.ad_name}
                   </td>
                   <td className="whitespace-nowrap px-4 py-2">
                     <span
                       className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                        STATUS_STYLE[ad.status ?? ""] ?? "bg-brand-gray text-navy"
+                        STATUS_STYLE[ad.status ?? ""] ?? "bg-panel-2 text-ink"
                       }`}
                     >
                       {ad.status ?? "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(ad.impressions)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(ad.clicks)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{pct(ctr)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(ad.conversions)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(ad.items_sold)}</td>
-                  <td className="px-4 py-2 text-right text-navy">{formatCurrency(expense)}</td>
-                  <td className="px-4 py-2 text-right text-navy">{formatCurrency(gmv)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(ad.impressions)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(ad.clicks)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{pct(ctr)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(ad.conversions)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(ad.items_sold)}</td>
+                  <td className="px-4 py-2 text-right text-ink">{formatCurrency(expense)}</td>
+                  <td className="px-4 py-2 text-right text-ink">{formatCurrency(gmv)}</td>
                   <td
                     className={`px-4 py-2 text-right font-semibold ${
-                      roas >= 4 ? "text-green-700" : roas >= 2 ? "text-navy" : "text-red-600"
+                      roas >= 4 ? "text-pos" : roas >= 2 ? "text-ink" : "text-danger"
                     }`}
                   >
                     {roas.toFixed(2)}
                   </td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{pct(acos)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{pct(acos)}</td>
                 </tr>
               );
             })}
             {!filtered.length && (
               <tr>
-                <td colSpan={11} className="px-5 py-8 text-center text-[#94A0BD]">
+                <td colSpan={11} className="px-5 py-8 text-center text-ink-3">
                   Nenhum anúncio nesse filtro. Importe um documento de Ads em &quot;Importar
                   documentos&quot;.
                 </td>

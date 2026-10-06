@@ -21,7 +21,7 @@ const MONTHS = [
 ];
 
 const SELECT_CLASS =
-  "rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none focus:border-blue";
+  "rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none focus:border-accent";
 
 export function ReportOptions({
   month,
@@ -61,15 +61,15 @@ export function ReportOptions({
   const monthOptions = availableMonths.length ? availableMonths : [month];
 
   return (
-    <div className="mb-6 rounded-lg bg-white p-5 shadow-sm print:hidden">
-      <h2 className="mb-1 font-bold text-navy">Gerar relatório</h2>
-      <p className="mb-4 text-xs text-[#94A0BD]">
+    <div className="mb-6 rounded-lg bg-panel p-5 shadow-sm print:hidden">
+      <h2 className="mb-1 font-bold text-ink">Gerar relatório</h2>
+      <p className="mb-4 text-xs text-ink-3">
         Escolha o mês e a plataforma. O relatório é montado com os documentos já importados.
       </p>
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             Mês
           </span>
           <select
@@ -89,7 +89,7 @@ export function ReportOptions({
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             Plataforma
           </span>
           <select
@@ -107,7 +107,7 @@ export function ReportOptions({
         </label>
 
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+          <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
             Seções
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -118,8 +118,8 @@ export function ReportOptions({
                 onClick={() => toggleSection(s.value)}
                 className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
                   sections.includes(s.value)
-                    ? "bg-navy text-white"
-                    : "border border-navy/10 text-[#5B647E] hover:bg-brand-gray"
+                    ? "bg-action text-on-accent"
+                    : "border border-line text-ink-2 hover:bg-panel-2"
                 }`}
               >
                 {s.label}
@@ -133,7 +133,7 @@ export function ReportOptions({
             <button
               type="button"
               onClick={() => window.print()}
-              className="flex items-center gap-2 rounded-lg border border-navy/10 px-4 py-2 text-sm font-semibold text-navy transition-colors hover:bg-brand-gray"
+              className="flex items-center gap-2 rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-panel-2"
             >
               <Printer className="h-4 w-4" />
               Imprimir / PDF
@@ -142,7 +142,7 @@ export function ReportOptions({
           <button
             type="button"
             onClick={() => update({})}
-            className="flex items-center gap-2 rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38]"
+            className="flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90"
           >
             <FileText className="h-4 w-4" />
             {generated ? "Atualizar relatório" : "Gerar relatório"}

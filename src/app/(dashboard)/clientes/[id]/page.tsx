@@ -56,16 +56,16 @@ export default async function ClienteDashboardPage({
     <div className="flex flex-col gap-5">
       <div>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-bold text-navy">
+          <h2 className="font-bold text-ink">
             Vendas{" "}
-            <span className="font-normal text-[#5B647E]">
+            <span className="font-normal text-ink-2">
               ({formatBR(range.start)} a {formatBR(range.end)})
             </span>
           </h2>
           <DateRangePicker start={range.start} end={range.end} />
           <Link
             href={`/clientes/${id}/vendas`}
-            className="flex items-center gap-1 text-xs font-semibold text-blue hover:underline"
+            className="flex items-center gap-1 text-xs font-semibold text-accent-ink hover:underline"
           >
             Ver detalhes
             <ArrowRight className="h-3.5 w-3.5" />
@@ -95,42 +95,42 @@ export default async function ClienteDashboardPage({
           />
         </div>
 
-        <div className="mb-5 rounded-lg bg-white p-6 shadow-sm">
-          <h3 className="mb-4 font-bold text-navy">Faturamento por dia</h3>
+        <div className="mb-5 rounded-lg bg-panel p-6 shadow-sm">
+          <h3 className="mb-4 font-bold text-ink">Faturamento por dia</h3>
           <AreaChart data={chartData} />
           <MonthlyRevenueNote value={sales.monthlyRevenue} />
         </div>
 
-        <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-          <div className="border-b border-navy/[.08] px-5 py-4">
-            <h3 className="font-bold text-navy">Por marketplace</h3>
+        <div className="overflow-hidden rounded-lg bg-panel shadow-sm">
+          <div className="border-b border-line px-5 py-4">
+            <h3 className="font-bold text-ink">Por marketplace</h3>
           </div>
           {platformRows.length > 0 ? (
             <table className="w-full text-left text-sm">
-              <thead className="bg-brand-gray">
+              <thead className="bg-panel-2">
                 <tr>
-                  <th className="px-5 py-2 font-semibold text-navy">Marketplace</th>
-                  <th className="px-5 py-2 font-semibold text-navy">Faturamento</th>
-                  <th className="px-5 py-2 font-semibold text-navy">Pedidos</th>
-                  <th className="px-5 py-2 font-semibold text-navy">Devoluções</th>
+                  <th className="px-5 py-2 font-semibold text-ink">Marketplace</th>
+                  <th className="px-5 py-2 font-semibold text-ink">Faturamento</th>
+                  <th className="px-5 py-2 font-semibold text-ink">Pedidos</th>
+                  <th className="px-5 py-2 font-semibold text-ink">Devoluções</th>
                 </tr>
               </thead>
               <tbody>
                 {platformRows.map(([platform, data]) => (
-                  <tr key={platform} className="border-t border-navy/[.06]">
-                    <td className="px-5 py-2.5 text-navy">
+                  <tr key={platform} className="border-t border-line-soft">
+                    <td className="px-5 py-2.5 text-ink">
                       {MARKETPLACE_LABEL[platform] ?? platform}
                     </td>
-                    <td className="px-5 py-2.5 text-navy">
+                    <td className="px-5 py-2.5 text-ink">
                       {formatCurrency(data.revenue)}
                       {data.paid != null && (
-                        <div className="text-[11px] text-[#94A0BD]">
+                        <div className="text-[11px] text-ink-3">
                           pago {formatCurrency(data.paid)}
                         </div>
                       )}
                     </td>
-                    <td className="px-5 py-2.5 text-[#5B647E]">{data.orders}</td>
-                    <td className="px-5 py-2.5 text-[#5B647E]">
+                    <td className="px-5 py-2.5 text-ink-2">{data.orders}</td>
+                    <td className="px-5 py-2.5 text-ink-2">
                       {data.returns.orders
                         ? `${formatCurrency(data.returns.value)} (${data.returns.orders})`
                         : "—"}
@@ -140,7 +140,7 @@ export default async function ClienteDashboardPage({
               </tbody>
             </table>
           ) : (
-            <p className="px-5 py-8 text-center text-sm text-[#94A0BD]">
+            <p className="px-5 py-8 text-center text-sm text-ink-3">
               Nenhum pedido nesse período.
             </p>
           )}

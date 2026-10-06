@@ -38,16 +38,16 @@ function Metric({
   previousLabel?: string;
 }) {
   return (
-    <div className="rounded-lg border border-navy/[.08] p-4">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">{label}</p>
-      <p className="mt-1 font-display text-2xl font-bold text-navy">{value}</p>
-      {sub && <p className="text-xs font-semibold text-[#5B647E]">{sub}</p>}
+    <div className="rounded-lg border border-line p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">{label}</p>
+      <p className="mt-1 font-display text-2xl font-bold text-ink">{value}</p>
+      {sub && <p className="text-xs font-semibold text-ink-2">{sub}</p>}
       {previous != null && (
         <p
-          className={`mt-1 text-xs font-semibold ${previous >= 0 ? "text-green-700" : "text-red-600"}`}
+          className={`mt-1 text-xs font-semibold ${previous >= 0 ? "text-pos" : "text-danger"}`}
         >
           {previous >= 0 ? "▲" : "▼"} {Math.abs(previous).toFixed(1).replace(".", ",")}%
-          <span className="font-normal text-[#94A0BD]"> {previousLabel ?? "vs mês anterior"}</span>
+          <span className="font-normal text-ink-3"> {previousLabel ?? "vs mês anterior"}</span>
         </p>
       )}
     </div>
@@ -64,27 +64,27 @@ function DayCard({ day, tone }: { day: DayDetail; tone: "alta" | "baixa" }) {
   return (
     <div
       className={`break-inside-avoid rounded-lg border p-4 ${
-        tone === "alta" ? "border-green-200 bg-green-50/50" : "border-orange-200 bg-orange-50/40"
+        tone === "alta" ? "border-pos/30 bg-pos/10/50" : "border-warn/30 bg-warn/10/40"
       }`}
     >
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-display text-lg font-bold text-navy">{fmtDay(day.date)}</span>
-        <span className="text-sm font-semibold text-navy">{formatCurrency(day.revenue)}</span>
+        <span className="font-display text-lg font-bold text-ink">{fmtDay(day.date)}</span>
+        <span className="text-sm font-semibold text-ink">{formatCurrency(day.revenue)}</span>
       </div>
-      <p className="text-[11px] text-[#94A0BD]">
+      <p className="text-[11px] text-ink-3">
         {day.orders} {day.orders === 1 ? "pedido" : "pedidos"} ·{" "}
         {day.vsAverage >= 0 ? "+" : ""}
         {day.vsAverage.toFixed(0)}% vs média
       </p>
 
-      <div className="mt-3 border-t border-navy/[.06] pt-2">
+      <div className="mt-3 border-t border-line-soft pt-2">
         {day.actions.length ? (
           <ul className="flex flex-col gap-1.5">
             {day.actions.map((a, i) => (
-              <li key={i} className="text-xs text-[#5B647E]">
+              <li key={i} className="text-xs text-ink-2">
                 <span
                   className={`mr-1.5 rounded px-1 py-0.5 text-[10px] font-semibold ${
-                    a.sameDay ? "bg-navy text-white" : "bg-brand-gray text-[#5B647E]"
+                    a.sameDay ? "bg-action text-on-accent" : "bg-panel-2 text-ink-2"
                   }`}
                 >
                   {a.sameDay ? "no dia" : fmtDay(a.date)}
@@ -95,7 +95,7 @@ function DayCard({ day, tone }: { day: DayDetail; tone: "alta" | "baixa" }) {
             ))}
           </ul>
         ) : (
-          <p className="text-xs text-[#94A0BD]">Nenhuma ação registrada nesse dia ou na véspera.</p>
+          <p className="text-xs text-ink-3">Nenhuma ação registrada nesse dia ou na véspera.</p>
         )}
       </div>
     </div>
@@ -104,8 +104,8 @@ function DayCard({ day, tone }: { day: DayDetail; tone: "alta" | "baixa" }) {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="break-inside-avoid rounded-lg bg-white p-6 shadow-sm">
-      <h2 className="mb-4 font-display text-lg font-bold text-navy">{title}</h2>
+    <section className="break-inside-avoid rounded-lg bg-panel p-6 shadow-sm">
+      <h2 className="mb-4 font-display text-lg font-bold text-ink">{title}</h2>
       {children}
     </section>
   );
@@ -125,12 +125,12 @@ export function MonthlyReportView({
 
   return (
     <div className="flex flex-col gap-5">
-      <header className="rounded-lg bg-navy p-6 text-white">
-        <p className="text-xs font-semibold uppercase tracking-wide text-white/60">
+      <header className="rounded-lg bg-action p-6 text-on-accent">
+        <p className="text-xs font-semibold uppercase tracking-wide text-on-accent/60">
           Relatório mensal
         </p>
         <h1 className="mt-1 font-display text-2xl font-bold">{clientName}</h1>
-        <p className="mt-1 text-sm text-white/80">
+        <p className="mt-1 text-sm text-on-accent/80">
           {report.monthLabel}
           {report.marketplace
             ? ` · ${MARKETPLACE_LABEL[report.marketplace] ?? report.marketplace}`
@@ -146,9 +146,9 @@ export function MonthlyReportView({
                 {note.kind === "alerta" ? (
                   <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#c2410c]" />
                 ) : (
-                  <TrendingUp className="mt-0.5 h-4 w-4 flex-shrink-0 text-green-700" />
+                  <TrendingUp className="mt-0.5 h-4 w-4 flex-shrink-0 text-pos" />
                 )}
-                <span className="text-[#5B647E]">{note.text}</span>
+                <span className="text-ink-2">{note.text}</span>
               </li>
             ))}
           </ul>
@@ -172,7 +172,7 @@ export function MonthlyReportView({
         </div>
 
         {sales.returns.orders > 0 && (
-          <p className="mt-3 text-sm text-[#5B647E]">
+          <p className="mt-3 text-sm text-ink-2">
             Devoluções: {formatCurrency(sales.returns.value)} em {sales.returns.orders}{" "}
             pedido{sales.returns.orders === 1 ? "" : "s"}, fora do faturamento. Com elas, o mês
             somaria {formatCurrency(sales.revenue + sales.returns.value)}.
@@ -181,23 +181,23 @@ export function MonthlyReportView({
 
         {sales.byMarketplace.length > 1 && (
           <table className="mt-5 w-full text-left text-sm">
-            <thead className="bg-brand-gray">
+            <thead className="bg-panel-2">
               <tr>
-                <th className="px-4 py-2 font-semibold text-navy">Plataforma</th>
-                <th className="px-4 py-2 text-right font-semibold text-navy">Faturamento</th>
-                <th className="px-4 py-2 text-right font-semibold text-navy">Pedidos</th>
-                <th className="px-4 py-2 text-right font-semibold text-navy">Participação</th>
+                <th className="px-4 py-2 font-semibold text-ink">Plataforma</th>
+                <th className="px-4 py-2 text-right font-semibold text-ink">Faturamento</th>
+                <th className="px-4 py-2 text-right font-semibold text-ink">Pedidos</th>
+                <th className="px-4 py-2 text-right font-semibold text-ink">Participação</th>
               </tr>
             </thead>
             <tbody>
               {sales.byMarketplace.map((m) => (
-                <tr key={m.marketplace} className="border-t border-navy/[.06]">
-                  <td className="px-4 py-2 text-navy">
+                <tr key={m.marketplace} className="border-t border-line-soft">
+                  <td className="px-4 py-2 text-ink">
                     {MARKETPLACE_LABEL[m.marketplace] ?? m.marketplace}
                   </td>
-                  <td className="px-4 py-2 text-right text-navy">{formatCurrency(m.revenue)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{m.orders}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">
+                  <td className="px-4 py-2 text-right text-ink">{formatCurrency(m.revenue)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{m.orders}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">
                     {pct(sales.revenue > 0 ? (m.revenue / sales.revenue) * 100 : 0)}
                   </td>
                 </tr>
@@ -209,7 +209,7 @@ export function MonthlyReportView({
 
       {daily.days.some((d) => d.revenue > 0) && (
         <Section title="Dia a dia">
-          <p className="mb-3 text-sm text-[#5B647E]">
+          <p className="mb-3 text-sm text-ink-2">
             Média de {formatCurrency(daily.average)} nos dias com venda.
             {daily.zeroDays.length > 0 &&
               ` ${daily.zeroDays.length} ${daily.zeroDays.length === 1 ? "dia ficou" : "dias ficaram"} sem nenhuma venda.`}
@@ -230,7 +230,7 @@ export function MonthlyReportView({
                 >
                   <div
                     className={`w-full rounded-t ${
-                      isBest ? "bg-green-600" : isWorst ? "bg-orange-400" : "bg-blue/30"
+                      isBest ? "bg-pos" : isWorst ? "bg-warn" : "bg-accent/30"
                     }`}
                     style={{ height: `${Math.max(height, d.revenue > 0 ? 3 : 1)}%` }}
                   />
@@ -241,7 +241,7 @@ export function MonthlyReportView({
 
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-green-700">
+              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-pos">
                 Melhores dias
               </p>
               <div className="flex flex-col gap-3">
@@ -262,7 +262,7 @@ export function MonthlyReportView({
             </div>
           </div>
 
-          <p className="mt-4 text-xs text-[#94A0BD]">
+          <p className="mt-4 text-xs text-ink-3">
             As ações listadas em cada dia vêm do Controle — registradas no próprio dia ou nos dois
             anteriores. Elas mostram o que foi feito por perto, não provam causa.
           </p>
@@ -272,25 +272,25 @@ export function MonthlyReportView({
       {products.length > 0 && (
         <Section title="Produtos">
           <table className="w-full text-left text-sm">
-            <thead className="bg-brand-gray">
+            <thead className="bg-panel-2">
               <tr>
-                <th className="px-4 py-2 font-semibold text-navy">Produto</th>
-                <th className="px-4 py-2 font-semibold text-navy">SKU</th>
-                <th className="px-4 py-2 text-right font-semibold text-navy">Unidades</th>
-                <th className="px-4 py-2 text-right font-semibold text-navy">Faturamento</th>
-                <th className="px-4 py-2 text-right font-semibold text-navy">Participação</th>
+                <th className="px-4 py-2 font-semibold text-ink">Produto</th>
+                <th className="px-4 py-2 font-semibold text-ink">SKU</th>
+                <th className="px-4 py-2 text-right font-semibold text-ink">Unidades</th>
+                <th className="px-4 py-2 text-right font-semibold text-ink">Faturamento</th>
+                <th className="px-4 py-2 text-right font-semibold text-ink">Participação</th>
               </tr>
             </thead>
             <tbody>
               {products.slice(0, 10).map((p) => (
-                <tr key={p.sku} className="border-t border-navy/[.06]">
-                  <td className="max-w-[280px] truncate px-4 py-2 text-navy" title={p.name}>
+                <tr key={p.sku} className="border-t border-line-soft">
+                  <td className="max-w-[280px] truncate px-4 py-2 text-ink" title={p.name}>
                     {p.name}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-[#5B647E]">{p.sku}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{int(p.units)}</td>
-                  <td className="px-4 py-2 text-right text-navy">{formatCurrency(p.revenue)}</td>
-                  <td className="px-4 py-2 text-right text-[#5B647E]">{pct(p.share)}</td>
+                  <td className="whitespace-nowrap px-4 py-2 text-ink-2">{p.sku}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{int(p.units)}</td>
+                  <td className="px-4 py-2 text-right text-ink">{formatCurrency(p.revenue)}</td>
+                  <td className="px-4 py-2 text-right text-ink-2">{pct(p.share)}</td>
                 </tr>
               ))}
             </tbody>
@@ -314,15 +314,15 @@ export function MonthlyReportView({
             />
             <Metric label="ACOS" value={pct(ads.acos)} />
           </div>
-          <p className="mt-4 text-sm text-[#5B647E]">
+          <p className="mt-4 text-sm text-ink-2">
             {ads.conversions} conversões a {formatCurrency(ads.costPerConversion)} cada. O
             investimento em anúncios representou {pct(ads.shareOfRevenue)} do faturamento do mês.
           </p>
           {ads.best && ads.worst && ads.best.name !== ads.worst.name && (
-            <p className="mt-2 text-sm text-[#5B647E]">
-              Melhor retorno: <strong className="text-navy">{ads.best.name}</strong> (ROAS{" "}
+            <p className="mt-2 text-sm text-ink-2">
+              Melhor retorno: <strong className="text-ink">{ads.best.name}</strong> (ROAS{" "}
               {ads.best.roas.toFixed(2).replace(".", ",")}). Pior:{" "}
-              <strong className="text-navy">{ads.worst.name}</strong> (ROAS{" "}
+              <strong className="text-ink">{ads.worst.name}</strong> (ROAS{" "}
               {ads.worst.roas.toFixed(2).replace(".", ",")}).
             </p>
           )}
@@ -347,7 +347,7 @@ export function MonthlyReportView({
           </div>
 
           <div className="mt-5">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-3">
               Do anúncio à compra
             </p>
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -359,12 +359,12 @@ export function MonthlyReportView({
                 { label: "Compradores", value: traffic.buyers },
               ].map((step, i, all) => (
                 <div key={step.label} className="flex items-center gap-2">
-                  <div className="rounded-lg bg-brand-gray/60 px-3 py-2 text-center">
-                    <p className="font-display font-bold text-navy">{int(step.value)}</p>
-                    <p className="text-[10px] text-[#94A0BD]">{step.label}</p>
+                  <div className="rounded-lg bg-panel-2/60 px-3 py-2 text-center">
+                    <p className="font-display font-bold text-ink">{int(step.value)}</p>
+                    <p className="text-[10px] text-ink-3">{step.label}</p>
                   </div>
                   {i < all.length - 1 && (
-                    <span className="text-xs text-[#94A0BD]">
+                    <span className="text-xs text-ink-3">
                       {step.value > 0
                         ? `${((all[i + 1].value / step.value) * 100).toFixed(1).replace(".", ",")}%`
                         : "—"}
@@ -381,22 +381,22 @@ export function MonthlyReportView({
         <Section title="Ações do mês">
           <div className="mb-5 flex flex-wrap items-center gap-x-8 gap-y-4">
             <div>
-              <p className="font-display text-3xl font-bold text-navy">{changes.total}</p>
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+              <p className="font-display text-3xl font-bold text-ink">{changes.total}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-3">
                 {changes.total === 1 ? "ação realizada" : "ações realizadas"}
               </p>
             </div>
 
             {changes.byOwner.length > 0 && (
               <div>
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-3">
                   Responsáveis
                 </p>
                 <div className="flex flex-wrap gap-1.5">
                   {changes.byOwner.map((o) => (
                     <span
                       key={o.owner}
-                      className="rounded-full bg-navy px-2.5 py-1 text-xs font-semibold text-white"
+                      className="rounded-full bg-action px-2.5 py-1 text-xs font-semibold text-on-accent"
                     >
                       {o.owner} · {o.count}
                     </span>
@@ -406,14 +406,14 @@ export function MonthlyReportView({
             )}
 
             <div>
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-[#94A0BD]">
+              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-ink-3">
                 Por categoria
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {changes.byCategory.map((c) => (
                   <span
                     key={c.category}
-                    className="rounded-full bg-brand-gray px-2.5 py-1 text-xs font-semibold text-navy"
+                    className="rounded-full bg-panel-2 px-2.5 py-1 text-xs font-semibold text-ink"
                   >
                     {CHANGE_CATEGORY_LABEL[c.category] ?? c.category} · {c.count}
                   </span>
@@ -428,31 +428,31 @@ export function MonthlyReportView({
               return (
                 <div key={i} className="break-inside-avoid">
                   {newDay && (
-                    <p className="mt-4 border-b border-navy/[.08] pb-1 font-display text-sm font-bold text-navy first:mt-0">
+                    <p className="mt-4 border-b border-line pb-1 font-display text-sm font-bold text-ink first:mt-0">
                       {fmtDay(item.date)}
                     </p>
                   )}
                   <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1 py-2">
                     {item.category && (
-                      <span className="rounded bg-blue/10 px-1.5 py-0.5 text-[10px] font-bold text-blue">
+                      <span className="rounded bg-accent/10 px-1.5 py-0.5 text-[10px] font-bold text-accent-ink">
                         {CHANGE_CATEGORY_LABEL[item.category] ?? item.category}
                       </span>
                     )}
-                    <span className="flex-1 text-sm text-navy">{item.description}</span>
+                    <span className="flex-1 text-sm text-ink">{item.description}</span>
                     {item.owner && (
-                      <span className="text-xs font-semibold text-[#5B647E]">{item.owner}</span>
+                      <span className="text-xs font-semibold text-ink-2">{item.owner}</span>
                     )}
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                         CHANGE_STATUS_BADGE[item.status as ClientChangeStatus] ??
-                        "bg-brand-gray text-navy"
+                        "bg-panel-2 text-ink"
                       }`}
                     >
                       {CHANGE_STATUS_LABEL[item.status] ?? item.status}
                     </span>
                   </div>
                   {(item.reason || item.goal) && (
-                    <p className="-mt-1 pb-2 pl-1 text-xs text-[#94A0BD]">
+                    <p className="-mt-1 pb-2 pl-1 text-xs text-ink-3">
                       {item.reason && <>Motivo: {item.reason}</>}
                       {item.reason && item.goal && " · "}
                       {item.goal && <>Esperado: {item.goal}</>}

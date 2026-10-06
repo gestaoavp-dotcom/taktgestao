@@ -14,7 +14,7 @@ import {
 import { DateField } from "@/components/date-field";
 
 const INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-sm text-navy outline-none placeholder:text-[#94A0BD] focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-3 focus:border-accent";
 
 const NEW = "new";
 
@@ -100,7 +100,7 @@ export function ChangeWorkspaceModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -109,18 +109,18 @@ export function ChangeWorkspaceModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="alteracao-titulo"
-        className="flex h-[min(720px,90vh)] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-xl"
+        className="flex h-[min(720px,90vh)] w-full max-w-5xl overflow-hidden rounded-xl bg-panel shadow-xl"
       >
-        <div className="flex w-72 flex-shrink-0 flex-col border-r border-navy/[.08] bg-brand-gray/40">
-          <div className="flex items-center justify-between border-b border-navy/[.08] px-4 py-3">
-            <span className="text-xs font-bold uppercase tracking-wide text-[#5B647E]">
+        <div className="flex w-72 flex-shrink-0 flex-col border-r border-line bg-panel-2/40">
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <span className="text-xs font-bold uppercase tracking-wide text-ink-2">
               {changes.length} {changes.length === 1 ? "alteração" : "alterações"}
             </span>
             <button
               type="button"
               onClick={() => selectItem(NEW)}
               aria-label="Nova alteração"
-              className="rounded p-1 text-navy hover:bg-white"
+              className="rounded p-1 text-ink hover:bg-panel"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -140,13 +140,13 @@ export function ChangeWorkspaceModal({
                   key={change.id}
                   type="button"
                   onClick={() => selectItem(change.id)}
-                  className={`flex w-full flex-col gap-1 border-b border-navy/[.06] px-4 py-3 text-left transition-colors ${
-                    isActive ? "bg-white" : "hover:bg-white/60"
+                  className={`flex w-full flex-col gap-1 border-b border-line-soft px-4 py-3 text-left transition-colors ${
+                    isActive ? "bg-panel" : "hover:bg-panel/60"
                   }`}
                   style={isActive ? { boxShadow: "inset 3px 0 0 #2b5ff1" } : undefined}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-[#5B647E]">
+                    <span className="text-[11px] font-semibold text-ink-2">
                       {formatDate(change.changed_on)}
                       {channelLabel ? ` · ${channelLabel}` : ""}
                     </span>
@@ -156,14 +156,14 @@ export function ChangeWorkspaceModal({
                       {CHANGE_STATUSES.find((s) => s.value === change.status)?.label}
                     </span>
                   </div>
-                  <span className="truncate text-sm font-semibold text-navy">
+                  <span className="truncate text-sm font-semibold text-ink">
                     {change.description}
                   </span>
                 </button>
               );
             })}
             {!changes.length && (
-              <p className="px-4 py-6 text-center text-xs text-[#94A0BD]">
+              <p className="px-4 py-6 text-center text-xs text-ink-3">
                 Nenhuma alteração ainda.
               </p>
             )}
@@ -172,7 +172,7 @@ export function ChangeWorkspaceModal({
 
         <div className="flex flex-1 flex-col overflow-y-auto p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 id="alteracao-titulo" className="text-lg font-bold text-navy">
+            <h2 id="alteracao-titulo" className="text-lg font-bold text-ink">
               {selected ? "Editar alteração" : "Nova alteração"}
             </h2>
             <div className="flex items-center gap-1">
@@ -187,7 +187,7 @@ export function ChangeWorkspaceModal({
                       const remaining = changes.filter((c) => c.id !== selected.id);
                       selectItem(remaining[0]?.id ?? NEW);
                     }}
-                    className="rounded p-1.5 text-[#94A0BD] hover:bg-red-50 hover:text-red-600"
+                    className="rounded p-1.5 text-ink-3 hover:bg-danger/10 hover:text-danger"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -197,7 +197,7 @@ export function ChangeWorkspaceModal({
                 type="button"
                 aria-label="Fechar"
                 onClick={onClose}
-                className="rounded p-1.5 text-[#94A0BD] hover:bg-brand-gray hover:text-navy"
+                className="rounded p-1.5 text-ink-3 hover:bg-panel-2 hover:text-ink"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -305,21 +305,21 @@ export function ChangeWorkspaceModal({
             </div>
 
             {state && "error" in state && (
-              <p className="rounded bg-red-50 px-3 py-2 text-xs text-red-700">{state.error}</p>
+              <p className="rounded bg-danger/10 px-3 py-2 text-xs text-danger">{state.error}</p>
             )}
 
             <div className="mt-auto flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-lg border border-navy/10 px-4 py-2 text-sm font-semibold text-navy transition-colors hover:bg-brand-gray"
+                className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-panel-2"
               >
                 Fechar
               </button>
               <button
                 type="submit"
                 disabled={pending}
-                className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#0d1a38] disabled:opacity-60"
+                className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-accent transition-colors hover:opacity-90 disabled:opacity-60"
               >
                 {pending ? "Salvando..." : selected ? "Salvar alteração" : "Registrar alteração"}
               </button>

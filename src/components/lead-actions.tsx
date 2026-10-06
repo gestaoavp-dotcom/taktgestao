@@ -31,19 +31,19 @@ export function LeadEmailField({ id, email }: { id: string; email: string | null
         onChange={(e) => setValue(e.target.value)}
         placeholder="sem e-mail"
         aria-label="E-mail principal do lead"
-        className="w-48 rounded border border-transparent px-1 py-0.5 text-xs text-[#5B647E] outline-none hover:border-navy/10 focus:border-blue"
+        className="w-48 rounded border border-transparent px-1 py-0.5 text-xs text-ink-2 outline-none hover:border-line focus:border-accent"
       />
       {changed && (
         <button
           type="submit"
           disabled={pending}
           aria-label="Salvar e-mail"
-          className="rounded p-0.5 text-green-600 hover:bg-green-50 disabled:opacity-60"
+          className="rounded p-0.5 text-pos hover:bg-pos/10 disabled:opacity-60"
         >
           <Check className="h-3.5 w-3.5" />
         </button>
       )}
-      {state && "error" in state && <span className="text-[11px] text-red-700">{state.error}</span>}
+      {state && "error" in state && <span className="text-[11px] text-danger">{state.error}</span>}
     </form>
   );
 }
@@ -62,7 +62,7 @@ export function ConvertLeadButton({ lead }: { lead: ConvertibleLead }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-blue px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[#1e4ed8]"
+        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-on-accent transition-colors hover:opacity-90"
       >
         <UserPlus className="h-3.5 w-3.5" />
         Converter em cliente
@@ -88,7 +88,7 @@ export function ConvertLeadButton({ lead }: { lead: ConvertibleLead }) {
 }
 
 const PIN_INPUT_CLASS =
-  "w-full rounded-lg border border-navy/10 bg-white px-3 py-2 text-center text-lg tracking-[0.5em] text-navy outline-none focus:border-blue";
+  "w-full rounded-lg border border-line bg-panel px-3 py-2 text-center text-lg tracking-[0.5em] text-ink outline-none focus:border-accent";
 
 /**
  * "Apagar para sempre" for a lead: a confirmation and the admin's PIN, the
@@ -109,7 +109,7 @@ export function DeleteLeadButton({
         type="button"
         onClick={() => setOpen(true)}
         aria-label={`Apagar lead ${lead.name}`}
-        className="rounded p-1.5 text-[#94A0BD] opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus:opacity-100 group-hover:opacity-100"
+        className="rounded p-1.5 text-ink-3 opacity-0 transition-all hover:bg-danger/10 hover:text-danger focus:opacity-100 group-hover:opacity-100"
       >
         <Trash2 className="h-4 w-4" />
       </button>
@@ -148,7 +148,7 @@ function DeleteLeadDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-scrim p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -157,12 +157,12 @@ function DeleteLeadDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="apagar-lead-titulo"
-        className="w-full max-w-sm rounded-xl bg-white p-6 text-left shadow-xl"
+        className="w-full max-w-sm rounded-xl bg-panel p-6 text-left shadow-xl"
       >
-        <h2 id="apagar-lead-titulo" className="text-lg font-bold text-navy">
+        <h2 id="apagar-lead-titulo" className="text-lg font-bold text-ink">
           Apagar o lead {lead.name}?
         </h2>
-        <p className="mt-2 text-sm text-[#5B647E]">
+        <p className="mt-2 text-sm text-ink-2">
           O lead some de vez da lista. Não dá para desfazer. Se ele já virou cliente, o cliente
           continua como está.
         </p>
@@ -172,42 +172,42 @@ function DeleteLeadDialog({
 
           {hasPin ? (
             <label className="flex flex-col gap-1.5">
-              <span className="text-sm font-semibold text-navy">Seu PIN de exclusão</span>
+              <span className="text-sm font-semibold text-ink">Seu PIN de exclusão</span>
               <input name="pin" autoFocus {...pinProps} />
             </label>
           ) : (
             <>
-              <p className="rounded-lg bg-blue/10 px-3 py-2.5 text-xs text-navy">
+              <p className="rounded-lg bg-accent/10 px-3 py-2.5 text-xs text-ink">
                 Primeira exclusão: crie agora o seu PIN de 4 números. Ele será pedido em toda
                 exclusão daqui para a frente, de leads e de clientes.
               </p>
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold text-navy">Novo PIN</span>
+                <span className="text-sm font-semibold text-ink">Novo PIN</span>
                 <input name="pin" autoFocus {...pinProps} />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="text-sm font-semibold text-navy">Repita o PIN</span>
+                <span className="text-sm font-semibold text-ink">Repita o PIN</span>
                 <input name="pin_confirm" {...pinProps} />
               </label>
             </>
           )}
 
           {state && "error" in state && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>
+            <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{state.error}</p>
           )}
 
           <div className="mt-2 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-navy/10 px-4 py-2 text-sm font-semibold text-[#5B647E] transition-colors hover:bg-brand-gray"
+              className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink-2 transition-colors hover:bg-panel-2"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={pending}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+              className="rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-on-danger transition-colors hover:opacity-90 disabled:opacity-60"
             >
               {pending ? "Apagando..." : "Apagar para sempre"}
             </button>
