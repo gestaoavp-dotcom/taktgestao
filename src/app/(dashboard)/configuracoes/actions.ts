@@ -163,7 +163,16 @@ export async function sendClientAccessLink(
   const abandoned = await findAbandonedLogin(admin, email);
   if (abandoned) await admin.auth.admin.deleteUser(abandoned);
 
-  const { data: existing } = abandoned
+  // This client's login as it stands, whatever address it carries today.
+  const { data: current } = await admin
+    .from("profiles")
+    .select("id, email")
+    .eq("client_id", clientId)
+    .eq("role", "cliente")
+    .maybeSingle<{ id: string; email: string | null }>();
+
+  // Whoever holds the address being sent to.
+  const { data: holder } = abandoned
     ? { data: null }
     : await admin
         .from("profiles")
@@ -173,11 +182,33 @@ export async function sendClientAccessLink(
 
   // A link signs its holder in as the login it belongs to, so it only ever goes
   // to that login's own client — never to an address that belongs to someone else.
-  if (existing && (existing.role !== "cliente" || existing.client_id !== clientId)) {
+  if (
+    holder &&
+    holder.id !== current?.id &&
+    (holder.role !== "cliente" || holder.client_id !== clientId)
+  ) {
     return { error: "Esse e-mail já é o login de outra pessoa." };
   }
 
-  if (!existing) {
+  const moving = !!current && (current.email ?? "").toLowerCase() !== email;
+
+  if (moving) {
+    // The same login changes address rather than a second one appearing: the
+    // profile id is what every other table points at. Generating the link
+    // below then rotates this login's token, so whatever was sent to the old
+    // address stops opening anything.
+    const { error: authError } = await admin.auth.admin.updateUserById(current.id, {
+      email,
+      email_confirm: true,
+    });
+    if (authError) return { error: authError.message };
+
+    const { error: profileError } = await admin
+      .from("profiles")
+      .update({ email })
+      .eq("id", current.id);
+    if (profileError) return { error: profileError.message };
+  } else if (!current && !holder) {
     const { data: created, error } = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
@@ -214,6 +245,54 @@ export async function sendClientAccessLink(
   return delivery.emailSent
     ? { ok: true, emailSent: true }
     : { ok: true, emailSent: false, message: delivery.message };
+}
+
+export type RevokeState = { revoked: true } | { error: string } | null;
+
+/**
+ * Kills the link last sent to a client, without putting a new one in its place.
+ *
+ * Supabase keeps one recovery token per login, so asking for another and
+ * throwing it away leaves the login holding a token nobody has ever seen —
+ * which is what stops the message already sitting in someone's inbox from
+ * opening anything. Nothing else changes: a client who has set a password
+ * keeps it and stays signed in.
+ */
+export async function revokeClientAccessLink(
+  _prevState: RevokeState,
+  formData: FormData,
+): Promise<RevokeState> {
+  const guard = await requireOwner();
+  if (!guard.ok) return { error: guard.error };
+
+  const clientId = String(formData.get("client_id") ?? "");
+  if (!clientId) return { error: "Falta o cliente." };
+
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+
+  const { data: current } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("client_id", clientId)
+    .eq("role", "cliente")
+    .maybeSingle<{ email: string | null }>();
+
+  if (!current?.email) return { error: "Este cliente ainda não tem login." };
+
+  const { error } = await admin.auth.admin.generateLink({
+    type: "recovery",
+    email: current.email,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath(`/clientes/${clientId}/informacoes/acessos`);
+  return { revoked: true };
 }
 
 /**
