@@ -1,22 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { Bell, LogOut, Menu, Search } from "lucide-react";
+import { Suspense } from "react";
+import { LogOut, Menu, Search } from "lucide-react";
 import { logout } from "@/app/logout/actions";
 import { SyncButton } from "@/components/sync-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsBell, QuietBell } from "@/components/notifications-bell";
 import type { NotificationItem } from "@/lib/notifications";
-
-function formatDueDate(date: string) {
-  const [, m, d] = date.split("-");
-  return `${d}/${m}`;
-}
-
-const KIND_LABEL: Record<NotificationItem["kind"], string> = {
-  receber: "Receber",
-  pagar: "Pagar",
-};
 
 export function Header({
   email,
@@ -28,24 +18,10 @@ export function Header({
   email?: string;
   roleLabel: string;
   showNotifications: boolean;
-  notifications: NotificationItem[];
+  notifications: Promise<NotificationItem[]>;
   onToggleSidebar?: () => void;
 }) {
-  const [notifOpen, setNotifOpen] = useState(false);
-  const notifRef = useRef<HTMLDivElement>(null);
   const initial = email?.[0]?.toUpperCase() ?? "?";
-  const hasOverdue = notifications.some((n) => n.severity === "overdue");
-
-  useEffect(() => {
-    if (!notifOpen) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setNotifOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [notifOpen]);
 
   return (
     <header className="flex items-center gap-6 border-b border-line bg-panel px-8 py-3.5">
@@ -73,84 +49,9 @@ export function Header({
         {showNotifications && <SyncButton />}
 
         {showNotifications && (
-        <div className="relative" ref={notifRef}>
-          <button
-            type="button"
-            aria-label="Notificações"
-            aria-expanded={notifOpen}
-            onClick={() => setNotifOpen((open) => !open)}
-            className="relative rounded-full p-2 text-ink-2 transition-colors hover:bg-panel-2"
-          >
-            <Bell className="h-5 w-5" />
-            {notifications.length > 0 && (
-              <span
-                className={`absolute right-1.5 top-1.5 h-2 w-2 rounded-full ${
-                  hasOverdue ? "bg-danger" : "bg-gold"
-                }`}
-              />
-            )}
-          </button>
-
-          {notifOpen && (
-            <div className="absolute right-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-lg border border-line bg-panel shadow-lg">
-              <div className="border-b border-line-soft px-4 py-2.5">
-                <p className="text-sm font-semibold text-ink">Notificações</p>
-                <p className="text-xs text-ink-3">
-                  {notifications.length
-                    ? `${notifications.length} vencimento${notifications.length === 1 ? "" : "s"} próximo${notifications.length === 1 ? "" : "s"} ou atrasado${notifications.length === 1 ? "" : "s"}`
-                    : "Tudo em dia"}
-                </p>
-              </div>
-
-              <div className="max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="px-4 py-6 text-center text-sm text-ink-3">
-                    Nenhum vencimento por perto.
-                  </p>
-                ) : (
-                  notifications.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      onClick={() => setNotifOpen(false)}
-                      className="block border-b border-line-soft px-4 py-2.5 last:border-b-0 hover:bg-panel-2"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <div className="mb-0.5 flex items-center gap-1.5">
-                            <span
-                              className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                                item.kind === "receber"
-                                  ? "bg-pos/10 text-pos"
-                                  : "bg-accent/10 text-accent-ink"
-                              }`}
-                            >
-                              {KIND_LABEL[item.kind]}
-                            </span>
-                            {item.severity === "overdue" && (
-                              <span className="text-[10px] font-semibold text-danger">
-                                Atrasado
-                              </span>
-                            )}
-                          </div>
-                          <p className="truncate text-sm font-semibold text-ink">{item.title}</p>
-                          <p className="truncate text-xs text-ink-3">{item.subtitle}</p>
-                        </div>
-                        <span
-                          className={`shrink-0 text-xs font-semibold ${
-                            item.severity === "overdue" ? "text-danger" : "text-ink"
-                          }`}
-                        >
-                          {formatDueDate(item.dueDate)}
-                        </span>
-                      </div>
-                    </Link>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+          <Suspense fallback={<QuietBell />}>
+            <NotificationsBell notifications={notifications} />
+          </Suspense>
         )}
 
         <div className="flex items-center gap-2.5">

@@ -35,9 +35,19 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims, not getUser: this project signs its tokens with an asymmetric
+  // key (ES256), so the signature and the expiry are checked here with the
+  // cached public key and no request leaves the server. getUser asks the auth
+  // server every time — measured at 130–145 ms, on every navigation, every
+  // RSC fetch and every image this middleware matches.
+  //
+  // What that trades away is revocation inside the token's lifetime: a login
+  // signed out elsewhere keeps routing as itself until the access token
+  // expires. That is safe here because this file routes, it does not permit —
+  // the row-level rules in the database decide what any request may read, and
+  // they verify the token themselves on every query.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims ?? null;
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login");
@@ -66,7 +76,7 @@ export async function updateSession(request: NextRequest) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role, client_id, password_changed_at")
-      .eq("id", user.id)
+      .eq("id", user.sub)
       .maybeSingle<{
         role: string;
         client_id: string | null;
@@ -79,8 +89,7 @@ export async function updateSession(request: NextRequest) {
     // the app — so it is ended here, before any other rule, and above all
     // before /trocar-senha, where it could otherwise take the login over.
     if (!profile?.password_changed_at) {
-      const { data: claimsData } = await supabase.auth.getClaims();
-      const amr = (claimsData?.claims.amr ?? []) as (string | { method: string })[];
+      const amr = (user.amr ?? []) as (string | { method: string })[];
       const byPassword = amr.some((m) => (typeof m === "string" ? m : m.method) === "password");
       if (byPassword) {
         await supabase.auth.signOut();

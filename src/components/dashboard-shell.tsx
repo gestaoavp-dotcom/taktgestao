@@ -17,7 +17,7 @@ export function DashboardShell({
   roleLabel: string;
   /** False for a client login: the rest of the sidebar is the agency's. */
   team?: boolean;
-  notifications: NotificationItem[];
+  notifications: Promise<NotificationItem[]>;
   children: React.ReactNode;
 }) {
   const [collapsed, setCollapsed] = useState(false);

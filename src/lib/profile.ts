@@ -12,16 +12,21 @@ import type { Profile } from "@/lib/types";
 // question cost one query between them.
 
 /**
- * Who is logged in, asked once per request.
+ * Who is logged in, asked once per request and answered without leaving the
+ * server.
  *
- * `getUser()` is a round trip to the auth server every time it is called, and
- * the layout, this file and a page each used to call it on the way to the same
- * answer — three waits of about 200 ms before any page query had started.
+ * The token is signed with an asymmetric key, so getClaims checks the
+ * signature against the cached public key — where getUser asks the auth
+ * server, which measured 130–145 ms. This answer decides what the interface
+ * offers, not what the database hands over: every query still carries the
+ * token and still meets the row-level rules, and the server actions that
+ * write re-read the caller's level with getUser before they do.
  */
-export const currentUser = cache(async () => {
+export const currentUser = cache(async (): Promise<{ id: string; email?: string } | null> => {
   const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  return data.user;
+  const { data } = await supabase.auth.getClaims();
+  if (!data?.claims?.sub) return null;
+  return { id: data.claims.sub, email: data.claims.email };
 });
 
 export const getProfile = cache(async (): Promise<Profile | null> => {

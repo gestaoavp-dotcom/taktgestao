@@ -16,8 +16,11 @@ export default async function DashboardLayout({
   const [user, profile] = await Promise.all([currentUser(), getProfile()]);
   const team = profile?.role === "dono" || profile?.role === "operador";
   // The reminders are the agency's own receivables and payables — a client's
-  // monthly fee among them — so a client login gets none.
-  const notifications = team ? await getNotifications() : [];
+  // monthly fee among them — so a client login gets none. Not awaited: three
+  // queries to decide whether a dot appears over an icon used to hold back
+  // every page under this layout. It arrives on its own, into a Suspense
+  // boundary in the header, and never rejects into one.
+  const notifications = team ? getNotifications().catch(() => []) : Promise.resolve([]);
 
   return (
     <DashboardShell
