@@ -5,6 +5,7 @@ import { LogOut, Menu, Search } from "lucide-react";
 import { logout } from "@/app/logout/actions";
 import { SyncButton } from "@/components/sync-button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PrivacyToggle } from "@/components/privacy-toggle";
 import { NotificationsBell, QuietBell } from "@/components/notifications-bell";
 import type { NotificationItem } from "@/lib/notifications";
 
@@ -44,6 +45,7 @@ export function Header({
       </div>
 
       <div className="ml-auto flex items-center gap-5">
+        <PrivacyToggle />
         <ThemeToggle />
         {/* The team's: a client login only ever looks at its own folder. */}
         {showNotifications && <SyncButton />}
@@ -59,7 +61,9 @@ export function Header({
             {initial}
           </div>
           <div className="hidden leading-tight sm:block">
-            <div className="max-w-[160px] truncate text-sm font-semibold text-ink">{email}</div>
+            <div className="private max-w-[160px] truncate text-sm font-semibold text-ink">
+              {email}
+            </div>
             <div className="text-xs text-ink-3">{roleLabel}</div>
           </div>
         </div>

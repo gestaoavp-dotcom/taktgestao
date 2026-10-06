@@ -36,6 +36,7 @@ const THEME_SCRIPT = `(function(){try{
 var t=localStorage.getItem("takt-tema");
 if(t!=="dark"&&t!=="light"){t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}
 document.documentElement.setAttribute("data-theme",t);
+if(sessionStorage.getItem("takt-borrar")==="on"){document.documentElement.setAttribute("data-privacy","on")}
 }catch(e){}})()`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

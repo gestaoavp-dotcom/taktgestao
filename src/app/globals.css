@@ -237,3 +237,12 @@ body {
 :root[data-theme="dark"] .lift {
   background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0) 55%);
 }
+
+/* For the screenshot a client wants to post: the figures stay, the name of
+ * the shop goes. Marked with `private` wherever a name identifies whose
+ * numbers these are, and switched on from the header. */
+:root[data-privacy="on"] .private {
+  filter: blur(9px);
+  user-select: none;
+  pointer-events: none;
+}
