@@ -60,21 +60,23 @@ export function KpiCard({
   const good = invert ? !up : up;
 
   return (
-    <div className="lift rounded-2xl bg-panel p-4 shadow-sm sm:p-5">
+    <div className="lift rounded-2xl bg-panel p-3.5 shadow-sm sm:p-5">
       <div className="mb-2.5 flex items-start justify-between gap-3 sm:mb-3">
         {/* Small label in caps, big bold figure — the moodboard's rule for
             every number in the app. */}
-        <p className="pt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-3">{label}</p>
-        <div className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${ICON_STYLES[icon]}`}>
+        <p className="pt-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-ink-3 sm:pt-1 sm:text-[11px]">
+          {label}
+        </p>
+        <div className={`hidden h-9 w-9 flex-none items-center justify-center rounded-full sm:flex ${ICON_STYLES[icon]}`}>
           <Icon className="h-[18px] w-[18px]" />
         </div>
       </div>
-      <p className="font-display text-[24px] font-extrabold leading-none tracking-[-0.02em] text-ink sm:text-[28px]">
+      <p className="font-display text-[19px] font-extrabold leading-none tracking-[-0.02em] text-ink sm:text-[28px]">
         {value}
       </p>
       {sub && <p className="mt-1.5 text-xs font-semibold text-ink-2">{sub}</p>}
       {trend !== undefined && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-ink-3">
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-3 sm:mt-3 sm:text-xs">
           <span
             className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-bold ${
               good ? "bg-pos/10 text-pos" : "bg-danger/10 text-danger"
@@ -83,7 +85,7 @@ export function KpiCard({
             {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
             {Math.abs(trend).toFixed(1)}%
           </span>
-          vs período anterior
+          <span className="hidden sm:inline">vs período anterior</span>
         </div>
       )}
       {note && <p className="mt-2 text-xs leading-snug text-ink-2">{note}</p>}

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { InlineScript } from "@/components/inline-script";
 import { SITE_URL } from "@/lib/site";
@@ -10,11 +10,23 @@ const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
 });
 
+/** The bar above the page follows the theme, so it is not white over navy. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#edf0f6" },
+    { media: "(prefers-color-scheme: dark)", color: "#060a18" },
+  ],
+};
+
 export const metadata: Metadata = {
   // Link previews (WhatsApp, Instagram) need the share image as a full URL.
   metadataBase: new URL(SITE_URL),
   title: "TAKT Assessoria",
   description: "Gestão de tarefas, finanças e clientes para assessoria de marketplaces.",
+  appleWebApp: { capable: true, title: "TAKT", statusBarStyle: "black-translucent" },
   openGraph: {
     title: "TAKT Assessoria",
     description: "Assessoria para vender mais nos marketplaces.",

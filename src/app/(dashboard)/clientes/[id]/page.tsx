@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { isTeam } from "@/lib/profile";
 import type { ClientAccount } from "@/lib/types";
 import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
@@ -30,6 +31,7 @@ export default async function ClienteDashboardPage({
   const { id } = await params;
   const { de, ate } = await searchParams;
   const supabase = await createClient();
+  const team = await isTeam();
 
   const range = reportRange(de, ate);
 
@@ -73,7 +75,7 @@ export default async function ClienteDashboardPage({
           </Link>
         </div>
 
-        <div className="mb-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
           <KpiCard
             label="Faturamento"
             value={formatCurrency(revenue)}
@@ -88,11 +90,15 @@ export default async function ClienteDashboardPage({
             trend={trendOf(orders, previousOrders)}
             icon="package"
           />
-          <KpiCard
-            label="Contas gerenciadas"
-            value={String(accounts?.length ?? 0)}
-            icon="users"
-          />
+          {/* The agency manages the accounts; the client owns the shops and
+              already sees them named with their marketplaces above this. */}
+          {team && (
+            <KpiCard
+              label="Contas gerenciadas"
+              value={String(accounts?.length ?? 0)}
+              icon="users"
+            />
+          )}
           <ResultKpis summary={sales} />
         </div>
 

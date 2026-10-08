@@ -61,7 +61,7 @@ export default async function ClienteVendasPage({
         <DateRangePicker start={range.start} end={range.end} />
       </div>
 
-      <div className="mb-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
         <KpiCard
           label="Faturamento"
           value={formatCurrency(revenue)}

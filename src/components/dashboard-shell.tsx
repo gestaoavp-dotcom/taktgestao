@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Logo } from "@/components/logo";
 import { NavLinks } from "@/components/nav-links";
 import { Header } from "@/components/header";
+import { BottomNav } from "@/components/bottom-nav";
 import type { NotificationItem } from "@/lib/notifications";
 
 export function DashboardShell({
@@ -64,8 +65,11 @@ export function DashboardShell({
             setDrawer((d) => !d);
           }}
         />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        {/* Room for the bar at the bottom, which floats over the page. */}
+        <main className="flex-1 p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">{children}</main>
       </div>
+
+      <BottomNav team={team} onMore={() => setDrawer(true)} />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { SyncButton } from "@/components/sync-button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { PrivacyToggle } from "@/components/privacy-toggle";
 import { NotificationsBell, QuietBell } from "@/components/notifications-bell";
+import { Logo } from "@/components/logo";
 import type { NotificationItem } from "@/lib/notifications";
 
 export function Header({
@@ -26,14 +27,21 @@ export function Header({
 
   return (
     <header className="flex items-center gap-3 border-b border-line bg-panel px-4 py-3 sm:gap-6 sm:px-6 sm:py-3.5 lg:px-8">
+      {/* The rail is a desktop thing now; on a phone the bar at the bottom
+          navigates and "Mais" opens what is left. */}
       <button
         type="button"
         aria-label="Alternar menu lateral"
         onClick={onToggleSidebar}
-        className="rounded-lg p-2 text-ink-2 transition-colors hover:bg-panel-2"
+        className="hidden rounded-lg p-2 text-ink-2 transition-colors hover:bg-panel-2 lg:block"
       >
         <Menu className="h-5 w-5" />
       </button>
+
+      {/* With no rail on screen, this is where the app says its name. */}
+      <span className="lg:hidden">
+        <Logo height={26} />
+      </span>
 
       <div className="relative hidden w-full max-w-sm md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
