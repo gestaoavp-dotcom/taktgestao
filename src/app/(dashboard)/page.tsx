@@ -13,7 +13,7 @@ import { MARKETPLACES, MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/mar
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange, todayInBrazil } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
-import { paidNote, returnsNote } from "@/lib/returns-note";
+import { paidNote } from "@/lib/returns-note";
 
 
 type FeeStatus = "em_dia" | "a_vencer" | "atrasada" | "sem_valor";
@@ -244,7 +244,6 @@ export default async function DashboardPage({
           trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
           sub={paidNote(summary.paid)}
-          note={returnsNote(revenue, summary.returns)}
         />
         <KpiCard
           label="Pedidos gerados"

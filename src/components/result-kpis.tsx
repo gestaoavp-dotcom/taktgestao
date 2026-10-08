@@ -31,11 +31,6 @@ export function ResultKpis({ summary }: { summary: Figures }) {
         trend={trendOf(adSpend, previousAdSpend)}
         icon="megaphone"
         invert
-        note={
-          adSpend > 0
-            ? "Campanhas dos marketplaces, pelos relatórios de Ads importados."
-            : "Nenhum relatório de Ads importado neste período."
-        }
       />
       <KpiCard
         label="Lucro"
@@ -44,20 +39,15 @@ export function ResultKpis({ summary }: { summary: Figures }) {
           profit != null && previousProfit != null ? trendOf(profit, previousProfit) : undefined
         }
         icon="profit"
-        note={
-          profit == null
-            ? "Falta rodar a migration 0042 no banco."
-            : adSpend > 0
-              ? `Depois das taxas, do custo, dos impostos e de ${formatCurrency(adSpend)} de Ads.`
-              : "Depois das taxas do marketplace, do custo do produto e dos impostos."
-        }
+        // The one line left on these tiles: without it a dash has nothing
+        // saying why it is a dash.
+        note={profit == null ? "Falta rodar a migration 0042 no banco." : undefined}
       />
       <KpiCard
         label="Margem"
         value={percent(margin)}
         icon="percent"
         sub={previousMargin != null ? `Antes: ${percent(previousMargin)}` : undefined}
-        note="O lucro sobre o faturamento do período."
       />
     </>
   );

@@ -10,7 +10,7 @@ import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
-import { paidNote, returnsNote } from "@/lib/returns-note";
+import { paidNote } from "@/lib/returns-note";
 
 
 function formatBR(iso: string) {
@@ -43,7 +43,6 @@ export default async function ClienteVendasPage({
     chartData,
     monthlyRevenue,
     platformRows,
-    returns,
     paid,
   } = summary;
 
@@ -68,7 +67,6 @@ export default async function ClienteVendasPage({
           trend={trendOf(revenue, previousRevenue)}
           icon="wallet"
           sub={paidNote(paid)}
-          note={returnsNote(revenue, returns)}
         />
         <KpiCard
           label="Pedidos"
