@@ -72,7 +72,7 @@ export default async function ClienteVendasPage({
         />
         <KpiCard
           label="Pedidos"
-          value={String(orders)}
+          value={orders.toLocaleString("pt-BR")}
           trend={trendOf(orders, previousOrders)}
           icon="package"
         />

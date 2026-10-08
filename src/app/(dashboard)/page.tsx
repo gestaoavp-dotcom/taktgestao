@@ -248,7 +248,7 @@ export default async function DashboardPage({
         />
         <KpiCard
           label="Pedidos gerados"
-          value={String(orders)}
+          value={orders.toLocaleString("pt-BR")}
           trend={trendOf(orders, previousOrders)}
           icon="package"
         />
