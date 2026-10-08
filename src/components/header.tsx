@@ -25,7 +25,7 @@ export function Header({
   const initial = email?.[0]?.toUpperCase() ?? "?";
 
   return (
-    <header className="flex items-center gap-6 border-b border-line bg-panel px-8 py-3.5">
+    <header className="flex items-center gap-3 border-b border-line bg-panel px-4 py-3 sm:gap-6 sm:px-6 sm:py-3.5 lg:px-8">
       <button
         type="button"
         aria-label="Alternar menu lateral"
@@ -35,7 +35,7 @@ export function Header({
         <Menu className="h-5 w-5" />
       </button>
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative hidden w-full max-w-sm md:block">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
         <input
           type="search"
@@ -44,11 +44,15 @@ export function Header({
         />
       </div>
 
-      <div className="ml-auto flex items-center gap-5">
+      <div className="ml-auto flex items-center gap-3 sm:gap-5">
         <PrivacyToggle />
         <ThemeToggle />
         {/* The team's: a client login only ever looks at its own folder. */}
-        {showNotifications && <SyncButton />}
+        {showNotifications && (
+          <span className="hidden sm:block">
+            <SyncButton />
+          </span>
+        )}
 
         {showNotifications && (
           <Suspense fallback={<QuietBell />}>
@@ -71,10 +75,11 @@ export function Header({
         <form action={logout}>
           <button
             type="submit"
-            className="flex items-center gap-1.5 rounded-lg border border-line px-3 py-2 text-sm font-semibold text-ink-2 transition-colors hover:bg-panel-2 hover:text-ink"
+            aria-label="Sair"
+            className="flex items-center gap-1.5 rounded-lg border border-line p-2 text-sm font-semibold text-ink-2 transition-colors hover:bg-panel-2 hover:text-ink sm:px-3"
           >
             <LogOut className="h-4 w-4" />
-            Sair
+            <span className="hidden sm:inline">Sair</span>
           </button>
         </form>
       </div>

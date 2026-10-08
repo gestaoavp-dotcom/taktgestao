@@ -175,8 +175,8 @@ export function ExpensesView({
         </button>
       </form>
 
-      <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
-        <table className="w-full text-left text-sm">
+      <div className="lift overflow-x-auto rounded-2xl bg-panel shadow-sm">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-panel-2">
             <tr>
               <th className="px-5 py-2.5 font-semibold text-ink">Despesa</th>

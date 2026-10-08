@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 type Day = { date: string; value: number };
 
@@ -46,8 +47,8 @@ function niceMax(value: number) {
  * the end of the period, and a chart that stops labelling ten days early reads
  * as if it ended there. A neighbour too close to it is dropped instead.
  */
-function labelledDays(count: number): Set<number> {
-  const step = Math.max(1, Math.ceil(count / 8));
+function labelledDays(count: number, many: number): Set<number> {
+  const step = Math.max(1, Math.ceil(count / many));
   const labels = new Set<number>();
   for (let i = 0; i < count; i += step) labels.add(i);
 
@@ -60,15 +61,19 @@ function labelledDays(count: number): Set<number> {
   return labels;
 }
 
-const WIDTH = 1000;
-const HEIGHT = 280;
-const PAD_LEFT = 68;
-const PAD_RIGHT = 16;
-const PAD_TOP = 28;
-const PAD_BOTTOM = 32;
+// Two shapes for the same chart. The viewBox is what decides how big the
+// text ends up: a 1000-wide box drawn into 343 px of phone shrinks an 11 px
+// label to four, and an axis nobody can read is an axis that is not there.
+const WIDE = { w: 1000, h: 280, padLeft: 68, padRight: 16, padTop: 28, padBottom: 32, font: 11, labels: 8 };
+// Room for "R$ 2.000" on the left and half of "30/09" on the right: at this
+// font the earlier padding cut both.
+const NARROW = { w: 440, h: 300, padLeft: 78, padRight: 24, padTop: 26, padBottom: 36, font: 15, labels: 4 };
 
 export function AreaChart({ data }: { data: Day[] }) {
   const [hover, setHover] = useState<number | null>(null);
+  const narrow = useMediaQuery("(max-width: 640px)");
+  const { w: WIDTH, h: HEIGHT, padLeft: PAD_LEFT, padRight: PAD_RIGHT, padTop: PAD_TOP, padBottom: PAD_BOTTOM, font: FONT, labels: LABELS } =
+    narrow ? NARROW : WIDE;
 
   const peak = data.reduce((best, d) => (d.value > best ? d.value : best), 0);
   const max = niceMax(peak);
@@ -88,7 +93,7 @@ export function AreaChart({ data }: { data: Day[] }) {
   } ${baseline} Z`;
 
   const gridLines = [0, 0.25, 0.5, 0.75, 1];
-  const labels = labelledDays(data.length);
+  const labels = labelledDays(data.length, LABELS);
   const band = plotW / Math.max(data.length, 1);
 
   // The best day, named on the chart: without it the only numbers are the axis,
@@ -133,7 +138,7 @@ export function AreaChart({ data }: { data: Day[] }) {
                 stroke={g === 0 ? "var(--chart-base)" : "var(--chart-grid)"}
                 strokeWidth={1}
               />
-              <text x={PAD_LEFT - 12} y={y} textAnchor="end" dy="3" fontSize="11" fill="var(--ink-3)">
+              <text x={PAD_LEFT - 12} y={y} textAnchor="end" dy="3" fontSize={FONT} fill="var(--ink-3)">
                 {formatAxis(max * g)}
               </text>
             </g>
@@ -183,7 +188,7 @@ export function AreaChart({ data }: { data: Day[] }) {
             x={Math.min(Math.max(points[peakIndex].x, PAD_LEFT + 40), WIDTH - PAD_RIGHT - 40)}
             y={Math.max(points[peakIndex].y - 12, PAD_TOP - 8)}
             textAnchor="middle"
-            fontSize="11"
+            fontSize={FONT}
             fontWeight="600"
             fill="var(--ink)"
           >
@@ -203,7 +208,7 @@ export function AreaChart({ data }: { data: Day[] }) {
               onTouchStart={() => setHover(i)}
             />
             {labels.has(i) && (
-              <text x={p.x} y={HEIGHT - 8} textAnchor="middle" fontSize="11" fill="var(--ink-3)">
+              <text x={p.x} y={HEIGHT - 8} textAnchor="middle" fontSize={FONT} fill="var(--ink-3)">
                 {formatDateShort(p.date)}
               </text>
             )}

@@ -60,8 +60,8 @@ export function KpiCard({
   const good = invert ? !up : up;
 
   return (
-    <div className="lift rounded-2xl bg-panel p-5 shadow-sm">
-      <div className="mb-3 flex items-start justify-between gap-3">
+    <div className="lift rounded-2xl bg-panel p-4 shadow-sm sm:p-5">
+      <div className="mb-2.5 flex items-start justify-between gap-3 sm:mb-3">
         {/* Small label in caps, big bold figure — the moodboard's rule for
             every number in the app. */}
         <p className="pt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-ink-3">{label}</p>
@@ -69,7 +69,7 @@ export function KpiCard({
           <Icon className="h-[18px] w-[18px]" />
         </div>
       </div>
-      <p className="font-display text-[28px] font-extrabold leading-none tracking-[-0.02em] text-ink">
+      <p className="font-display text-[24px] font-extrabold leading-none tracking-[-0.02em] text-ink sm:text-[28px]">
         {value}
       </p>
       {sub && <p className="mt-1.5 text-xs font-semibold text-ink-2">{sub}</p>}
