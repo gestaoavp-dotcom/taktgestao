@@ -6,7 +6,7 @@ import { KpiCard } from "@/components/kpi-card";
 import { ResultKpis } from "@/components/result-kpis";
 import { VendasSubTabs } from "@/components/vendas-sub-tabs";
 import { DateRangePicker } from "@/components/date-range-picker";
-import { MARKETPLACE_LABEL } from "@/lib/marketplaces";
+import { MarketplaceBreakdown } from "@/components/marketplace-breakdown";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
@@ -93,49 +93,11 @@ export default async function ClienteVendasPage({
         <div className="border-b border-line px-5 py-4">
           <h2 className="font-bold text-ink">Por marketplace</h2>
         </div>
-        {platformRows.length > 0 ? (
-          <table className="w-full text-left text-sm">
-            <thead className="bg-panel-2">
-              <tr>
-                <th className="px-5 py-2 font-semibold text-ink">Marketplace</th>
-                <th className="px-5 py-2 font-semibold text-ink">Faturamento</th>
-                <th className="px-5 py-2 font-semibold text-ink">Pedidos</th>
-                <th className="px-5 py-2 font-semibold text-ink">Ticket médio</th>
-                <th className="px-5 py-2 font-semibold text-ink">Devoluções</th>
-              </tr>
-            </thead>
-            <tbody>
-              {platformRows.map(([platform, data]) => (
-                <tr key={platform} className="border-t border-line-soft">
-                  <td className="px-5 py-2.5 text-ink">
-                    {MARKETPLACE_LABEL[platform] ?? platform}
-                  </td>
-                  <td className="px-5 py-2.5 text-ink">
-                    {formatCurrency(data.revenue)}
-                    {data.paid != null && (
-                      <div className="text-[11px] text-ink-3">
-                        pago {formatCurrency(data.paid)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-5 py-2.5 text-ink-2">{data.orders}</td>
-                  <td className="px-5 py-2.5 text-ink-2">
-                    {formatCurrency(data.orders > 0 ? data.revenue / data.orders : 0)}
-                  </td>
-                  <td className="px-5 py-2.5 text-ink-2">
-                    {data.returns.orders
-                      ? `${formatCurrency(data.returns.value)} (${data.returns.orders})`
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <p className="px-5 py-8 text-center text-sm text-ink-3">
-            Nenhum pedido nesse período. Importe um documento em &quot;Importar documentos&quot;.
-          </p>
-        )}
+        <MarketplaceBreakdown
+          rows={platformRows}
+          showTicket
+          empty={'Nenhum pedido nesse período. Importe um documento em "Importar documentos".'}
+        />
       </div>
 
       <p className="mt-3 text-xs text-ink-3">

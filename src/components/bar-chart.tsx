@@ -27,7 +27,8 @@ export function BarChart({
 }) {
   const [hover, setHover] = useState<number | null>(null);
 
-  const max = niceMax(Math.max(1, ...data.map((d) => d.value)));
+  const peak = data.reduce((best, d) => (d.value > best ? d.value : best), 0);
+  const max = niceMax(Math.max(1, peak));
   const plotW = WIDTH - PAD_LEFT - PAD_RIGHT;
   const plotH = HEIGHT - PAD_TOP - PAD_BOTTOM;
   const slot = data.length ? plotW / data.length : 0;
@@ -35,6 +36,16 @@ export function BarChart({
 
   const gridLines = [0, 0.25, 0.5, 0.75, 1];
   const labelEvery = Math.max(1, Math.ceil(data.length / 10));
+
+  // An empty grid with an invented scale reads as a chart that broke. Saying
+  // there is nothing is both shorter and true.
+  if (peak === 0) {
+    return (
+      <div className="flex h-[140px] items-center justify-center text-sm text-ink-3">
+        Nada registrado neste período.
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full">

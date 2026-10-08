@@ -21,6 +21,23 @@ function formatAxis(value: number) {
   }).format(value);
 }
 
+/**
+ * The same markers in the width a phone has. "R$ 12.500" needs more room than
+ * the axis can give without eating the plot, and the amount in full is one
+ * tap away in the tooltip — so the scale says 12,5 mil and drops the currency
+ * the card's own title already implies.
+ */
+function formatAxisShort(value: number) {
+  if (value === 0) return "0";
+  if (Math.abs(value) < 1000) {
+    return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(value);
+  }
+  const thousands = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(
+    value / 1000,
+  );
+  return `${thousands} mil`;
+}
+
 function formatDateShort(date: string) {
   const [, m, d] = date.split("-");
   return `${d}/${m}`;
@@ -139,7 +156,7 @@ export function AreaChart({ data }: { data: Day[] }) {
                 strokeWidth={1}
               />
               <text x={PAD_LEFT - 12} y={y} textAnchor="end" dy="3" fontSize={FONT} fill="var(--ink-3)">
-                {formatAxis(max * g)}
+                {(narrow ? formatAxisShort : formatAxis)(max * g)}
               </text>
             </g>
           );
@@ -192,7 +209,7 @@ export function AreaChart({ data }: { data: Day[] }) {
             fontWeight="600"
             fill="var(--ink)"
           >
-            {formatAxis(peak)}
+            {(narrow ? formatAxisShort : formatAxis)(peak)}
           </text>
         )}
 
@@ -218,12 +235,22 @@ export function AreaChart({ data }: { data: Day[] }) {
 
       {active && (
         <div
-          className={`pointer-events-none absolute -translate-y-full rounded-md bg-action px-2.5 py-1.5 text-xs font-medium text-on-accent shadow-lg ${
+          className={`pointer-events-none absolute rounded-md bg-action px-2.5 py-1.5 text-xs font-medium text-on-accent shadow-lg ${
             activeLeft < 10 ? "" : activeLeft > 90 ? "-translate-x-full" : "-translate-x-1/2"
+          } ${
+            // Above the point, unless the point is near the top — there the
+            // tooltip would leave the card and, on a phone, the screen.
+            active.y < PAD_TOP + plotH * 0.25 ? "" : "-translate-y-full"
           }`}
           style={{
             left: `${activeLeft}%`,
-            top: `${((active.value > 0 ? active.y - 10 : baseline - 10) / HEIGHT) * 100}%`,
+            top: `${
+              ((active.y < PAD_TOP + plotH * 0.25
+                ? active.y + 14
+                : (active.value > 0 ? active.y : baseline) - 10) /
+                HEIGHT) *
+              100
+            }%`,
           }}
         >
           <div className="text-on-accent/70">

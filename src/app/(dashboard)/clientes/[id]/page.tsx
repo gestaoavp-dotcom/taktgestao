@@ -3,7 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isTeam } from "@/lib/profile";
 import type { ClientAccount } from "@/lib/types";
-import { MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/marketplaces";
+import { distinctMarketplaces } from "@/lib/marketplaces";
+import { MarketplaceBreakdown } from "@/components/marketplace-breakdown";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
@@ -111,45 +112,7 @@ export default async function ClienteDashboardPage({
           <div className="border-b border-line px-5 py-4">
             <h3 className="font-bold text-ink">Por marketplace</h3>
           </div>
-          {platformRows.length > 0 ? (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-panel-2">
-                <tr>
-                  <th className="px-5 py-2 font-semibold text-ink">Marketplace</th>
-                  <th className="px-5 py-2 font-semibold text-ink">Faturamento</th>
-                  <th className="px-5 py-2 font-semibold text-ink">Pedidos</th>
-                  <th className="px-5 py-2 font-semibold text-ink">Devoluções</th>
-                </tr>
-              </thead>
-              <tbody>
-                {platformRows.map(([platform, data]) => (
-                  <tr key={platform} className="border-t border-line-soft">
-                    <td className="px-5 py-2.5 text-ink">
-                      {MARKETPLACE_LABEL[platform] ?? platform}
-                    </td>
-                    <td className="px-5 py-2.5 text-ink">
-                      {formatCurrency(data.revenue)}
-                      {data.paid != null && (
-                        <div className="text-[11px] text-ink-3">
-                          pago {formatCurrency(data.paid)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-5 py-2.5 text-ink-2">{data.orders}</td>
-                    <td className="px-5 py-2.5 text-ink-2">
-                      {data.returns.orders
-                        ? `${formatCurrency(data.returns.value)} (${data.returns.orders})`
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="px-5 py-8 text-center text-sm text-ink-3">
-              Nenhum pedido nesse período.
-            </p>
-          )}
+          <MarketplaceBreakdown rows={platformRows} empty="Nenhum pedido nesse período." />
         </div>
       </div>
 
