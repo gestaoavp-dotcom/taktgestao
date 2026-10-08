@@ -3,7 +3,6 @@ import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isTeam } from "@/lib/profile";
 import type { ClientAccount } from "@/lib/types";
-import { distinctMarketplaces } from "@/lib/marketplaces";
 import { MarketplaceBreakdown } from "@/components/marketplace-breakdown";
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange } from "@/lib/report-week";
@@ -13,7 +12,6 @@ import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
 import { ResultKpis } from "@/components/result-kpis";
-import { ChangesActivityCard } from "@/components/changes-activity-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 
 
@@ -36,7 +34,7 @@ export default async function ClienteDashboardPage({
 
   const range = reportRange(de, ate);
 
-  const [{ data: client }, { data: accounts }, sales, { data: allChanges }] = await Promise.all([
+  const [{ data: client }, { data: accounts }, sales] = await Promise.all([
     supabase.from("clients").select("id").eq("id", id).maybeSingle<{ id: string }>(),
     supabase
       .from("client_accounts")
@@ -45,11 +43,6 @@ export default async function ClienteDashboardPage({
       .order("created_at")
       .returns<ClientAccount[]>(),
     getOrdersSummary(supabase, range, { clientId: id }),
-    supabase
-      .from("client_changes")
-      .select("changed_on, marketplace")
-      .eq("client_id", id)
-      .returns<{ changed_on: string; marketplace: string | null }[]>(),
   ]);
 
   if (!client) return null;
@@ -115,11 +108,6 @@ export default async function ClienteDashboardPage({
           <MarketplaceBreakdown rows={platformRows} empty="Nenhum pedido nesse período." />
         </div>
       </div>
-
-      <ChangesActivityCard
-        changes={allChanges ?? []}
-        clientMarketplaces={distinctMarketplaces(accounts ?? [])}
-      />
     </div>
   );
 }
