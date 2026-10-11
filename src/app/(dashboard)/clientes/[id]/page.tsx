@@ -11,6 +11,7 @@ import { paidNote } from "@/lib/returns-note";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
 import { KpiCard } from "@/components/kpi-card";
+import { ClientOverview } from "@/components/client-overview";
 import { ResultKpis } from "@/components/result-kpis";
 import { DateRangePicker } from "@/components/date-range-picker";
 
@@ -69,31 +70,42 @@ export default async function ClienteDashboardPage({
           </Link>
         </div>
 
-        <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
-          <KpiCard
-            label="Faturamento"
-            value={formatCurrency(revenue)}
-            trend={trendOf(revenue, previousRevenue)}
-            icon="wallet"
-            sub={paidNote(sales.paid)}
-          />
-          <KpiCard
-            label="Pedidos"
-            value={orders.toLocaleString("pt-BR")}
-            trend={trendOf(orders, previousOrders)}
-            icon="package"
-          />
-          {/* The agency manages the accounts; the client owns the shops and
-              already sees them named with their marketplaces above this. */}
-          {team && (
+        {/* Two dashboards, because two people read them. The agency wants the
+            trends, the ad spend and what came back; the client wants how much
+            was sold, how much was left, and from where. */}
+        {team ? (
+          <div className="mb-5 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
+            <KpiCard
+              label="Faturamento"
+              value={formatCurrency(revenue)}
+              trend={trendOf(revenue, previousRevenue)}
+              icon="wallet"
+              sub={paidNote(sales.paid)}
+            />
+            <KpiCard
+              label="Pedidos"
+              value={orders.toLocaleString("pt-BR")}
+              trend={trendOf(orders, previousOrders)}
+              icon="package"
+            />
             <KpiCard
               label="Contas gerenciadas"
               value={String(accounts?.length ?? 0)}
               icon="users"
             />
-          )}
-          <ResultKpis summary={sales} />
-        </div>
+            <ResultKpis summary={sales} />
+          </div>
+        ) : (
+          <div className="mb-5">
+            <ClientOverview
+              revenue={revenue}
+              orders={orders}
+              profit={sales.profit}
+              margin={sales.margin}
+              platformRows={platformRows}
+            />
+          </div>
+        )}
 
         <div className="lift mb-5 rounded-2xl bg-panel p-6 shadow-sm">
           <h3 className="mb-4 font-bold text-ink">Faturamento por dia</h3>
@@ -101,12 +113,14 @@ export default async function ClienteDashboardPage({
           <MonthlyRevenueNote value={sales.monthlyRevenue} />
         </div>
 
-        <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
-          <div className="border-b border-line px-5 py-4">
-            <h3 className="font-bold text-ink">Por marketplace</h3>
+        {team && (
+          <div className="lift overflow-hidden rounded-2xl bg-panel shadow-sm">
+            <div className="border-b border-line px-5 py-4">
+              <h3 className="font-bold text-ink">Por marketplace</h3>
+            </div>
+            <MarketplaceBreakdown rows={platformRows} empty="Nenhum pedido nesse período." />
           </div>
-          <MarketplaceBreakdown rows={platformRows} empty="Nenhum pedido nesse período." />
-        </div>
+        )}
       </div>
     </div>
   );

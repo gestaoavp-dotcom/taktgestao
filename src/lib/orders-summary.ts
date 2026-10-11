@@ -46,7 +46,14 @@ export type OrdersSummary = {
 };
 
 export type Returns = { value: number; orders: number };
-type PlatformTotals = { revenue: number; orders: number; paid: number | null; returns: Returns };
+type PlatformTotals = {
+  revenue: number;
+  orders: number;
+  paid: number | null;
+  returns: Returns;
+  /** Null until migration 0044 has run, or when the figures are not asked for. */
+  profit: number | null;
+};
 
 type ReturnRow = {
   order_id: string;
@@ -89,6 +96,7 @@ type AdRow = {
 };
 
 type ProfitRow = { net: number; cost: number; extra: number; tax: number; profit: number };
+type ChannelProfit = { marketplace: string; profit: number };
 
 /**
  * The sales sent back within a scope — a period, or a report month as the
@@ -254,9 +262,18 @@ export async function getOrdersSummary(
   // the spend is spread over the days it covers, the way a product report is:
   // counting a month only when the period holds all of it would show zero for
   // "last 30 days", which almost never holds a calendar month.
-  const [orderProfit, previousOrderProfit, ads] = await Promise.all([
+  const [orderProfit, previousOrderProfit, channelProfit, ads] = await Promise.all([
     withResult ? profitIn(range.start, range.end) : null,
     withResult ? profitIn(toISO(prevStart), dayBeforeISO(range.start)) : null,
+    !withResult
+      ? null
+      : supabase
+          .rpc("orders_profit_by_marketplace", {
+            p_start: range.start,
+            p_end: range.end,
+            p_client_id: filters.clientId ?? null,
+          })
+          .then(({ data }) => (data as ChannelProfit[] | null) ?? []),
     !withResult ? ([] as AdRow[]) : fetchAll<AdRow>((from, to) => {
       let q = supabase
         .from("sales_ads")
@@ -368,6 +385,10 @@ export async function getOrdersSummary(
     return { date: iso, value: (byDate.get(iso) ?? 0) + estimated };
   });
 
+  const profitByChannel = new Map<string, number>(
+    (channelProfit ?? []).map((row) => [row.marketplace, Number(row.profit)]),
+  );
+
   const byPlatform = new Map<string, { revenue: number; orders: number; paid: number }>();
   for (const r of current) {
     const entry = byPlatform.get(r.marketplace) ?? { revenue: 0, orders: 0, paid: 0 };
@@ -404,6 +425,7 @@ export async function getOrdersSummary(
             orders: v.orders,
             paid: paidKnown ? v.paid : null,
             returns: returnsOf(returned.filter((r) => r.marketplace === platform)),
+            profit: profitByChannel.get(platform) ?? null,
           },
         ] as const,
     )
