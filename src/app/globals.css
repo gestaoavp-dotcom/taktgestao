@@ -32,9 +32,12 @@
   --accent-ink: #2b5ff1;
 
   /* Gold reads as a fill here and as text there; on a pale panel the fill
-   * colour has nowhere near enough contrast to be read as a word. */
+   * colour has nowhere near enough contrast to be read as a word — #F1BF44
+   * on white measures 1,65:1. This is as light as the word goes and still be
+   * read: 3,9:1 against the tile it sits on, where 4,5 is the target for
+   * small text and 3 the floor. Anything more golden stops being legible. */
   --gold: #f1bf44;
-  --gold-ink: #8a5e00;
+  --gold-ink: #a87400;
 
   --danger: #c0362c;
   --on-danger: #ffffff;
@@ -245,4 +248,14 @@ body {
   filter: blur(9px);
   user-select: none;
   pointer-events: none;
+}
+
+/* The profit tile. Lit from the top like every other panel, but in its own
+ * hue — the blue wash the others carry turns gold to dust. */
+.tile-gold {
+  background-image: linear-gradient(180deg, rgba(241, 191, 68, 0.28), rgba(241, 191, 68, 0.12));
+  background-color: var(--panel);
+}
+:root[data-theme="dark"] .tile-gold {
+  background-image: linear-gradient(180deg, rgba(245, 184, 46, 0.16), rgba(245, 184, 46, 0.05));
 }

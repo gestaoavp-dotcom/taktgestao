@@ -38,8 +38,10 @@ export function Tile({
 
   return (
     <div
-      className={`lift flex flex-col gap-2 rounded-2xl p-4 shadow-sm sm:p-5 ${
-        gold ? "border border-gold/45 bg-gold/[.07]" : "bg-panel"
+      // No `lift` on the gold one: that wash is a blue one, and blue over
+      // gold comes out the colour of dust. It gets its own, in its own hue.
+      className={`flex flex-col gap-2 rounded-2xl p-4 shadow-sm sm:p-5 ${
+        gold ? "tile-gold border border-gold/55" : "lift bg-panel"
       }`}
     >
       <span
