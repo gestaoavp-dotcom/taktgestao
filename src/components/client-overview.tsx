@@ -74,7 +74,7 @@ export function MarketplaceBars({
 
   return (
     <div className="lift rounded-2xl bg-panel p-4 shadow-sm sm:p-5">
-      <h2 className="mb-4 font-bold text-ink">Vendas e lucro por marketplace</h2>
+      <h2 className="mb-4 font-bold text-ink">Vendas por marketplace</h2>
 
       {rows.length === 0 ? (
         <p className="py-6 text-center text-sm text-ink-3">Nenhum pedido nesse período.</p>
@@ -87,9 +87,7 @@ export function MarketplaceBars({
                   <span className="truncate font-semibold text-ink">
                     {MARKETPLACE_LABEL[platform] ?? platform}
                   </span>
-                  <span className="flex-none font-bold text-gold-ink">
-                    {data.profit == null ? "—" : compact(data.profit)}
-                  </span>
+                  <span className="flex-none font-bold text-ink">{compact(data.revenue)}</span>
                 </div>
                 {/* Sized by what the channel sold, against the biggest of
                     them — the figure beside it is what it left. */}
@@ -102,11 +100,18 @@ export function MarketplaceBars({
                     }}
                   />
                 </div>
+                {data.profit != null && (
+                  <span className="text-[11px] text-ink-3">
+                    lucro <span className="font-semibold text-gold-ink">{compact(data.profit)}</span>
+                  </span>
+                )}
               </div>
             ))}
           </div>
 
-          <p className="mt-4 text-xs text-ink-3">Barras: vendas no período · Valor: lucro</p>
+          <p className="mt-4 text-xs text-ink-3">
+            A barra é a fatia de cada canal nas vendas do período.
+          </p>
         </>
       )}
     </div>

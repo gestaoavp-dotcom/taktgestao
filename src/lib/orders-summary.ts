@@ -89,6 +89,7 @@ type ProductRow = {
 };
 
 type AdRow = {
+  marketplace: string;
   report_month: string;
   started_on: string | null;
   ended_on: string | null;
@@ -277,7 +278,7 @@ export async function getOrdersSummary(
     !withResult ? ([] as AdRow[]) : fetchAll<AdRow>((from, to) => {
       let q = supabase
         .from("sales_ads")
-        .select("report_month, started_on, ended_on, expense")
+        .select("marketplace, report_month, started_on, ended_on, expense")
         .gte("report_month", `${toISO(prevStart).slice(0, 7)}-01`)
         .lte("report_month", range.end);
       if (filters.clientId) q = q.eq("client_id", filters.clientId);
@@ -286,8 +287,9 @@ export async function getOrdersSummary(
     }),
   ]);
 
-  const adSpendIn = (start: string, end: string) =>
+  const adSpendIn = (start: string, end: string, marketplace?: string) =>
     ads.reduce((sum, a) => {
+      if (marketplace && a.marketplace !== marketplace) return sum;
       const period: ReportPeriod = {
         start: a.started_on ?? a.report_month,
         end: a.ended_on ?? monthEnd(a.report_month),
@@ -385,9 +387,29 @@ export async function getOrdersSummary(
     return { date: iso, value: (byDate.get(iso) ?? 0) + estimated };
   });
 
+  // The channel figures have to add up to the tile above them, so each one is
+  // built the same way the total is: the orders, plus what a product report
+  // left where there are no orders, less what that channel spent on ads.
   const profitByChannel = new Map<string, number>(
     (channelProfit ?? []).map((row) => [row.marketplace, Number(row.profit)]),
   );
+
+  if (withResult) {
+    for (const channel of new Set(currentShares.map((x) => x.p.marketplace))) {
+      const fromProducts = productProfit(
+        currentShares.filter((x) => x.p.marketplace === channel),
+      );
+      if (fromProducts !== 0) {
+        profitByChannel.set(channel, (profitByChannel.get(channel) ?? 0) + fromProducts);
+      }
+    }
+    for (const channel of new Set(ads.map((a) => a.marketplace))) {
+      const spent = adSpendIn(range.start, range.end, channel);
+      if (spent !== 0) {
+        profitByChannel.set(channel, (profitByChannel.get(channel) ?? 0) - spent);
+      }
+    }
+  }
 
   const byPlatform = new Map<string, { revenue: number; orders: number; paid: number }>();
   for (const r of current) {
