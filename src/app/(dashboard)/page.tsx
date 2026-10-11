@@ -4,8 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/profile";
 import { AreaChart } from "@/components/area-chart";
 import { MonthlyRevenueNote } from "@/components/monthly-revenue-note";
-import { KpiCard } from "@/components/kpi-card";
-import { ResultKpis } from "@/components/result-kpis";
+import { MarketplaceBars, Tile, formatTile } from "@/components/client-overview";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { DashboardFilters } from "@/components/dashboard-filters";
 import { MarketplaceBadge } from "@/components/marketplace-badge";
@@ -13,7 +12,6 @@ import { MARKETPLACES, MARKETPLACE_LABEL, distinctMarketplaces } from "@/lib/mar
 import { trendOf, formatCurrency } from "@/lib/sales-summary";
 import { reportRange, todayInBrazil } from "@/lib/report-week";
 import { getOrdersSummary } from "@/lib/orders-summary";
-import { paidNote } from "@/lib/returns-note";
 
 
 type FeeStatus = "em_dia" | "a_vencer" | "atrasada" | "sem_valor";
@@ -200,9 +198,7 @@ export default async function DashboardPage({
     }))
     .sort((a, b) => b.revenue - a.revenue || a.name.localeCompare(b.name));
 
-  const { revenue, orders, ticket, previousRevenue, previousOrders, previousTicket, chartData } =
-    summary;
-  const newClients = rows.filter((c) => c.created_at.slice(0, 10) >= range.start).length;
+  const { revenue, orders, previousRevenue, previousOrders, chartData } = summary;
   const selectedName = clients.find((c) => c.id === clientId)?.name;
 
   return (
@@ -231,33 +227,49 @@ export default async function DashboardPage({
         <DateRangePicker start={range.start} end={range.end} />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-        <KpiCard
-          label="Clientes"
-          value={String(rows.length)}
-          trend={newClients > 0 ? 100 : 0}
-          icon="users"
-        />
-        <KpiCard
-          label="Faturamento sob gestão"
-          value={formatCurrency(revenue)}
+      {/* The shape the client's dashboard uses, with the variação each figure
+          moved kept inside the tile: it reads at a glance and it photographs
+          well, which is most of what a dashboard is for. */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+        <Tile label="Clientes" value={String(rows.length)} />
+        <Tile
+          label="Vendas sob gestão"
+          value={formatTile(revenue)}
           trend={trendOf(revenue, previousRevenue)}
-          icon="wallet"
-          sub={paidNote(summary.paid)}
         />
-        <KpiCard
-          label="Pedidos gerados"
+        <Tile
+          label="Lucro"
+          value={summary.profit == null ? "—" : formatTile(summary.profit)}
+          gold
+          trend={
+            summary.profit != null && summary.previousProfit != null
+              ? trendOf(summary.profit, summary.previousProfit)
+              : undefined
+          }
+        />
+        <Tile
+          label="Margem"
+          value={
+            summary.margin == null
+              ? "—"
+              : `${(summary.margin * 100).toFixed(1).replace(".", ",")}%`
+          }
+        />
+        <Tile
+          label="Pedidos"
           value={orders.toLocaleString("pt-BR")}
           trend={trendOf(orders, previousOrders)}
-          icon="package"
         />
-        <KpiCard
-          label="Ticket médio"
-          value={formatCurrency(ticket)}
-          trend={trendOf(ticket, previousTicket)}
-          icon="receipt"
+        <Tile
+          label="Gasto com Ads"
+          value={formatTile(summary.adSpend)}
+          trend={trendOf(summary.adSpend, summary.previousAdSpend)}
+          invert
         />
-        <ResultKpis summary={summary} />
+      </div>
+
+      <div className="mb-6">
+        <MarketplaceBars rows={summary.platformRows} />
       </div>
 
       <div className="lift mb-6 rounded-2xl bg-panel p-6 shadow-sm">

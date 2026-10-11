@@ -18,15 +18,24 @@ function compact(value: number) {
   }).format(value);
 }
 
-function Tile({
+export function Tile({
   label,
   value,
   gold = false,
+  trend,
+  invert = false,
 }: {
   label: string;
   value: string;
   gold?: boolean;
+  /** Left off where there is nothing to compare against — the client's view. */
+  trend?: number;
+  /** For a figure where going up is the bad direction, such as a cost. */
+  invert?: boolean;
 }) {
+  const up = (trend ?? 0) >= 0;
+  const good = invert ? !up : up;
+
   return (
     <div
       className={`lift flex flex-col gap-2 rounded-2xl p-4 shadow-sm sm:p-5 ${
@@ -43,6 +52,63 @@ function Tile({
       <span className="font-display text-[22px] font-extrabold leading-none tracking-[-0.02em] text-ink sm:text-[30px]">
         {value}
       </span>
+      {trend !== undefined && (
+        <span
+          className={`w-fit rounded-full px-2 py-0.5 text-[11px] font-bold ${
+            good ? "bg-pos/10 text-pos" : "bg-danger/10 text-danger"
+          }`}
+        >
+          {up ? "↑" : "↓"} {Math.abs(trend).toFixed(1)}%
+        </span>
+      )}
+    </div>
+  );
+}
+
+export function MarketplaceBars({
+  rows,
+}: {
+  rows: OrdersSummary["platformRows"];
+}) {
+  const biggest = rows.reduce((best, [, d]) => Math.max(best, d.revenue), 0);
+
+  return (
+    <div className="lift rounded-2xl bg-panel p-4 shadow-sm sm:p-5">
+      <h2 className="mb-4 font-bold text-ink">Vendas e lucro por marketplace</h2>
+
+      {rows.length === 0 ? (
+        <p className="py-6 text-center text-sm text-ink-3">Nenhum pedido nesse período.</p>
+      ) : (
+        <>
+          <div className="flex flex-col gap-3.5">
+            {rows.map(([platform, data]) => (
+              <div key={platform} className="flex flex-col gap-1.5">
+                <div className="flex items-baseline justify-between gap-3">
+                  <span className="truncate font-semibold text-ink">
+                    {MARKETPLACE_LABEL[platform] ?? platform}
+                  </span>
+                  <span className="flex-none font-bold text-gold-ink">
+                    {data.profit == null ? "—" : compact(data.profit)}
+                  </span>
+                </div>
+                {/* Sized by what the channel sold, against the biggest of
+                    them — the figure beside it is what it left. */}
+                <div className="h-2.5 overflow-hidden rounded-full bg-panel-2">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${biggest > 0 ? Math.max(4, (data.revenue / biggest) * 100) : 0}%`,
+                      background: "linear-gradient(90deg, var(--chart-1), var(--accent-ink))",
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-xs text-ink-3">Barras: vendas no período · Valor: lucro</p>
+        </>
+      )}
     </div>
   );
 }
@@ -54,8 +120,6 @@ export function ClientOverview({
   margin,
   platformRows,
 }: Pick<OrdersSummary, "revenue" | "orders" | "profit" | "margin" | "platformRows">) {
-  const biggest = platformRows.reduce((best, [, d]) => Math.max(best, d.revenue), 0);
-
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -68,43 +132,10 @@ export function ClientOverview({
         <Tile label="Pedidos" value={orders.toLocaleString("pt-BR")} />
       </div>
 
-      <div className="lift rounded-2xl bg-panel p-4 shadow-sm sm:p-5">
-        <h2 className="mb-4 font-bold text-ink">Vendas e lucro por marketplace</h2>
-
-        {platformRows.length === 0 ? (
-          <p className="py-6 text-center text-sm text-ink-3">Nenhum pedido nesse período.</p>
-        ) : (
-          <>
-            <div className="flex flex-col gap-3.5">
-              {platformRows.map(([platform, data]) => (
-                <div key={platform} className="flex flex-col gap-1.5">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <span className="truncate font-semibold text-ink">
-                      {MARKETPLACE_LABEL[platform] ?? platform}
-                    </span>
-                    <span className="flex-none font-bold text-gold-ink">
-                      {data.profit == null ? "—" : compact(data.profit)}
-                    </span>
-                  </div>
-                  {/* Sized by what the channel sold, against the biggest of
-                      them — the figure beside it is what it left. */}
-                  <div className="h-2.5 overflow-hidden rounded-full bg-panel-2">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${biggest > 0 ? Math.max(4, (data.revenue / biggest) * 100) : 0}%`,
-                        background: "linear-gradient(90deg, var(--chart-1), var(--accent-ink))",
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <p className="mt-4 text-xs text-ink-3">Barras: vendas no período · Valor: lucro</p>
-          </>
-        )}
-      </div>
+      <MarketplaceBars rows={platformRows} />
     </div>
   );
 }
+
+/** The same figure the tiles show, rounded to whole reais. */
+export { compact as formatTile };
