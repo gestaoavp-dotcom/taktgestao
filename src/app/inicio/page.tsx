@@ -146,12 +146,15 @@ const TAKT = [
   "App com login para você acompanhar vendas e lucro",
 ];
 
+// The figure beside each bar is what the channel sold, so the bar is a
+// picture of the number printed next to it. They add up to the R$ 184.320 on
+// the card above, the way they do in the app.
 const APP_BARS: [string, number, string][] = [
-  ["Mercado Livre", 92, "R$ 12.880"],
-  ["Shopee", 64, "R$ 7.410"],
-  ["Amazon", 48, "R$ 5.960"],
-  ["TikTok Shop", 34, "R$ 3.520"],
-  ["Shein", 20, "R$ 1.770"],
+  ["Mercado Livre", 92, "R$ 65.740"],
+  ["Shopee", 64, "R$ 45.720"],
+  ["Amazon", 48, "R$ 34.290"],
+  ["TikTok Shop", 34, "R$ 24.290"],
+  ["Shein", 20, "R$ 14.280"],
 ];
 
 const STEPS = [
@@ -755,7 +758,7 @@ export default function InicioPage() {
                     ))}
                   </div>
                   <div className="flex flex-col gap-3 rounded-[14px] border border-white/[.06] bg-white/[.03] px-[18px] py-4">
-                    <span className="text-sm font-bold">Vendas e lucro por marketplace</span>
+                    <span className="text-sm font-bold">Vendas por marketplace</span>
                     {/* Three columns need about 210 px of fixed width, which
                         left the bar nine pixels wide on a phone. Below that
                         the name and the figure share a line and the bar gets
@@ -785,7 +788,7 @@ export default function InicioPage() {
                       ))}
                     </div>
                     <span className="text-xs text-[#7E8AB0]">
-                      Barras: vendas no mês · Valor: lucro
+                      A barra é a fatia de cada canal nas vendas do mês.
                     </span>
                   </div>
                 </div>
