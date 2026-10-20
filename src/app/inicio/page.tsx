@@ -157,6 +157,33 @@ const APP_BARS: [string, number, string][] = [
   ["Shein", 20, "R$ 14.280"],
 ];
 
+const PARTNERS = [
+  {
+    photo: "/socios/guilherme.jpg",
+    name: "Guilherme",
+    role: "Marketplaces e TikTok Shop",
+    text: "Da garagem de casa a um galpão de 1.000 m² importando sazonais. Hoje, com operação 100% Full.",
+  },
+  {
+    photo: "/socios/nicolas.jpg",
+    name: "Nicolas",
+    role: "Shein e Amazon",
+    text: "Tem marca própria de joias no interior há 4 anos e hoje também vende no e-commerce.",
+  },
+  {
+    photo: "/socios/jean.jpg",
+    name: "Jean",
+    role: "ML e Shopee",
+    text: "Veio do mercado financeiro, com FIDCs e CRIs, e traz o olhar do mercado para o marketplace.",
+  },
+  {
+    photo: "/socios/leo.jpg",
+    name: "Léo",
+    role: "ML e Amazon",
+    text: "Do Asset Management do Santander a um galpão de 1.000 m² vendendo produtos sazonais. Hoje, com operação 100% Full.",
+  },
+];
+
 const STEPS = [
   { n: "01", title: "Diagnóstico", text: "Analisamos contas, anúncios, preços e campanhas para achar onde está o dinheiro parado." },
   { n: "02", title: "Plano de ação", text: "Definimos metas, prioridades e canais de acordo com o momento e o caixa do seu negócio." },
@@ -846,41 +873,48 @@ export default function InicioPage() {
             "radial-gradient(ellipse 50% 60% at 15% 50%, rgba(47,85,228,0.30), transparent 70%), linear-gradient(180deg, #060A18, #0A1230 50%, #060A18)",
         }}
       >
-        <div className={`${WRAP} flex flex-wrap items-center gap-10 sm:gap-16`}>
-          <div className="grid min-w-0 flex-1 basis-[440px] grid-cols-2 gap-4">
-            {[
-              { slot: "[FOTO SÓCIO 1]", role: "[CARGO — ex.: Sócio e head de operação]", offset: false },
-              { slot: "[FOTO SÓCIO 2]", role: "[CARGO — ex.: Sócio e head de Ads]", offset: true },
-            ].map((p) => (
-              <div key={p.slot} className={`flex flex-col gap-3.5 ${p.offset ? "sm:pt-14" : ""}`}>
-                <div className="lp-glass flex aspect-[4/5] items-center justify-center rounded-3xl border-dashed font-bold text-[#7E8AB0]">
-                  {p.slot}
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[19px] font-extrabold">[NOME]</span>
-                  <span className="text-[15px] text-[#A3AECF]">{p.role}</span>
+        <div className={`${WRAP} flex flex-col gap-10 sm:gap-[52px]`}>
+          <div className="flex max-w-[820px] flex-col gap-5">
+            <span className="lp-eyebrow">Quem somos</span>
+            <h2 className="lp-h2 m-0 font-light">
+              Quem vai <span className="lp-tg font-extrabold">cuidar</span> das suas contas
+            </h2>
+            <p className="m-0 text-lg text-[#A3AECF]">
+              Há 4 anos ajudamos lojistas a crescer no Mercado Livre, Amazon, Shopee, TikTok Shop e
+              Shein — e já são mais de R$ 20 milhões faturados pelos nossos clientes.
+            </p>
+          </div>
+
+          <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(230px,1fr))]">
+            {PARTNERS.map((partner) => (
+              <div
+                key={partner.name}
+                className="lp-glass flex flex-col overflow-hidden rounded-3xl"
+              >
+                <Image
+                  src={partner.photo}
+                  alt={partner.name}
+                  width={231}
+                  height={153}
+                  className="h-auto w-full object-cover"
+                />
+                <div className="flex flex-col gap-2 p-6">
+                  <span className="text-[21px] font-extrabold leading-tight">{partner.name}</span>
+                  <span className="lp-tb text-[13px] font-bold uppercase tracking-[0.12em]">
+                    {partner.role}
+                  </span>
+                  <p className="m-0 text-[15px] text-[#A3AECF]">{partner.text}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="flex min-w-0 flex-1 basis-[480px] flex-col gap-[22px]">
-            <span className="lp-eyebrow">Quem está por trás</span>
-            <h2 className="lp-h2-sm m-0 font-light">
-              Quem vende em marketplace,{" "}
-              <span className="lp-tg font-extrabold">falando com quem vende</span> em marketplace
-            </h2>
-            <p className="m-0 text-lg text-[#A3AECF]">
-              [HISTÓRIA DOS SÓCIOS — como a TAKT começou, a experiência de vocês com operação própria e o
-              que os motivou a montar a assessoria.]
-            </p>
-            <p className="m-0 text-lg text-[#A3AECF]">
-              Há 4 anos ajudamos lojistas a crescer no Mercado Livre, Amazon, Shopee, TikTok Shop e Shein
-              — e já são mais de R$ 20 milhões faturados pelos nossos clientes.
-            </p>
-            <a href="#contato" className="lp-btn lp-btn-ghost self-start px-[30px] py-[17px] text-base font-bold">
-              Falar com os sócios
-            </a>
-          </div>
+
+          <a
+            href="#contato"
+            className="lp-btn lp-btn-ghost self-start px-[30px] py-[17px] text-base font-bold"
+          >
+            Falar com os sócios
+          </a>
         </div>
       </section>
 
