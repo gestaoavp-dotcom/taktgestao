@@ -894,9 +894,10 @@ export default function InicioPage() {
                 <Image
                   src={partner.photo}
                   alt={partner.name}
-                  width={231}
-                  height={153}
-                  className="h-auto w-full object-cover"
+                  width={744}
+                  height={496}
+                  sizes="(max-width: 640px) 92vw, 280px"
+                  className="aspect-[3/2] w-full object-cover"
                 />
                 <div className="flex flex-col gap-2 p-6">
                   <span className="text-[21px] font-extrabold leading-tight">{partner.name}</span>
