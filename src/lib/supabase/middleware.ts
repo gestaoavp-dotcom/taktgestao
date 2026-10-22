@@ -3,11 +3,20 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
   // The public pages are for people with no login at all.
+  //
+  // /api/meli is here for the same reason, not because it is open: the
+  // Mercado Livre handshake arrives in the client's own browser, which has no
+  // login of ours, and the sync arrives from a cron, which has no browser.
+  // Sending either to /login would break the flow before the handler could
+  // say no. Each of those routes proves its own caller — a single-use invite
+  // for the handshake, CRON_SECRET for the sync — so the check moved into the
+  // handler rather than disappearing.
   if (
     request.nextUrl.pathname.startsWith("/contato") ||
     request.nextUrl.pathname.startsWith("/inicio") ||
     request.nextUrl.pathname.startsWith("/calculadora") ||
-    request.nextUrl.pathname.startsWith("/acesso")
+    request.nextUrl.pathname.startsWith("/acesso") ||
+    request.nextUrl.pathname.startsWith("/api/meli")
   ) {
     return NextResponse.next({ request });
   }

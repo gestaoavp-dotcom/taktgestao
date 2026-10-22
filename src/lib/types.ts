@@ -311,3 +311,21 @@ export type ProductCostChange = {
   changed_by: string | null;
   changed_at: string;
 };
+
+/**
+ * One Mercado Livre store and what the connection to it looks like, as
+ * `meli_connections_for_client` returns it. Deliberately holds nothing of the
+ * tokens themselves — not even whether a column exists, beyond `connected`.
+ */
+export type MeliStoreStatus = {
+  account_id: string;
+  store_name: string;
+  seller_id: string | null;
+  nickname: string | null;
+  site_id: string | null;
+  status: "ativa" | "reautorizar" | "desativada" | "sem_conexao";
+  connected: boolean;
+  expires_at: string | null;
+  last_error: string | null;
+  last_sync_at: string | null;
+};

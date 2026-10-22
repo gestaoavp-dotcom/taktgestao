@@ -7,6 +7,7 @@ import type {
   ClientCnpj,
   ClientFeeChange,
   ClientFile,
+  MeliStoreStatus,
 } from "@/lib/types";
 import { InformacoesSubTabs } from "@/components/informacoes-sub-tabs";
 import { ClientRegistrationCard } from "@/components/client-registration-card";
@@ -14,6 +15,7 @@ import { ClientBillingCard } from "@/components/client-billing-card";
 import { ClientAccountsCard } from "@/components/client-accounts-card";
 import { ClientFilesCard } from "@/components/client-files-card";
 import { ClientFeeHistoryCard } from "@/components/client-fee-history-card";
+import { ClientMeliCard } from "@/components/client-meli-card";
 
 export default async function ClienteInformacoesPage({
   params,
@@ -34,6 +36,7 @@ export default async function ClienteInformacoesPage({
     { data: cnpjs },
     { data: feeChanges },
     { data: files },
+    { data: meliStores },
   ] = await Promise.all([
     supabase.from("clients").select("*").eq("id", id).maybeSingle<Client>(),
     supabase
@@ -60,6 +63,10 @@ export default async function ClienteInformacoesPage({
       .eq("client_id", id)
       .order("created_at", { ascending: false })
       .returns<ClientFile[]>(),
+    // A function, not a table read: meli_connections denies everyone through
+    // PostgREST, and this returns the store's situation without the tokens
+    // being nameable in the first place.
+    supabase.rpc("meli_connections_for_client", { p_client_id: id }),
   ]);
 
   if (!client) return null;
@@ -83,6 +90,11 @@ export default async function ClienteInformacoesPage({
             cnpjs={cnpjs ?? []}
           />
         </div>
+
+        <ClientMeliCard
+          clientId={id}
+          stores={(meliStores ?? []) as MeliStoreStatus[]}
+        />
 
         <ClientFilesCard clientId={id} files={files ?? []} />
 
